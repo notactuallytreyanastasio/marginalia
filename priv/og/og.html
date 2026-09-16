@@ -1,0 +1,64 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  :root{
+    --paper:#fbfaf7; --ink:#1c1a17; --dim:#6b665e; --rule:#e0dbd2;
+    --accent:#8a3324; --margin:#f4f1ea;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:1200px;height:630px;background:var(--paper);color:var(--ink);
+       font-family:var(--serif);overflow:hidden}
+  .frame{position:absolute;inset:0;padding:64px 72px;display:flex;flex-direction:column}
+
+  .brand{font-family:var(--sans);font-size:17px;letter-spacing:.24em;
+         text-transform:uppercase;font-weight:600;color:var(--ink)}
+  .brand span{color:var(--dim);font-weight:400;margin-left:14px;letter-spacing:.18em}
+
+  .body{flex:1;display:grid;grid-template-columns:minmax(0,560px) 1fr 340px;
+        align-items:center;margin-top:8px}
+
+  h1{grid-column:1;font-size:60px;line-height:1.1;letter-spacing:-.024em;
+     font-weight:600;padding-right:8px}
+  h1 em{font-style:normal;color:var(--accent)}
+
+  .leader{grid-column:2;border-top:1px dotted #c3bcb0;height:0;margin:0 22px}
+
+  aside{grid-column:3}
+  .note{background:var(--margin);border-left:3px solid var(--accent);
+        padding:18px 20px;border-radius:0 3px 3px 0;
+        font-family:var(--sans);font-size:16.5px;line-height:1.55}
+  .note .who{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+             color:var(--dim);margin-bottom:9px;font-weight:600}
+  .note q{quotes:none;display:block;border-left:2px solid var(--rule);padding-left:11px;
+          margin:11px 0 0;color:var(--dim);font-family:var(--serif);font-size:16px}
+
+  .foot{display:flex;align-items:baseline;gap:18px;
+        border-top:1px solid var(--rule);padding-top:20px}
+  .foot .lede{font-family:var(--serif);font-size:20px;color:var(--dim)}
+  .foot .url{margin-left:auto;font-family:var(--sans);font-size:14px;
+             letter-spacing:.06em;color:var(--dim)}
+</style></head>
+<body>
+  <div class="frame">
+    <div class="brand">Marginalia <span>a reader for drafts</span></div>
+
+    <div class="body">
+      <h1>Someone who has actually read <em>the whole thing</em>.</h1>
+      <div class="leader"></div>
+      <aside>
+        <div class="note">
+          <span class="who">Tension</span>
+          Your opening promises a book about grief. Chapter nine is the best thing here,
+          and it belongs to a different one.
+          <q>“I hadn’t cried since the funeral, and I didn’t start now.”</q>
+        </div>
+      </aside>
+    </div>
+
+    <div class="foot">
+      <span class="lede">It reads. You decide.</span>
+      <span class="url">marginalia.bobbby.online</span>
+    </div>
+  </div>
+</body></html>

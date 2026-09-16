@@ -1,0 +1,6 @@
+# Drafts are private by link — the URL is the permission. Nothing under
+# /works should be crawled, and the pages themselves also send
+# "noindex, nofollow" because robots.txt only asks politely.
+User-agent: *
+Disallow: /works/
+Disallow: /users/
