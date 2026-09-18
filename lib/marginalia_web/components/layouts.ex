@@ -137,6 +137,7 @@ defmodule MarginaliaWeb.Layouts do
             <%!-- a link belongs to two drafts and shows under both, so it
                   needs a place of its own to be listed --%>
             <.link navigate={~p"/links"}>Linked</.link>
+            <.link navigate={~p"/cuts"}>Cuts</.link>
             <.link navigate={~p"/works/new"}>New draft</.link>
             <.link navigate={~p"/users/settings"}>{@current_scope.user.email}</.link>
             <.link href={~p"/users/log-out"} method="delete">Log out</.link>
