@@ -322,6 +322,7 @@ body {
   outline: none;
   border-color: var(--mg-accent);
 }
+.mg-input.sm { font-size: 0.78rem; padding: 0.3rem 0.5rem; }
 .mg-textarea { line-height: 1.6; resize: vertical; }
 .mg-field { display: block; margin-bottom: 1rem; }
 .mg-field > .mg-label { display: block; margin-bottom: 0.35rem; }
@@ -357,6 +358,98 @@ body {
 }
 .mg-row:last-child { border-bottom: 0; }
 .mg-row .n { font-family: var(--mg-mono); font-size: 0.72rem; color: var(--mg-dim); width: 1.6rem; flex: none; }
+
+/* --- the draft tree ------------------------------------------------------- */
+/* Folders and drafts in one column. Depth is an inline padding-left rather
+   than a nested border, so a row's whole width stays a drop target: a thin
+   strip beside the name is a game of darts, not a filing system. */
+.mg-tree { user-select: none; }
+.mg-tree-root { min-height: 6rem; border-radius: 3px; }
+.mg-tree-hint { font-family: var(--mg-mono); font-size: 0.7rem; color: var(--mg-dim); padding: 0.9rem 0.4rem; }
+.mg-newfolder { width: 11rem; }
+.mg-tidy {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--mg-dim);
+  padding: 0.7rem 0.4rem 0;
+}
+
+.mg-frow, .mg-wrow {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  padding-right: 0.4rem;
+  border-bottom: 1px solid var(--mg-rule);
+  border-radius: 2px;
+}
+.mg-frow { background: var(--mg-margin); }
+.mg-wrow { cursor: grab; }
+.mg-wrow:active { cursor: grabbing; }
+
+.mg-twist {
+  font-size: 0.8rem;
+  color: var(--mg-dim);
+  width: 1rem;
+  flex: none;
+  line-height: 1;
+}
+.mg-twist:hover { color: var(--mg-accent); }
+
+.mg-fname {
+  font-family: var(--mg-serif);
+  font-size: 1.05rem;
+  text-align: left;
+  flex: 1;
+  min-width: 0;
+}
+.mg-fname:hover { color: var(--mg-accent); }
+
+.mg-frow-tools { display: flex; gap: 0.3rem; opacity: 0; }
+.mg-frow:hover .mg-frow-tools, .mg-frow:focus-within .mg-frow-tools { opacity: 1; }
+
+/* A rail down the left of a folder's contents, at the depth its children
+   are indented to. It is drawn rather than bordered because the indent is
+   padding on each row, not margin on the container: rows keep their full
+   width so the whole strip is a drop target and the badges down the right
+   stay in one column. */
+.mg-fkids { position: relative; }
+.mg-fkids::before {
+  content: "";
+  position: absolute;
+  left: var(--rail, 1rem);
+  top: 0;
+  bottom: 0;
+  border-left: 1px solid var(--mg-rule);
+}
+
+.mg-fempty {
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--mg-dim);
+  padding: 0.5rem 0 0.5rem calc(var(--rail, 1rem) + 0.7rem);
+}
+
+.mg-grip {
+  font-family: var(--mg-mono);
+  font-size: 0.75rem;
+  color: var(--mg-rule);
+  flex: none;
+  cursor: grab;
+}
+.mg-wrow:hover .mg-grip { color: var(--mg-dim); }
+
+/* The dragged row stays in place and goes pale; nothing here animates, so a
+   half-second drag does not turn the list into weather. */
+.is-dragging { opacity: 0.35; }
+.is-over {
+  background: var(--mg-mark);
+  box-shadow: inset 0 0 0 1px var(--mg-accent);
+}
+.mg-tree-root.is-over { background: transparent; box-shadow: inset 0 0 0 1px var(--mg-accent); }
 
 /* --- the graph ------------------------------------------------------------ */
 .mg-graph { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 0; }

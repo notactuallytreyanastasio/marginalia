@@ -20,6 +20,10 @@ defmodule Marginalia.Works.Work do
     field :first_impression, :string
 
     belongs_to :user, Marginalia.Accounts.User
+    # where the writer filed it; nil is the top of their tree. Moves go
+    # through `Marginalia.Folders`, not through this changeset — filing a
+    # draft must not have to satisfy the rules for writing one.
+    belongs_to :folder, Marginalia.Folders.Folder
     has_many :sections, Marginalia.Works.Section, preload_order: [asc: :ordinal]
     has_many :nodes, Marginalia.Works.Node
 
