@@ -270,6 +270,7 @@ defmodule MarginaliaWeb.LandingLive do
       <div class="mg-head">
         <span class="mg-brand">Marginalia</span>
         <span class="right">
+          <.link navigate={~p"/cases"}>Cases</.link>
           <button class={"mg-toggle" <> if(@notes_only, do: " on", else: "")} phx-click="toggle_notes">
             just the notes
           </button>

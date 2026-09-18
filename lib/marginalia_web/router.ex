@@ -59,6 +59,24 @@ defmodule MarginaliaWeb.Router do
     end
   end
 
+  # The cases are the public face of this and they are read-only, so they
+  # get no guest account. Minting one on arrival meant every crawler and
+  # every `curl` became a row in `users` — 762 of them to serve five
+  # people who actually uploaded anything. The one thing these pages
+  # remembered about a visitor was whether they had seen the tour, and
+  # that is a fact about a browser, so it lives in one now.
+  scope "/", MarginaliaWeb do
+    pipe_through :browser
+
+    live_session :cases,
+      on_mount: [{MarginaliaWeb.UserAuth, :mount_current_scope}] do
+      live "/cases", CaseLive.Index, :index
+      live "/cases/:slug", CaseLive.Show, :show
+      live "/cases/:slug/read", CaseLive.Read, :read
+      live "/cases/:slug/read/:lead", CaseLive.Read, :read
+    end
+  end
+
   ## Authentication routes
 
   # Reading a draft does not require an account. A visitor gets a guest user
@@ -66,6 +84,12 @@ defmodule MarginaliaWeb.Router do
   # owner and no guest can reach another guest's work.
   scope "/", MarginaliaWeb do
     pipe_through [:browser, :ensure_user_or_guest]
+
+    # Where the upload form lands when no live socket is driving it. The
+    # form is `method="post"` with no JavaScript of its own, so a browser
+    # whose websocket died submits it here; without this route Phoenix
+    # raised NoRouteError and the writer got a 404 with their text gone.
+    post "/works/new", WorkController, :create
 
     get "/works/:id/graph.json", GraphController, :json
     get "/works/:id/graph.dot", GraphController, :dot
@@ -76,7 +100,10 @@ defmodule MarginaliaWeb.Router do
       live "/works", WorkLive.Index, :index
       live "/works/new", WorkLive.New, :new
       live "/works/:id", WorkLive.Show, :show
-      live "/links/:id", LinkLive.Show, :show
+      live "/links", LinkLive.Index, :index
+      # the split view is gone; /read stays an alias so links already sent
+      # to people keep working
+      live "/links/:id", LinkLive.Read, :show
       live "/links/:id/read", LinkLive.Read, :read
     end
   end

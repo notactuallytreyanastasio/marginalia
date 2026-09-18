@@ -39,3 +39,18 @@ config :phoenix_live_view,
 # Sort query params output of verified routes for robust url comparisons
 config :phoenix,
   sort_verified_routes_query_params: true
+
+# No key, and nowhere to send it. config/runtime.exs skips the keys in
+# test, and this makes the suite hermetic even if something sets one:
+# 127.0.0.1:1 refuses instantly rather than reaching the internet.
+config :marginalia, :deepseek_api_key, nil
+config :marginalia, :openai_api_key, nil
+
+config :marginalia, :llm_endpoints, %{
+  deepseek_api_key: "http://127.0.0.1:1/chat/completions",
+  openai_api_key: "http://127.0.0.1:1/v1/chat/completions"
+}
+
+# No backing off from a port that is closed on purpose: the retries took
+# seconds each and outlived the test that started them.
+config :marginalia, :llm_backoff_ms, 0

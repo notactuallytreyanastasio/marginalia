@@ -14,11 +14,15 @@ defmodule MarginaliaWeb.Layouts do
   @tagline "Someone who has actually read the whole thing"
   # "It never writes a word of your book" stood here until rewrites shipped.
   # A description that contradicts the product is worse than a duller one.
+  @og_alt "Marginalia, a reader for drafts. A note in the margin reads: your opening promises a book about grief, chapter nine is the best thing here, and it belongs to a different one."
   @pitch "Upload a draft. It reads end to end, maps what's on the page, and argues with you in the margin — a thread on any paragraph, anchored to your own sentences."
 
   attr :page_title, :string, default: nil
   attr :page_description, :string, default: nil
   attr :page_robots, :string, default: nil
+  attr :page_image, :string, default: nil
+  attr :page_image_alt, :string, default: nil
+  attr :page_url, :string, default: nil
 
   @doc """
   The title, the description, and what a link to this looks like pasted
@@ -34,13 +38,22 @@ defmodule MarginaliaWeb.Layouts do
   window. Its source is `priv/og/og.html`, rendered to
   `priv/static/images/og.png` at 2400x1260 (the 1.91:1 every card wants, at
   2x so it stays sharp).
+
+  A page that is its own thing can say so: `page_image` and `page_url`
+  override the site card and the canonical link. The url mattered more than
+  it looks — every page was declaring `og:url` as the site root, so a link
+  to any particular case unfurled as a link to the front door and, worse,
+  told the scrapers they were the same page.
   """
   def head_meta(assigns) do
     assigns =
       assign(assigns,
         tagline: @tagline,
         title: assigns.page_title || @tagline,
-        description: assigns.page_description || @pitch
+        description: assigns.page_description || @pitch,
+        image: absolute(assigns.page_image || ~p"/images/og.png"),
+        image_alt: assigns.page_image_alt || @og_alt,
+        canonical: absolute(assigns.page_url || ~p"/")
       )
 
     ~H"""
@@ -52,21 +65,26 @@ defmodule MarginaliaWeb.Layouts do
     <meta property="og:site_name" content="Marginalia" />
     <meta property="og:title" content={@title} />
     <meta property="og:description" content={@description} />
-    <meta property="og:url" content={url(~p"/")} />
-    <meta property="og:image" content={url(~p"/images/og.png")} />
+    <meta property="og:url" content={@canonical} />
+    <link rel="canonical" href={@canonical} />
+    <meta property="og:image" content={@image} />
     <meta property="og:image:width" content="2400" />
     <meta property="og:image:height" content="1260" />
-    <meta
-      property="og:image:alt"
-      content="Marginalia, a reader for drafts. A note in the margin reads: your opening promises a book about grief, chapter nine is the best thing here, and it belongs to a different one."
-    />
+    <meta property="og:image:alt" content={@image_alt} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={@title} />
     <meta name="twitter:description" content={@description} />
-    <meta name="twitter:image" content={url(~p"/images/og.png")} />
+    <meta name="twitter:image" content={@image} />
     <meta name="theme-color" content="#fbfaf7" />
     """
   end
+
+  # `url/1` is a macro over a verified route and cannot take a path worked
+  # out at runtime, which is what a per-page card image or canonical link
+  # is. Already-absolute values pass through, so a page can point its card
+  # at something hosted elsewhere.
+  defp absolute("http" <> _ = url), do: url
+  defp absolute(path), do: MarginaliaWeb.Endpoint.url() <> path
 
   @doc """
   Renders your app layout.
@@ -99,14 +117,26 @@ defmodule MarginaliaWeb.Layouts do
     <header class="mg-bar">
       <a href="/" class="mg-brand">Marginalia <span>a reader for drafts</span></a>
       <nav>
+        <%!-- Cases is outside the branches: the collections are published
+              deliberately and are readable by anyone, so hiding the way to
+              them behind a login was hiding the only public thing here. --%>
+        <.link navigate={~p"/cases"}>Cases</.link>
+
+        <%!-- The scope exists for a signed-out visitor too, with no user
+              in it. Testing the scope alone read as "logged in" and then
+              dereferenced nil — which nothing hit only because every page
+              using this layout minted a guest on arrival. --%>
         <%= cond do %>
-          <% @current_scope && @current_scope.user.is_guest -> %>
+          <% @current_scope && @current_scope.user && @current_scope.user.is_guest -> %>
             <.link navigate={~p"/works"}>Drafts</.link>
             <.link navigate={~p"/works/new"}>New draft</.link>
             <span class="text-[var(--mg-dim)] opacity-70">guest</span>
             <.link navigate={~p"/users/register"} class="mg-btn sm">Keep my drafts</.link>
-          <% @current_scope -> %>
+          <% @current_scope && @current_scope.user -> %>
             <.link navigate={~p"/works"}>Drafts</.link>
+            <%!-- a link belongs to two drafts and shows under both, so it
+                  needs a place of its own to be listed --%>
+            <.link navigate={~p"/links"}>Linked</.link>
             <.link navigate={~p"/works/new"}>New draft</.link>
             <.link navigate={~p"/users/settings"}>{@current_scope.user.email}</.link>
             <.link href={~p"/users/log-out"} method="delete">Log out</.link>

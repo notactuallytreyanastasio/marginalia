@@ -1,0 +1,21 @@
+#!/bin/bash
+# Run the suite and fail loudly.
+#
+# `mix test | tail` reports tail's exit status, not the suite's, so a
+# `mix test | tail && ./deploy.sh` chain will happily deploy over a red
+# test. That happened; this is so it cannot happen again.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+# A bash shell does not activate mise, so `mix` here is whatever Elixir is
+# on the system — 1.18 on this machine, against a project that needs
+# 1.19. The suite then fails to compile and looks like a red test.
+export PATH="$HOME/.local/share/mise/shims:$PATH"
+log=$(mktemp)
+if mix test > "$log" 2>&1; then
+  tail -3 "$log"
+else
+  tail -40 "$log"
+  echo "TESTS FAILED — not deploying" >&2
+  exit 1
+fi

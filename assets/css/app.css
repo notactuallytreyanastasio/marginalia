@@ -1507,270 +1507,6 @@ body {
   .mg-walk-ring, .mg-walk-card { transition: none; }
 }
 
-/* --- two drafts, side by side ---------------------------------------------
-   The split is the feature. A relationship between two documents reads as a
-   fact in a list and as an argument when the two passages are level with
-   each other, so the columns scroll independently and the annotations bring
-   them into line. */
-.lk {
-  display: flex;
-  flex-direction: column;
-  /* the bar is the only thing above it, and the columns do the scrolling */
-  height: calc(100dvh - var(--mg-bar-h, 3.4rem));
-}
-
-.lk-head {
-  display: flex;
-  align-items: baseline;
-  gap: 1.25rem;
-  padding: 0.45rem 1.15rem;
-  border-bottom: 1px solid var(--mg-rule);
-}
-
-/* the relationship, in one line until you want the rest of it */
-.lk-sum { flex: 1; min-width: 0; }
-.lk-sum summary {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  cursor: pointer;
-  list-style: none;
-}
-.lk-sum summary::-webkit-details-marker { display: none; }
-.lk-sum .peek {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.78rem;
-  color: var(--mg-dim);
-}
-.lk-sum[open] .peek { display: none; }
-.lk-sum .more {
-  flex: none;
-  font-family: var(--mg-sans);
-  font-size: 0.66rem;
-  color: var(--mg-dim);
-  border-bottom: 1px dotted var(--mg-rule);
-}
-.lk-sum .more::after { content: "more"; }
-.lk-sum[open] .more::after { content: "less"; }
-.lk-sum summary:hover .more { color: var(--mg-accent); }
-.lk-sum > p {
-  font-size: 0.8rem;
-  line-height: 1.55;
-  color: var(--mg-dim);
-  margin: 0.4rem 0 0.15rem;
-  max-width: 88ch;
-}
-
-.lk-legend { display: flex; gap: 0.9rem; flex-wrap: wrap; flex: none; }
-
-.lk-split {
-  display: grid;
-  /* the gutter is wide enough to draw in — the whole point of the split is
-     that you can see the relationship, not just infer it from two
-     highlights */
-  grid-template-columns: minmax(0, 1fr) 3rem minmax(0, 1fr);
-  flex: 1;
-  min-height: 0;
-}
-.lk-gutter {
-  position: relative;
-  border-left: 1px solid var(--mg-rule);
-  border-right: 1px solid var(--mg-rule);
-  background: var(--mg-margin);
-}
-.lk-wire {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  pointer-events: none;
-}
-.lk-wire .w {
-  stroke: var(--mg-dim);
-  stroke-width: 2.5;
-  stroke-linecap: round;
-}
-.lk-wire circle { fill: var(--mg-dim); stroke: var(--mg-paper); stroke-width: 2; }
-.lk-wire[data-kind="tension"] .w,
-.lk-wire[data-kind="tension"] circle { stroke: var(--mg-accent); fill: var(--mg-accent); }
-.lk-wire[data-kind="answers"] .w,
-.lk-wire[data-kind="answers"] circle { stroke: #1e3a8a; fill: #1e3a8a; }
-.lk-wire[data-kind="echoes"] .w,
-.lk-wire[data-kind="echoes"] circle { stroke: #0891b2; fill: #0891b2; }
-.lk-wire[data-kind="pays_off"] .w,
-.lk-wire[data-kind="pays_off"] circle { stroke: #166534; fill: #166534; }
-.lk-wire[data-kind="requires"] .w,
-.lk-wire[data-kind="requires"] circle { stroke: #b45309; fill: #b45309; }
-
-.lk-colwrap { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-.lk-colhead {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  padding: 0.35rem 1.15rem;
-  border-bottom: 1px solid var(--mg-rule);
-  background: var(--mg-margin);
-}
-.lk-colhead .t {
-  font-family: var(--mg-serif);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--mg-ink);
-  text-decoration: none;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.lk-colhead .t:hover { color: var(--mg-accent); }
-.lk-colhead .n {
-  margin-left: auto;
-  font-family: var(--mg-mono);
-  font-size: 0.66rem;
-  color: var(--mg-dim);
-  flex: none;
-}
-
-.lk-col {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 1rem 1.15rem 60vh;
-  scroll-behavior: smooth;
-}
-/* the tail padding is deliberate: without it the last paragraph can never be
-   brought level with one near the top of the other column */
-
-.lk-sec { margin: 1.5rem 0 0.7rem; }
-.lk-sec:first-child { margin-top: 0; }
-.lk-sec h2 {
-  font-family: var(--mg-serif);
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-top: 0.15rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--mg-rule);
-}
-
-.lk-block {
-  position: relative;
-  padding: 0.15rem 0.7rem;
-  border-left: 2px solid transparent;
-  border-radius: 0 3px 3px 0;
-  transition: background 0.3s ease, border-color 0.3s ease;
-}
-.lk-block.linked { border-left-color: var(--mg-rule); }
-.lk-block.paired { background: #fdf8ec; border-left-color: var(--mg-accent); }
-
-/* the sentences the edge is actually about, lit on both sides together —
-   the block tells you which paragraph, this tells you which words */
-.lk-block.paired .lk-prose mark {
-  background: #f7d774;
-  box-shadow: 0 0 0 2px #f7d774;
-  border-radius: 1px;
-}
-
-/* Everything else steps back. A wire between two paragraphs is only obvious
-   if the two paragraphs are the only thing on the page that is still lit —
-   two highlights in a wall of highlights is a puzzle, not an answer. */
-.lk.focused .lk-block:not(.paired) { opacity: 0.32; }
-.lk.focused .lk-sec { opacity: 0.32; }
-.lk-block, .lk-sec { transition: opacity 0.25s ease; }
-
-/* the two related passages, each in a box, with the wire running between
-   them — an outline says "this, exactly this", where a tint says "somewhere
-   around here" */
-.lk-block.paired {
-  background: #fdf8ec;
-  border-color: var(--mg-accent);
-  outline: 2px solid var(--mg-accent);
-  outline-offset: -1px;
-  border-radius: 3px;
-}
-.lk.focused .lk-block.paired { opacity: 1; }
-
-.lk-prose { font-family: var(--mg-serif); font-size: 1rem; line-height: 1.68; }
-.lk-prose p { margin: 0 0 1rem; }
-.lk-prose mark { background: var(--mg-mark); padding: 0 0.08em; }
-
-.lk-notes { display: flex; flex-direction: column; gap: 0.4rem; margin: 0 0 1rem; }
-.lk-note {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0.5rem 0.65rem;
-  background: var(--mg-margin);
-  border: 0;
-  border-left: 2px solid var(--mg-dim);
-  border-radius: 0 3px 3px 0;
-  cursor: pointer;
-  font-family: var(--mg-sans);
-  transition: background 0.15s ease;
-}
-.lk-note:hover { background: var(--mg-rule); }
-.lk-note.open { background: var(--mg-mark); }
-.lk-note .who {
-  display: block;
-  font-size: 0.6rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--mg-dim);
-}
-.lk-note .said {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 600;
-  line-height: 1.35;
-  margin-top: 0.2rem;
-}
-.lk-note .why {
-  display: block;
-  font-size: 0.76rem;
-  line-height: 1.5;
-  color: var(--mg-dim);
-  margin-top: 0.25rem;
-}
-
-/* the vocabulary keeps its colours from the single-document graph */
-.lk-note.tension { border-left-color: var(--mg-accent); background: #fbf1ee; }
-.lk-note.answers { border-left-color: #1e3a8a; }
-.lk-note.echoes { border-left-color: #0891b2; }
-.lk-note.pays_off { border-left-color: #166534; }
-.lk-note.requires { border-left-color: #b45309; }
-
-/* the far end is a claim about the whole draft, with no paragraph to sit by */
-.lk-note.no-peer { animation: lk-shake 0.4s ease; }
-.lk-note.no-peer::after {
-  content: "that end is about the whole draft, not one paragraph";
-  display: block;
-  margin-top: 0.3rem;
-  font-size: 0.68rem;
-  color: var(--mg-accent);
-}
-@keyframes lk-shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-3px); }
-  75% { transform: translateX(3px); }
-}
-
-@media (max-width: 900px) {
-  .lk { height: auto; }
-  .lk-split { grid-template-columns: minmax(0, 1fr); }
-  .lk-gutter { display: none; }
-  .lk-col { overflow: visible; padding-bottom: 2rem; }
-  .lk-colwrap + .lk-colwrap { border-top: 2px solid var(--mg-rule); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .lk-col { scroll-behavior: auto; }
-  .lk-note.no-peer { animation: none; }
-}
-
 /* --- read one, the other follows -----------------------------------------
    Left is read, right is driven. Both are whole documents in their own
    scroll; the strip between them carries the reason, because the reason
@@ -2002,12 +1738,255 @@ body {
 .fl-tag.pays_off { color: #166534; }
 .fl-tag.requires { color: #b45309; }
 
+/* the far passage: only a phone needs it in the strip */
+.fl-strip .far { display: none; }
+
+/* --- the phone ------------------------------------------------------------
+   Two columns of prose will not fit, and neither will a permanent strip:
+   the first attempt spent six hundred pixels on chrome and a bottom
+   sheet, leaving a sliver of reading squeezed between them. So the
+   reading gets the screen, and the reference is somewhere you go — tap
+   a highlighted passage and the other document comes up in full, tap
+   away and you are back where you were. */
 @media (max-width: 1100px) {
-  .fl { height: auto; }
+  .fl { height: calc(100dvh - var(--mg-bar-h, 3.4rem)); }
   .fl-split { grid-template-columns: minmax(0, 1fr); }
-  .fl-col { overflow: visible; padding-bottom: 2rem; }
-  .fl-mid { border: 0; border-top: 1px solid var(--mg-rule); position: sticky; top: 0; z-index: 3; }
+  .fl-col.lead { overflow-y: auto; padding-bottom: 4rem; }
+  .fl-col.other { display: none; }
+  .fl-wire { display: none; }
+
+  /* the chrome, cut to what a phone can spare */
+  .fl-bar {
+    gap: 0.6rem;
+    padding: 0.35rem 0.75rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .fl-bar::-webkit-scrollbar { display: none; }
+  .fl-bar > * { flex: none; }
+  .fl-sum, .fl-count { display: none; }
+  .fl-legend { gap: 0.5rem; }
+  .fl-legend .mg-tab { font-size: 0.62rem; }
+  .fl-swap { font-size: 0.66rem; }
+  .fl-colhead { padding: 0.35rem 0.75rem; }
+  .fl-colhead .mg-label { font-size: 0.55rem; }
+  .fl-colhead a, .fl-colhead .t { font-size: 0.85rem; }
+
+  /* a tap is the only pointer here, so the target has to look like one */
+  .fl-col.lead .fl-block.linked { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .fl-col.lead .fl-block.linked:active { background: var(--mg-margin); }
+
+  /* the reference, as a place rather than a strip */
+  .fl-mid {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: none;
+    border: 0;
+    background: rgb(28 26 23 / 0.32);
+  }
+  .fl-mid.open { display: block; }
+  .fl-idle { display: none; }
+
+  /* the stack is the phone's sheet; the strip is the wide screen's */
+  .fl-strip { display: none; }
+
+  .fl-sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 88dvh;
+    background: var(--mg-paper);
+    border-top: 1px solid var(--mg-ink);
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -14px 44px rgb(28 26 23 / 0.3);
+  }
+  .fl-sheet[hidden] { display: none; }
+
+  .fl-sheet-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex: none;
+    padding: 0.7rem 1rem 0.55rem;
+    border-bottom: 1px solid var(--mg-rule);
+  }
+  .fl-sheet-head .n {
+    font-family: var(--mg-sans);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--mg-dim);
+    font-weight: 600;
+  }
+  .fl-sheet-head .shut {
+    margin-left: auto;
+    background: none;
+    border: 0;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--mg-dim);
+    padding: 0 0.2rem;
+    cursor: pointer;
+  }
+
+  /* one card per connection, scrolled as a stack */
+  .fl-stack {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.75rem 1rem calc(1.2rem + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .fl-card {
+    border: 1px solid var(--mg-rule);
+    border-left-width: 3px;
+    border-radius: 3px;
+    padding: 0.6rem 0.7rem 0.7rem;
+    background: var(--mg-paper);
+  }
+  .fl-card.k-tension { border-left-color: var(--mg-accent); }
+  .fl-card.k-answers { border-left-color: #1e3a8a; }
+  .fl-card.k-echoes { border-left-color: #0891b2; }
+  .fl-card.k-pays_off { border-left-color: #166534; }
+  .fl-card.k-requires { border-left-color: #b45309; }
+  .fl-card.k-develops { border-left-color: var(--mg-dim); }
+
+  .fl-card > header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+  }
+  .fl-card .rel {
+    font-family: var(--mg-sans);
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    flex: none;
+  }
+  .fl-card.k-tension .rel { color: var(--mg-accent); }
+  .fl-card .src {
+    font-family: var(--mg-sans);
+    font-size: 0.66rem;
+    color: var(--mg-dim);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .fl-card .why {
+    font-family: var(--mg-sans);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    margin: 0;
+  }
+  .fl-card .far {
+    margin: 0.55rem 0 0;
+    padding-left: 0.7rem;
+    border-left: 2px solid var(--mg-rule);
+    font-family: var(--mg-serif);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: #3a3630;
+  }
+  .fl-card .ask {
+    margin-top: 0.6rem;
+    font-family: var(--mg-sans);
+    font-size: 0.68rem;
+    color: var(--mg-paper);
+    background: var(--mg-ink);
+    border: 0;
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    cursor: pointer;
+  }
+  .fl-card .ask:active { background: var(--mg-accent); }
+
+  .fl-strip-head {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--mg-paper);
+    padding: 0.7rem 0 0.5rem;
+    margin-bottom: 0.6rem;
+    border-bottom: 1px solid var(--mg-rule);
+  }
+  .fl-strip .rel {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    flex: none;
+  }
+  .fl-strip .nth {
+    font-size: 0.68rem;
+    color: var(--mg-dim);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .fl-strip .ask {
+    margin-left: auto;
+    flex: none;
+    font-family: var(--mg-sans);
+    font-size: 0.68rem;
+    color: var(--mg-paper);
+    background: var(--mg-ink);
+    border: 0;
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    cursor: pointer;
+  }
+  .fl-strip .shut {
+    flex: none;
+    background: none;
+    border: 0;
+    font-size: 1.4rem;
+    line-height: 1;
+    color: var(--mg-dim);
+    padding: 0 0.1rem;
+    cursor: pointer;
+  }
+
+  .fl-strip .why {
+    font-family: var(--mg-sans);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    margin: 0;
+    color: var(--mg-ink);
+  }
+
+  /* the other document's passage, in full — this is what you came for */
+  .fl-strip .far {
+    display: block;
+    margin: 0.8rem 0 0;
+    padding: 0.7rem 0 0 0.85rem;
+    border-top: 1px solid var(--mg-rule);
+    border-left: 2px solid var(--mg-accent);
+    font-family: var(--mg-serif);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--mg-ink);
+  }
+
+  /* nothing scrolls behind an open sheet */
+  html.fl-sheet-open, html.fl-sheet-open body { overflow: hidden; }
+
+  /* and the chat bubble is not a third thing competing for the corner */
+  html.fl-sheet-open .lc { display: none; }
 }
+
 @media (prefers-reduced-motion: reduce) {
   .fl-block { transition: none; }
 }
@@ -2036,26 +2015,8 @@ body {
 .fl-block.quiet { color: var(--mg-dim); }
 
 /* focusable so the keyboard can page them; no ring until keyboard-focused */
-.fl-col:focus, .lk-col:focus { outline: none; }
-.fl-col:focus-visible, .lk-col:focus-visible { outline: 2px solid var(--mg-accent); outline-offset: -2px; }
-
-/* waiting for a link to be drawn */
-.lk-wait {
-  max-width: 34rem;
-  margin: 5rem auto;
-  padding: 0 1.5rem;
-  text-align: center;
-  font-family: var(--mg-sans);
-}
-.lk-wait .mg-dots { justify-content: center; margin-bottom: 1.2rem; }
-.lk-wait h2 {
-  font-family: var(--mg-serif);
-  font-size: 1.35rem;
-  font-weight: 600;
-  margin-bottom: 0.6rem;
-}
-.lk-wait p { font-size: 0.85rem; line-height: 1.6; color: var(--mg-dim); margin-bottom: 1rem; }
-.lk-wait strong { color: var(--mg-ink); font-weight: 600; }
+.fl-col:focus { outline: none; }
+.fl-col:focus-visible { outline: 2px solid var(--mg-accent); outline-offset: -2px; }
 
 /* linking this draft to another */
 .mg-linkbox { position: relative; }
@@ -2158,8 +2119,10 @@ body {
   bottom: 3.75rem;
   display: flex;
   flex-direction: column;
-  width: min(26rem, calc(100vw - 2.5rem));
-  height: min(32rem, calc(100dvh - 9rem));
+  /* room to actually read an answer in: a three-paragraph reply in a
+     26rem box is mostly scrollbar */
+  width: min(38rem, calc(100vw - 2.5rem));
+  height: min(44rem, calc(100dvh - 7rem));
   background: var(--mg-paper);
   border: 1px solid var(--mg-rule);
   border-radius: 5px;
@@ -2188,7 +2151,7 @@ body {
 }
 .lc-x:hover { color: var(--mg-accent); }
 
-.lc-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.85rem; }
+.lc-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.95rem 1.05rem; scroll-behavior: smooth; }
 .lc-hint {
   font-family: var(--mg-sans);
   font-size: 0.78rem;
@@ -2219,7 +2182,7 @@ body {
   font-size: 0.82rem;
   line-height: 1.5;
 }
-.lc-turn.assistant .said { font-family: var(--mg-sans); font-size: 0.82rem; line-height: 1.6; }
+.lc-turn.assistant .said { font-family: var(--mg-sans); font-size: 0.86rem; line-height: 1.65; }
 .lc-turn.assistant .said p { margin: 0 0 0.6rem; }
 .lc-turn.assistant .said p:last-child { margin-bottom: 0; }
 .lc-turn.assistant .said em { font-style: italic; }
@@ -2240,3 +2203,1853 @@ body {
 .lc-foot textarea:focus { outline: none; border-color: var(--mg-accent); }
 .lc-foot .row { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.4rem; }
 .lc-foot .row .mg-btn { margin-left: auto; }
+
+/* the line, wide enough to actually hit */
+.fl-wire .hit {
+  stroke: transparent;
+  stroke-width: 14;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.fl-wire:hover .w1, .fl-wire:hover .w2 { stroke-width: 3.5; }
+
+/* what the reader pointed at, sitting above the composer */
+.lc-cited {
+  padding: 0.45rem 0.8rem 0.5rem;
+  border-top: 1px solid var(--mg-rule);
+  background: var(--mg-margin);
+  max-height: 7rem;
+  overflow-y: auto;
+}
+.lc-cited .chip {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  padding: 0.25rem 0.4rem;
+  background: var(--mg-paper);
+  border: 1px solid var(--mg-rule);
+  border-left: 2px solid var(--mg-dim);
+  border-radius: 0 3px 3px 0;
+  font-family: var(--mg-sans);
+  font-size: 0.7rem;
+}
+.lc-cited .chip .rel {
+  flex: none;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--mg-dim);
+}
+.lc-cited .chip .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lc-cited .chip button {
+  margin-left: auto;
+  flex: none;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--mg-dim);
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.lc-cited .chip button:hover { color: var(--mg-accent); }
+.lc-cited .chip.tension { border-left-color: var(--mg-accent); }
+.lc-cited .chip.answers { border-left-color: #1e3a8a; }
+.lc-cited .chip.echoes { border-left-color: #0891b2; }
+.lc-cited .chip.pays_off { border-left-color: #166534; }
+.lc-cited .chip.requires { border-left-color: #b45309; }
+
+/* --- the linking hub ------------------------------------------------------ */
+.lx { max-width: 58rem; margin: 0 auto; }
+.lx h1 {
+  font-family: var(--mg-serif);
+  font-size: 1.7rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.lx .lede {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--mg-dim);
+  max-width: 62ch;
+  margin: 0.5rem 0 1.75rem;
+}
+.lx .lede strong { color: var(--mg-ink); font-weight: 600; }
+.lx .none { font-family: var(--mg-sans); font-size: 0.82rem; color: var(--mg-dim); }
+.lx .none a { color: var(--mg-accent); }
+
+.lx-make {
+  padding: 0.9rem 1.1rem 1.1rem;
+  background: var(--mg-margin);
+  border: 1px solid var(--mg-rule);
+  border-radius: 4px;
+}
+.lx-make .row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+.lx-make .x { color: var(--mg-accent); font-size: 1.1rem; }
+select.lx-pick {
+  flex: 1;
+  min-width: 14rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--mg-rule);
+  border-radius: 3px;
+  background: var(--mg-paper);
+  font-family: var(--mg-serif);
+  font-size: 0.9rem;
+  color: var(--mg-ink);
+}
+select.lx-pick:focus { outline: none; border-color: var(--mg-accent); }
+
+.lx-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding: 0.85rem 0.6rem;
+  border-bottom: 1px solid var(--mg-rule);
+  text-decoration: none;
+  color: var(--mg-ink);
+}
+.lx-row:hover { background: var(--mg-margin); }
+.lx-row .pair { font-family: var(--mg-serif); font-size: 1.02rem; font-weight: 600; }
+.lx-row .pair .x { color: var(--mg-accent); margin: 0 0.15rem; font-weight: 400; }
+.lx-row .sum {
+  font-family: var(--mg-sans);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--mg-dim);
+  margin: 0.3rem 0 0;
+  max-width: 68ch;
+}
+.lx-row .sum.err { color: #b45309; }
+.lx-row .right {
+  margin-left: auto;
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 20rem;
+}
+.lx-row .n { font-family: var(--mg-mono); font-size: 0.68rem; color: var(--mg-dim); }
+.lx-row .k {
+  font-family: var(--mg-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mg-dim);
+  border: 1px solid var(--mg-rule);
+  border-radius: 2px;
+  padding: 0.05rem 0.3rem;
+}
+.lx-row .k.tension { color: var(--mg-accent); border-color: currentColor; }
+.lx-row .k.answers { color: #1e3a8a; }
+.lx-row .k.echoes { color: #0891b2; }
+.lx-row .st { font-family: var(--mg-mono); font-size: 0.66rem; color: var(--mg-accent); }
+.lx-row .st.failed { color: #b45309; }
+.lx-make .pending { margin-top: 0.7rem; }
+
+/* --- a link being drawn ---------------------------------------------------
+   Both maps, and the pairs the pass is trying between them. The nodes are
+   the writer's own; the arcs are attempts, not results, and every one of
+   them fades — an arc that stayed would read as a finding. */
+.lw { max-width: 46rem; margin: 3.5rem auto; padding: 0 1.5rem; font-family: var(--mg-sans); }
+.lw-head { text-align: center; }
+.lw h2 {
+  font-family: var(--mg-serif);
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0.35rem 0 0.5rem;
+}
+.lw h2 .x { color: var(--mg-accent); }
+.lw .why {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--mg-dim);
+  max-width: 44ch;
+  margin: 0 auto;
+}
+
+.lw-stage { margin-top: 1.5rem; }
+.lw-svg { width: 100%; height: auto; display: block; }
+
+.lw-svg circle {
+  fill: var(--mg-rule);
+  transition: fill 0.2s ease, r 0.2s ease;
+  animation: lw-in 0.5s ease both;
+}
+.lw-svg circle.lit { fill: var(--mg-accent); r: 5; }
+
+@keyframes lw-in {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: none; }
+}
+
+.lw-svg .arc {
+  fill: none;
+  stroke: var(--mg-accent);
+  stroke-width: 1.5;
+  opacity: 0.85;
+}
+
+/* the pair currently being tried, in the writer's own words */
+.lw-now {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: baseline;
+  gap: 0.7rem;
+  min-height: 2.4rem;
+  margin: 0.25rem 0 0;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--mg-ink);
+}
+.lw-now .l { text-align: right; }
+.lw-now .arrow { color: var(--mg-accent); }
+.lw-now .l:empty::before, .lw-now .r:empty::before { content: "…"; color: var(--mg-rule); }
+
+.lw-fine {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--mg-rule);
+  font-size: 0.7rem;
+  line-height: 1.55;
+  color: var(--mg-dim);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lw-svg circle { animation: none; }
+}
+
+/* the drafts this one is read alongside */
+.mg-linkrow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.7rem;
+}
+.mg-linkrow .one {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.12rem 0.5rem;
+  border: 1px solid var(--mg-rule);
+  border-radius: 2px;
+  background: var(--mg-margin);
+  text-decoration: none;
+  color: var(--mg-ink);
+  font-family: var(--mg-serif);
+  font-size: 0.82rem;
+  max-width: 22rem;
+}
+.mg-linkrow .one:hover { border-color: var(--mg-accent); color: var(--mg-accent); }
+.mg-linkrow .one .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mg-linkrow .one .st {
+  font-family: var(--mg-mono);
+  font-size: 0.6rem;
+  color: var(--mg-accent);
+  flex: none;
+}
+
+/* swapping which draft you are reading against */
+.fl-pick { position: relative; min-width: 0; }
+.fl-pick summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  cursor: pointer;
+  list-style: none;
+  min-width: 0;
+}
+.fl-pick summary::-webkit-details-marker { display: none; }
+.fl-pick summary::marker { content: ""; }
+.fl-pick summary .t {
+  font-family: var(--mg-serif);
+  font-size: 0.95rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fl-pick summary .n {
+  flex: none;
+  font-family: var(--mg-mono);
+  font-size: 0.6rem;
+  color: var(--mg-paper);
+  background: var(--mg-dim);
+  border-radius: 8px;
+  padding: 0 0.32rem;
+}
+.fl-pick summary:hover .t, .fl-pick[open] summary .t { color: var(--mg-accent); }
+
+.fl-pick-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.4rem);
+  z-index: 6;
+  width: 20rem;
+  max-width: 80vw;
+  padding: 0.4rem;
+  background: var(--mg-paper);
+  border: 1px solid var(--mg-rule);
+  border-radius: 4px;
+  box-shadow: 0 8px 26px rgb(0 0 0 / 12%);
+}
+.fl-pick-menu .here,
+.fl-pick-menu .row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 3px;
+  text-decoration: none;
+  color: var(--mg-ink);
+  font-family: var(--mg-serif);
+  font-size: 0.88rem;
+}
+.fl-pick-menu .here { background: var(--mg-mark); }
+.fl-pick-menu .here .mg-label { margin-left: auto; flex: none; }
+.fl-pick-menu .row:hover { background: var(--mg-margin); }
+.fl-pick-menu .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl-pick-menu .st {
+  margin-left: auto;
+  flex: none;
+  font-family: var(--mg-mono);
+  font-size: 0.62rem;
+  color: var(--mg-dim);
+}
+.fl-pick-menu .more {
+  font-family: var(--mg-sans);
+  font-size: 0.74rem;
+  color: var(--mg-dim);
+  border-top: 1px solid var(--mg-rule);
+  margin-top: 0.3rem;
+  padding-top: 0.45rem;
+  border-radius: 0;
+}
+
+/* the account of the relationship, one line until you want the rest */
+.fl-sum { flex: 1; min-width: 12rem; }
+.fl-sum summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  cursor: pointer;
+  list-style: none;
+}
+.fl-sum summary::-webkit-details-marker { display: none; }
+.fl-sum summary::marker { content: ""; }
+.fl-sum .peek {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mg-sans);
+  font-size: 0.74rem;
+  color: var(--mg-dim);
+}
+.fl-sum[open] .peek { display: none; }
+.fl-sum .more {
+  flex: none;
+  font-family: var(--mg-sans);
+  font-size: 0.64rem;
+  color: var(--mg-dim);
+  border-bottom: 1px dotted var(--mg-rule);
+}
+.fl-sum .more::after { content: "why"; }
+.fl-sum[open] .more::after { content: "less"; }
+.fl-sum summary:hover .more { color: var(--mg-accent); }
+.fl-sum > p {
+  font-family: var(--mg-sans);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--mg-dim);
+  margin: 0.4rem 0 0.1rem;
+  max-width: 86ch;
+}
+
+/* --- a constellation of related drafts ------------------------------------
+   Links are pairs, but pairs chain. Three documents with two links between
+   them are one body of work, and a flat list is the one shape that cannot
+   show that. Laid out server-side so the positions are the same every time
+   you look at it. */
+.lx-web {
+  margin: 1.75rem 0 0.5rem;
+  padding: 0.9rem 1rem 0.6rem;
+  border: 1px solid var(--mg-rule);
+  border-radius: 4px;
+  background: var(--mg-paper);
+}
+/* Capped at its own coordinate space: stretched to the full width the
+   12px labels scale with it and end up enormous. */
+.lx-svg {
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  display: block;
+  margin: 0.3rem auto 0;
+}
+
+.lx-svg .node circle {
+  fill: var(--mg-paper);
+  stroke: var(--mg-ink);
+  stroke-width: 1.5;
+  transition: fill 0.15s ease, stroke 0.15s ease;
+}
+.lx-svg .node text {
+  font-family: var(--mg-serif);
+  font-size: 12px;
+  fill: var(--mg-ink);
+}
+.lx-svg .node:hover circle { fill: var(--mg-accent); stroke: var(--mg-accent); }
+.lx-svg .node:hover text { fill: var(--mg-accent); }
+
+.lx-svg .edge line {
+  stroke: var(--mg-dim);
+  stroke-width: 1.5;
+  opacity: 0.55;
+  transition: stroke 0.15s ease, stroke-width 0.15s ease, opacity 0.15s ease;
+}
+.lx-svg .edge text {
+  font-family: var(--mg-mono);
+  font-size: 9px;
+  fill: var(--mg-dim);
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--mg-paper);
+  stroke-width: 4px;
+}
+.lx-svg .edge:hover line { stroke: var(--mg-accent); stroke-width: 2.5; opacity: 1; }
+.lx-svg .edge:hover text { fill: var(--mg-accent); }
+
+/* a pair in the group that nobody has related yet */
+.lx-svg .gap {
+  stroke: var(--mg-rule);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 5;
+}
+
+.lx-gap {
+  margin: 0.4rem 0 0;
+  font-family: var(--mg-sans);
+  font-size: 0.7rem;
+  color: var(--mg-dim);
+}
+.lx-gap .pair {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px dashed var(--mg-rule);
+  border-radius: 2px;
+}
+
+/* --- cases: several drafts that are one thing ----------------------------- */
+.cs, .cs-one { max-width: 58rem; margin: 0 auto; }
+.cs h1, .cs-one h1 {
+  font-family: var(--mg-serif);
+  font-size: 1.8rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.cs .lede {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--mg-dim);
+  max-width: 64ch;
+  margin: 0.5rem 0 1.25rem;
+}
+.cs .tally, .cs-one .tally {
+  font-family: var(--mg-mono);
+  font-size: 0.68rem;
+  color: var(--mg-dim);
+  margin-bottom: 1.25rem;
+}
+.cs .none, .cs-one .none {
+  font-family: var(--mg-sans);
+  font-size: 0.82rem;
+  color: var(--mg-dim);
+}
+
+.cs-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding: 1rem 0.6rem;
+  border-top: 1px solid var(--mg-rule);
+  text-decoration: none;
+  color: var(--mg-ink);
+}
+.cs-row:last-child { border-bottom: 1px solid var(--mg-rule); }
+.cs-row:hover { background: var(--mg-margin); }
+.cs-row h2 { font-family: var(--mg-serif); font-size: 1.1rem; font-weight: 600; }
+.cs-row .parts { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem; }
+.cs-row .part {
+  font-family: var(--mg-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mg-dim);
+  border: 1px solid var(--mg-rule);
+  border-radius: 2px;
+  padding: 0.05rem 0.35rem;
+}
+.cs-row .part.dissent { color: var(--mg-accent); border-color: currentColor; }
+.cs-row .part.argument { color: #1e3a8a; }
+.cs-row .part .n { font-family: var(--mg-mono); opacity: 0.7; text-transform: none; }
+.cs-row .say {
+  font-family: var(--mg-sans);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--mg-dim);
+  margin-top: 0.5rem;
+  max-width: 70ch;
+}
+.cs-row .right { margin-left: auto; flex: none; text-align: right; }
+.cs-row .edges { font-family: var(--mg-mono); font-size: 0.68rem; color: var(--mg-accent); }
+.cs-row .working { font-family: var(--mg-mono); font-size: 0.66rem; color: var(--mg-dim); }
+
+/* one case */
+.cs-one .back {
+  font-family: var(--mg-sans);
+  font-size: 0.72rem;
+  color: var(--mg-dim);
+  text-decoration: none;
+}
+.cs-one .back:hover { color: var(--mg-accent); }
+.cs-docs { display: flex; flex-direction: column; gap: 1rem; }
+.cs-docs .doc {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--mg-rule);
+  border-left: 3px solid var(--mg-rule);
+  border-radius: 0 3px 3px 0;
+  background: var(--mg-paper);
+}
+.cs-docs .doc.dissent { border-left-color: var(--mg-accent); }
+.cs-docs .doc.argument { border-left-color: #1e3a8a; }
+.cs-docs .head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+.cs-docs .head .t {
+  font-family: var(--mg-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--mg-ink);
+  text-decoration: none;
+}
+.cs-docs .head .t:hover { color: var(--mg-accent); }
+.cs-docs .head .n {
+  margin-left: auto;
+  font-family: var(--mg-mono);
+  font-size: 0.64rem;
+  color: var(--mg-dim);
+}
+.cs-docs .impression {
+  font-family: var(--mg-sans);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  margin-top: 0.5rem;
+}
+.cs-docs .impression.quiet { color: var(--mg-dim); font-style: italic; }
+.cs-docs .asks { margin-top: 0.6rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: baseline; }
+.cs-docs .asks .q {
+  font-family: var(--mg-sans);
+  font-size: 0.72rem;
+  color: var(--mg-dim);
+  border-left: 2px solid var(--mg-rule);
+  padding-left: 0.45rem;
+}
+
+.cs-edges { margin-top: 2.5rem; }
+.cs-edges h2 { font-family: var(--mg-serif); font-size: 1.3rem; font-weight: 600; }
+.cs-edges .sub {
+  font-family: var(--mg-sans);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--mg-dim);
+  margin: 0.3rem 0 1rem;
+  max-width: 64ch;
+}
+.cs-edge { border-top: 1px solid var(--mg-rule); }
+.cs-edge:last-child { border-bottom: 1px solid var(--mg-rule); }
+.cs-edge > button {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.7rem 0.5rem;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--mg-sans);
+}
+.cs-edge > button:hover { background: var(--mg-margin); }
+.cs-edge .rel {
+  flex: none;
+  width: 6.5rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--mg-dim);
+}
+.cs-edge.tension .rel { color: var(--mg-accent); }
+.cs-edge.answers .rel { color: #1e3a8a; }
+.cs-edge.echoes .rel { color: #0891b2; }
+.cs-edge .why { flex: 1; font-size: 0.82rem; line-height: 1.5; color: var(--mg-ink); }
+.cs-edge .who { flex: none; font-size: 0.64rem; color: var(--mg-dim); }
+.cs-edge.open { background: var(--mg-margin); }
+
+.cs-edge .both {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 0.3rem 0.5rem 0.9rem;
+}
+.cs-edge .both blockquote {
+  font-family: var(--mg-serif);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  border-left: 2px solid var(--mg-rule);
+  padding-left: 0.6rem;
+  margin: 0.3rem 0 0;
+}
+.cs-edge .both .read {
+  grid-column: 1 / -1;
+  font-family: var(--mg-sans);
+  font-size: 0.74rem;
+  color: var(--mg-accent);
+  text-decoration: none;
+}
+@media (max-width: 800px) {
+  .cs-edge .both { grid-template-columns: 1fr; }
+}
+
+/* --- the case index, as a front page ------------------------------------- */
+.cs-top { margin-bottom: 1.75rem; }
+.cs-top h1 {
+  font-family: var(--mg-serif);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+.cs-top .lede {
+  font-family: var(--mg-serif);
+  font-size: 1.04rem;
+  line-height: 1.65;
+  color: var(--mg-dim);
+  max-width: 62ch;
+  margin: 0.6rem 0 0.8rem;
+}
+
+/* the method — the unusual part, so it goes above the list */
+.cs-how {
+  padding: 1rem 1.25rem 1.1rem;
+  background: var(--mg-margin);
+  border: 1px solid var(--mg-rule);
+  border-radius: 4px;
+  margin-bottom: 2rem;
+}
+.cs-how ol { margin: 0.6rem 0 0; padding-left: 1.2rem; }
+.cs-how li {
+  font-family: var(--mg-sans);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--mg-dim);
+  margin-bottom: 0.6rem;
+  max-width: 76ch;
+}
+.cs-how li:last-child { margin-bottom: 0; }
+.cs-how li b { color: var(--mg-ink); font-weight: 600; }
+.cs-how li::marker { color: var(--mg-accent); font-family: var(--mg-mono); font-size: 0.75rem; }
+
+.cs-case {
+  padding: 1.1rem 0 1.2rem;
+  border-top: 1px solid var(--mg-rule);
+}
+.cs-case:last-child { border-bottom: 1px solid var(--mg-rule); }
+.cs-case-head { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.cs-case-head h2 { font-family: var(--mg-serif); font-size: 1.22rem; font-weight: 600; }
+.cs-case-head h2 a { color: var(--mg-ink); text-decoration: none; }
+.cs-case-head h2 a:hover { color: var(--mg-accent); }
+.cs-case-head .parts { margin-left: auto; display: flex; gap: 0.35rem; flex-wrap: wrap; }
+
+.cs-case .say {
+  font-family: var(--mg-sans);
+  font-size: 0.84rem;
+  line-height: 1.6;
+  margin: 0.5rem 0 0;
+  max-width: 76ch;
+}
+.cs-case .say.quiet { color: var(--mg-dim); font-style: italic; }
+
+.cs-case .collide { margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.cs-case .hit {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--mg-margin);
+  border-left: 2px solid var(--mg-dim);
+  border-radius: 0 3px 3px 0;
+}
+.cs-case .hit.tension { border-left-color: var(--mg-accent); background: #fbf1ee; }
+.cs-case .hit.answers { border-left-color: #1e3a8a; }
+.cs-case .hit.echoes { border-left-color: #0891b2; }
+.cs-case .hit .rel {
+  flex: none;
+  width: 5.5rem;
+  font-family: var(--mg-sans);
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--mg-dim);
+}
+.cs-case .hit .why {
+  font-family: var(--mg-sans);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.cs-case-foot {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.8rem;
+}
+.cs-case-foot .k {
+  font-family: var(--mg-sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mg-dim);
+  border: 1px solid var(--mg-rule);
+  border-radius: 2px;
+  padding: 0.05rem 0.35rem;
+}
+.cs-case-foot .k.tension { color: var(--mg-accent); border-color: currentColor; }
+.cs-case-foot .go {
+  margin-left: auto;
+  font-family: var(--mg-sans);
+  font-size: 0.78rem;
+  color: var(--mg-accent);
+  text-decoration: none;
+}
+.cs-case-foot .go:hover { text-decoration: underline; }
+.cs-case-foot .go.read { color: var(--mg-ink); font-weight: 600; }
+.cs-case-foot .go + .go { margin-left: 1rem; }
+
+/* the tally, as figures rather than a sentence of them */
+.cs-top .tally { display: flex; gap: 1.4rem; flex-wrap: wrap; }
+.cs-top .tally span { display: inline-flex; align-items: baseline; gap: 0.3rem; }
+.cs-top .tally b {
+  font-family: var(--mg-serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--mg-ink);
+}
+
+/* one real connection, before any explanation of what a connection is */
+.cs-opener {
+  margin: 0 0 1.75rem;
+  padding: 0.9rem 1.15rem 0.95rem;
+  border-left: 3px solid var(--mg-accent);
+  background: #fbf1ee;
+}
+.cs-opener .q {
+  font-family: var(--mg-serif);
+  font-size: 1.02rem;
+  line-height: 1.6;
+  margin: 0.3rem 0 0;
+  max-width: 72ch;
+}
+.cs-opener .src {
+  font-family: var(--mg-sans);
+  font-size: 0.72rem;
+  color: var(--mg-dim);
+  margin: 0.5rem 0 0;
+}
+.cs-opener .src em { font-style: normal; color: var(--mg-ink); }
+.cs-opener .src a { color: var(--mg-accent); text-decoration: none; }
+.cs-opener .src a:hover { text-decoration: underline; }
+
+/* the record facts a reader checks first */
+.cs-case-head .rec {
+  margin-left: auto;
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  font-family: var(--mg-sans);
+  font-size: 0.66rem;
+  color: var(--mg-dim);
+}
+.cs-case-head .rec .dk { color: var(--mg-ink); font-weight: 600; }
+.cs-case .qp {
+  font-family: var(--mg-serif);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--mg-ink);
+  margin: 0.5rem 0 0;
+  max-width: 76ch;
+}
+.cs-case .qp .mg-label { display: block; margin-bottom: 0.15rem; }
+
+/* the read pass's own account of the opinion */
+.cs-fi { margin-top: 0.85rem; }
+.cs-fi .fi {
+  font-family: var(--mg-sans);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--mg-dim);
+  margin: 0.15rem 0 0;
+  max-width: 82ch;
+}
+.cs-fi .fi.clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cs-fi .more {
+  font-family: var(--mg-sans);
+  font-size: 0.66rem;
+  color: var(--mg-dim);
+  background: none;
+  border: 0;
+  padding: 0.15rem 0 0;
+  cursor: pointer;
+  border-bottom: 1px dotted var(--mg-rule);
+}
+.cs-fi .more:hover { color: var(--mg-ink); }
+
+/* what the case is made of */
+.cs-parts { margin-top: 0.85rem; }
+.cs-parts ul {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.cs-parts li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0.12rem 0.45rem;
+  border: 1px solid var(--mg-rule);
+  border-left-width: 3px;
+  border-radius: 2px;
+  font-family: var(--mg-sans);
+  font-size: 0.68rem;
+  background: var(--mg-paper);
+}
+.cs-parts li.opinion { border-left-color: var(--mg-ink); }
+.cs-parts li.dissent { border-left-color: var(--mg-accent); }
+.cs-parts li.concurrence { border-left-color: #b45309; }
+.cs-parts li.argument { border-left-color: #1e3a8a; }
+.cs-parts li .t { color: var(--mg-ink); text-decoration: none; }
+.cs-parts li .t:hover { text-decoration: underline; }
+.cs-parts li .n { color: var(--mg-dim); font-variant-numeric: tabular-nums; }
+.cs-parts li .pdf {
+  font-size: 0.56rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mg-dim);
+  text-decoration: none;
+  border: 1px solid var(--mg-rule);
+  border-radius: 2px;
+  padding: 0 0.2rem;
+}
+.cs-parts li .pdf:hover { color: var(--mg-ink); border-color: var(--mg-dim); }
+
+/* where this came from, and what it is worth */
+.cs-prov {
+  margin-top: 2.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--mg-rule);
+}
+.cs-prov p {
+  font-family: var(--mg-sans);
+  font-size: 0.72rem;
+  line-height: 1.65;
+  color: var(--mg-dim);
+  margin: 0.3rem 0 0;
+  max-width: 84ch;
+}
+
+/* --- one case: fast track in, then a box you can slice ------------------- */
+.cs-one-top {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--mg-rule);
+  margin-bottom: 1.1rem;
+}
+.cs-one-top h1 { font-size: 1.5rem; }
+.cs-one-top .back { flex-basis: 100%; }
+.cs-one-top .fold {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--mg-sans);
+  font-size: 0.7rem;
+  color: var(--mg-dim);
+  border-bottom: 1px dotted var(--mg-rule);
+}
+.cs-one-top .fold:hover { color: var(--mg-accent); }
+
+.cs-docs { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.7rem; }
+.cs-docs .doc { padding: 0.7rem 0.85rem; }
+.cs-docs .doc .impression { font-size: 0.76rem; line-height: 1.55; color: var(--mg-dim); }
+.cs-docs .doc .open {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-family: var(--mg-sans);
+  font-size: 0.72rem;
+  color: var(--mg-accent);
+  text-decoration: none;
+}
+
+/* the fast track */
+.cs-go { margin: 1.4rem 0 1.2rem; }
+.cs-go .ways { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.45rem; }
+.cs-go .way {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--mg-rule);
+  border-left: 3px solid var(--mg-accent);
+  border-radius: 0 3px 3px 0;
+  background: var(--mg-paper);
+  text-decoration: none;
+  color: var(--mg-ink);
+}
+.cs-go .way:hover { background: var(--mg-margin); border-left-width: 5px; }
+.cs-go .way .t { font-family: var(--mg-serif); font-size: 0.92rem; font-weight: 600; }
+.cs-go .way .n { font-family: var(--mg-mono); font-size: 0.62rem; color: var(--mg-dim); }
+
+/* the connections, contained */
+.cs-find {
+  border: 1px solid var(--mg-rule);
+  border-radius: 4px;
+  background: var(--mg-paper);
+  overflow: hidden;
+}
+.cs-find .bar {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--mg-rule);
+  background: var(--mg-margin);
+}
+.cs-find .q { flex: 1; min-width: 0; }
+.cs-find .q input {
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--mg-rule);
+  border-radius: 3px;
+  background: var(--mg-paper);
+  font-family: var(--mg-sans);
+  font-size: 0.82rem;
+}
+.cs-find .q input:focus { outline: none; border-color: var(--mg-accent); }
+.cs-find .count { font-family: var(--mg-mono); font-size: 0.68rem; color: var(--mg-dim); flex: none; }
+.cs-find .clear {
+  flex: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--mg-sans);
+  font-size: 0.7rem;
+  color: var(--mg-accent);
+}
+
+.cs-find .chips {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--mg-rule);
+}
+.cs-find .chip {
+  font-family: var(--mg-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--mg-dim);
+  background: none;
+  border: 1px solid var(--mg-rule);
+  border-radius: 2px;
+  padding: 0.1rem 0.4rem;
+  cursor: pointer;
+}
+.cs-find .chip:hover { border-color: var(--mg-dim); color: var(--mg-ink); }
+.cs-find .chip.on { background: var(--mg-ink); color: var(--mg-paper); border-color: var(--mg-ink); }
+.cs-find .chip.tension { color: var(--mg-accent); }
+.cs-find .chip.tension.on { background: var(--mg-accent); color: #fff; border-color: var(--mg-accent); }
+.cs-find .chip .n { font-family: var(--mg-mono); opacity: 0.65; }
+.cs-find .sep { width: 1px; height: 1rem; background: var(--mg-rule); margin: 0 0.3rem; }
+
+/* the box scrolls; the page does not */
+.cs-find .rows { max-height: 58vh; overflow-y: auto; }
+.cs-find .nothing {
+  padding: 1.5rem 0.8rem;
+  text-align: center;
+  font-family: var(--mg-sans);
+  font-size: 0.8rem;
+  color: var(--mg-dim);
+}
+.cs-find .nothing button {
+  background: none;
+  border: 0;
+  color: var(--mg-accent);
+  cursor: pointer;
+  font: inherit;
+}
+.cs-find .row { border-bottom: 1px solid var(--mg-rule); }
+.cs-find .row:last-child { border-bottom: 0; }
+.cs-find .row > button {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--mg-sans);
+}
+.cs-find .row > button:hover { background: var(--mg-margin); }
+.cs-find .row.open { background: var(--mg-margin); }
+.cs-find .row .rel {
+  flex: none;
+  width: 5.5rem;
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--mg-dim);
+}
+.cs-find .row.tension .rel { color: var(--mg-accent); }
+.cs-find .row.answers .rel { color: #1e3a8a; }
+.cs-find .row.echoes .rel { color: #0891b2; }
+.cs-find .row .why { flex: 1; font-size: 0.79rem; line-height: 1.5; }
+.cs-find .row .who {
+  flex: none;
+  font-family: var(--mg-mono);
+  font-size: 0.6rem;
+  color: var(--mg-dim);
+}
+.cs-find .row .both {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+  padding: 0.2rem 0.8rem 0.8rem;
+}
+.cs-find .row .both blockquote {
+  font-family: var(--mg-serif);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  border-left: 2px solid var(--mg-rule);
+  padding-left: 0.55rem;
+  margin: 0.25rem 0 0;
+}
+.cs-find .row .both .read {
+  grid-column: 1 / -1;
+  font-family: var(--mg-sans);
+  font-size: 0.73rem;
+  color: var(--mg-accent);
+  text-decoration: none;
+}
+@media (max-width: 800px) { .cs-find .row .both { grid-template-columns: 1fr; } }
+
+/* --- a case, read three ways ---------------------------------------------
+   One document down the left, every other document in the case in the
+   margin at once. Paragraph and notes are one grid row, so they are level
+   because the layout says so — no measuring, nothing to drift. */
+.cr { display: flex; flex-direction: column; }
+
+.cr-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--mg-paper);
+  border-bottom: 1px solid var(--mg-rule);
+}
+.cr-bar-in {
+  display: flex;
+  align-items: baseline;
+  gap: 1.1rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 1.15rem;
+  /* the two grid tracks plus the gutter, so the bar starts where the
+     prose starts instead of at the window edge */
+  max-width: calc(36rem + 27rem + var(--cr-gap) + 2.3rem);
+  margin-inline: auto;
+}
+.cr-who { display: flex; align-items: baseline; gap: 0.45rem; min-width: 0; }
+.cr-pick { position: relative; }
+.cr-pick > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+.cr-pick > summary::-webkit-details-marker { display: none; }
+.cr-pick .t {
+  font-family: var(--mg-serif);
+  font-size: 0.95rem;
+  border-bottom: 1px dotted var(--mg-rule);
+}
+.cr-pick .n {
+  font-family: var(--mg-sans);
+  font-size: 0.6rem;
+  color: var(--mg-dim);
+  border: 1px solid var(--mg-rule);
+  border-radius: 999px;
+  padding: 0 0.35rem;
+}
+.cr-pick-menu {
+  position: absolute;
+  top: 1.7rem;
+  left: 0;
+  z-index: 20;
+  /* 26rem is 416px, which is wider than a phone; the menu hung off the
+     right edge of the screen with its rows unreachable */
+  min-width: min(26rem, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  background: var(--mg-paper);
+  border: 1px solid var(--mg-rule);
+  box-shadow: 0 8px 26px rgb(28 26 23 / 0.13);
+}
+.cr-pick-menu .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.7rem;
+  text-decoration: none;
+  color: var(--mg-ink);
+  border-bottom: 1px solid var(--mg-rule);
+}
+.cr-pick-menu .row:last-child { border-bottom: 0; }
+.cr-pick-menu .row:hover { background: #f2efe9; }
+.cr-pick-menu .row.here { background: #f2efe9; font-weight: 600; }
+.cr-pick-menu .row .t { font-family: var(--mg-serif); font-size: 0.85rem; }
+.cr-pick-menu .row .r {
+  font-family: var(--mg-sans);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mg-dim);
+}
+
+.cr-srcs, .cr-kinds { display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; }
+.cr-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  font-family: var(--mg-sans);
+  font-size: 0.66rem;
+  padding: 0.12rem 0.45rem;
+  border: 1px solid var(--mg-rule);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mg-dim);
+  cursor: pointer;
+}
+.cr-chip:hover { border-color: var(--mg-dim); }
+.cr-chip.on { background: var(--mg-ink); color: var(--mg-paper); border-color: var(--mg-ink); }
+.cr-chip .n { opacity: 0.6; font-variant-numeric: tabular-nums; }
+.cr-clear {
+  font-family: var(--mg-sans);
+  font-size: 0.66rem;
+  color: var(--mg-dim);
+  background: none;
+  border: 0;
+  border-bottom: 1px dotted var(--mg-rule);
+  cursor: pointer;
+}
+
+/* the colour a document keeps: by its place in the case, not its id */
+.cr-chip.s0 { border-left: 3px solid var(--mg-ink); }
+.cr-chip.s1 { border-left: 3px solid #b45309; }
+.cr-chip.s2 { border-left: 3px solid var(--mg-accent); }
+.cr-chip.s3 { border-left: 3px solid #1e3a8a; }
+.cr-chip.s9 { border-left: 3px solid var(--mg-dim); }
+
+/* The two columns are given real widths and the pair is centred, rather
+   than each taking a share of whatever the window happens to be. At
+   1.9fr / 1fr on a wide screen the prose stopped at its 40rem measure and
+   the notes went to the far edge, leaving six hundred pixels of nothing
+   between a paragraph and the thing talking about it — two documents on
+   one page that read as two pages. */
+.cr-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 36rem) minmax(0, 27rem);
+  justify-content: center;
+  column-gap: var(--cr-gap);
+  align-items: start;
+  padding: 1.2rem 1.15rem 6rem;
+}
+:root { --cr-gap: 2.25rem; }
+.cr-sechead, .cr-gap { grid-column: 1 / -1; }
+.cr-sechead { margin: 2rem 0 0.6rem; }
+.cr-sechead:first-child { margin-top: 0; }
+.cr-sechead h2 { font-family: var(--mg-serif); font-size: 1.1rem; margin: 0.15rem 0 0; }
+
+.cr-text {
+  position: relative;
+  font-family: var(--mg-serif);
+  font-size: 1.02rem;
+  line-height: 1.62;
+  padding: 0.3rem 0;
+}
+/* One hairline from the left edge of the paragraph, across the gutter,
+   into the top of its note stack. Alignment alone stopped saying "these
+   belong together" as soon as the gap got wide; a rule that runs through
+   both says it at any width. */
+.cr-text.linked {
+  border-left: 2px solid var(--mg-rule);
+  border-top: 1px solid var(--mg-rule);
+  padding-left: 0.85rem;
+  padding-top: 0.8rem;
+  margin-left: -0.85rem;
+}
+.cr-text.linked::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: calc(var(--cr-gap) * -1);
+  width: var(--cr-gap);
+  height: 1px;
+  background: var(--mg-rule);
+}
+
+.cr-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  /* the stack reads as one thing belonging to one paragraph */
+  border-top: 1px solid var(--mg-rule);
+  padding-top: 0.85rem;
+}
+/* A paragraph nothing points at still occupies its half of the row, and
+   was drawing a rule over nothing. :empty does not catch it -- the cell
+   holds whitespace -- so the template says so. */
+.cr-notes.bare { border-top: 0; padding-top: 0; }
+.cr-note {
+  font-family: var(--mg-sans);
+  font-size: 0.74rem;
+  line-height: 1.45;
+  border: 1px solid var(--mg-rule);
+  border-left-width: 3px;
+  background: #f7f5f0;
+  padding: 0.45rem 0.6rem;
+}
+.cr-note.s0 { border-left-color: var(--mg-ink); }
+.cr-note.s1 { border-left-color: #b45309; }
+.cr-note.s2 { border-left-color: var(--mg-accent); }
+.cr-note.s3 { border-left-color: #1e3a8a; }
+.cr-note.s9 { border-left-color: var(--mg-dim); }
+.cr-note > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.25rem;
+}
+.cr-note .src { font-weight: 600; color: var(--mg-ink); }
+.cr-note .rel {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.cr-note .rel.k-tension { color: var(--mg-accent); }
+.cr-note .rel.k-answers { color: #1e3a8a; }
+.cr-note .rel.k-echoes { color: #0891b2; }
+.cr-note .rel.k-pays_off { color: #166534; }
+.cr-note .rel.k-requires { color: #b45309; }
+.cr-note .rel.k-develops { color: var(--mg-dim); }
+.cr-note .why { margin: 0; color: var(--mg-ink); }
+.cr-note blockquote {
+  margin: 0.4rem 0 0;
+  padding-left: 0.55rem;
+  border-left: 1px solid var(--mg-rule);
+  font-family: var(--mg-serif);
+  font-size: 0.82rem;
+  color: #3a3630;
+}
+.cr-note > footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+  font-size: 0.62rem;
+  color: var(--mg-dim);
+}
+.cr-note > footer a { color: var(--mg-dim); text-decoration: none; border-bottom: 1px dotted var(--mg-rule); }
+.cr-note > footer a:hover { color: var(--mg-ink); }
+
+.cr-gap { margin: 0.5rem 0; }
+.cr-gap > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  gap: 0.7rem;
+  align-items: baseline;
+  font-family: var(--mg-sans);
+  font-size: 0.66rem;
+  color: var(--mg-dim);
+  padding: 0.2rem 0;
+  border-top: 1px dashed var(--mg-rule);
+  border-bottom: 1px dashed var(--mg-rule);
+}
+.cr-gap > summary::-webkit-details-marker { display: none; }
+.cr-gap .s { opacity: 0.7; font-style: italic; }
+.cr-quiet {
+  font-family: var(--mg-serif);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #55504a;
+  max-width: 40rem;
+  padding: 0.25rem 0;
+}
+.cr-empty { padding: 4rem 1.15rem; font-family: var(--mg-serif); }
+
+/* the rail is the phone's margin; on a desktop the cards are the margin */
+.cr-rail { display: none; }
+
+/* --- the phone ------------------------------------------------------------
+   Two columns of prose at 390px is twenty-four characters a line, so
+   "side by side" cannot mean two documents. What can sit beside the
+   reading is the *relationship*: a rail of marks showing exactly where
+   the other documents have something to say, always visible against the
+   text, one tap from the passage itself. */
+@media (max-width: 1060px) {
+  .cr-grid {
+    grid-template-columns: minmax(0, 1fr) 2.1rem;
+    column-gap: 0;
+    justify-content: stretch;
+    padding-inline: 1rem;
+  }
+  .cr-bar { position: sticky; }
+  .cr-bar-in { max-width: none; padding-inline: 1rem; }
+  .cr-text.linked::after { display: none; }
+
+  /* the cards stand down; the rail stands up */
+  .cr-notes { border-top: 0; padding: 0; }
+  .cr-notes > .cr-note, .cr-notes > .cr-more { display: none; }
+
+  .cr-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    width: 100%;
+    padding: 0.5rem 0 0;
+    background: none;
+    border: 0;
+    border-left: 1px solid var(--mg-rule);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cr-rail .tick { width: 11px; height: 3px; border-radius: 2px; background: var(--mg-dim); }
+  .cr-rail .tick.k-tension { background: var(--mg-accent); }
+  .cr-rail .tick.k-answers { background: #1e3a8a; }
+  .cr-rail .tick.k-echoes { background: #0891b2; }
+  .cr-rail .tick.k-pays_off { background: #166534; }
+  .cr-rail .tick.k-requires { background: #b45309; }
+  .cr-rail .c {
+    font-family: var(--mg-mono);
+    font-size: 0.56rem;
+    color: var(--mg-dim);
+    margin-top: 2px;
+  }
+  .cr-rail:active .tick { transform: scaleX(1.4); }
+
+  .cr-gap > summary { flex-wrap: wrap; }
+  .cr-gap .s { display: none; }
+}
+
+/* the sheet the rail opens */
+.cr-sheet-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgb(28 26 23 / 0.38);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.cr-sheet {
+  width: 100%;
+  max-width: 34rem;
+  max-height: 78vh;
+  overflow-y: auto;
+  background: var(--mg-paper);
+  border-top: 1px solid var(--mg-ink);
+  border-radius: 10px 10px 0 0;
+  padding: 0.7rem 0.9rem calc(1.1rem + env(safe-area-inset-bottom));
+  box-shadow: 0 -12px 40px rgb(28 26 23 / 0.28);
+}
+.cr-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
+  border-bottom: 1px solid var(--mg-rule);
+}
+.cr-sheet-head button {
+  background: none;
+  border: 0;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--mg-dim);
+  cursor: pointer;
+  padding: 0 0.3rem;
+}
+.cr-sheet .cr-note + .cr-note { margin-top: 0.55rem; }
+
+/* the sheet is the phone's affordance; a wide screen has the margin itself */
+@media (min-width: 1061px) {
+  .cr-sheet-veil { display: none; }
+}
+
+/* the whole case, before the pairs */
+.cs-all { margin: 1.4rem 0 0.8rem; }
+.cs-all-go {
+  display: block;
+  padding: 0.75rem 0.95rem;
+  border: 1px solid var(--mg-ink);
+  text-decoration: none;
+  color: var(--mg-ink);
+  background: #f7f5f0;
+}
+.cs-all-go:hover { background: #f2efe9; }
+.cs-all-go .t { display: block; font-family: var(--mg-serif); font-size: 1.05rem; margin-top: 0.15rem; }
+.cs-all-go .s { display: block; font-family: var(--mg-sans); font-size: 0.7rem; color: var(--mg-dim); margin-top: 0.2rem; }
+.cs-case-foot .go.read { color: var(--mg-ink); font-weight: 600; }
+
+/* the follow view's one-time tour */
+.fl-help {
+  font-family: var(--mg-sans);
+  font-size: 0.72rem;
+  line-height: 1;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 1px solid var(--mg-rule);
+  border-radius: 999px;
+  color: var(--mg-dim);
+  background: transparent;
+  cursor: pointer;
+  align-self: center;
+}
+.fl-help:hover { color: var(--mg-ink); border-color: var(--mg-dim); }
+
+.fl-tour-veil {
+  position: fixed;
+  inset: 0;
+  /* above the chat bubble (70), which was floating over the card */
+  z-index: 90;
+  background: rgb(28 26 23 / 0.34);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+.fl-tour {
+  max-width: 34rem;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--mg-paper);
+  border: 1px solid var(--mg-ink);
+  box-shadow: 0 18px 48px rgb(28 26 23 / 0.3);
+  padding: 1.1rem 1.25rem 1rem;
+}
+.fl-tour-head { display: flex; align-items: baseline; gap: 1rem; }
+.fl-tour-head h2 {
+  font-family: var(--mg-serif);
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0;
+}
+.fl-tour-head .mg-btn { margin-left: auto; }
+.fl-tour ul { margin: 0.8rem 0 0; padding: 0; list-style: none; }
+.fl-tour li {
+  font-family: var(--mg-sans);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  padding: 0.45rem 0 0.45rem 0.9rem;
+  border-top: 1px solid var(--mg-rule);
+  position: relative;
+}
+.fl-tour li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.95rem;
+  width: 0.3rem;
+  height: 1px;
+  background: var(--mg-dim);
+}
+.fl-tour .mg-hint { margin-top: 0.75rem; }
+.cr-more > summary {
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--mg-sans);
+  font-size: 0.66rem;
+  color: var(--mg-dim);
+  padding: 0.25rem 0;
+  border-top: 1px dashed var(--mg-rule);
+}
+.cr-more > summary::-webkit-details-marker { display: none; }
+.cr-more > summary:hover { color: var(--mg-ink); }
+.cr-more[open] > summary { margin-bottom: 0.5rem; }
+.cr-more .cr-note + .cr-note { margin-top: 0.5rem; }
+
+/* and the connections, demoted to the quiet way in */
+.cs-case-foot .go { font-size: 0.72rem; color: var(--mg-dim); }
+.cs-case-foot .go:hover { color: var(--mg-accent); }
+
+/* the hook: one real disagreement, in the pass's own words */
+.cs-hook {
+  font-family: var(--mg-serif);
+  font-size: 1.06rem;
+  line-height: 1.6;
+  color: var(--mg-ink);
+  margin: 0.9rem 0 0;
+  padding-left: 0.9rem;
+  border-left: 3px solid var(--mg-accent);
+  max-width: 74ch;
+}
+
+/* the ways in: one document against another, best first */
+.cs-ways { list-style: none; margin: 0.9rem 0 0; padding: 0; }
+.cs-ways li + li { margin-top: 0.3rem; }
+.cs-ways a {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--mg-rule);
+  background: var(--mg-paper);
+  text-decoration: none;
+  color: var(--mg-ink);
+}
+.cs-ways a:hover { border-color: var(--mg-ink); background: #f7f5f0; }
+.cs-ways .a, .cs-ways .b {
+  font-family: var(--mg-serif);
+  font-size: 0.95rem;
+  border-bottom: 2px solid transparent;
+}
+.cs-ways .a.opinion, .cs-ways .b.opinion { border-bottom-color: var(--mg-ink); }
+.cs-ways .a.dissent, .cs-ways .b.dissent { border-bottom-color: var(--mg-accent); }
+.cs-ways .a.concurrence, .cs-ways .b.concurrence { border-bottom-color: #b45309; }
+.cs-ways .a.argument, .cs-ways .b.argument { border-bottom-color: #1e3a8a; }
+.cs-ways .x {
+  font-family: var(--mg-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mg-dim);
+  flex: none;
+}
+.cs-ways .n {
+  margin-left: auto;
+  font-family: var(--mg-mono);
+  font-size: 0.68rem;
+  color: var(--mg-dim);
+  flex: none;
+}
+.cs-ways .n::after { content: " connections"; }
+.cs-ways .arrow { flex: none; color: var(--mg-dim); }
+.cs-ways a:hover .arrow { color: var(--mg-accent); }
+
+/* the opinion's own reading, folded: useful, not the hook */
+.cs-fi { margin-top: 0.75rem; }
+.cs-fi > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  gap: 0.55rem;
+  align-items: baseline;
+  min-width: 0;
+}
+/* a flex item shrinks to its longest word before it lets a sibling
+   shrink at all, and the label came out one word per line */
+.cs-fi > summary .mg-label { flex: none; white-space: nowrap; }
+.cs-fi > summary .peek { flex: 1; min-width: 0; }
+.cs-fi > summary::-webkit-details-marker { display: none; }
+.cs-fi > summary .peek {
+  font-family: var(--mg-sans);
+  font-size: 0.75rem;
+  color: var(--mg-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px dotted var(--mg-rule);
+}
+.cs-fi[open] > summary .peek { display: none; }
+.cs-fi > p {
+  font-family: var(--mg-sans);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--mg-dim);
+  margin: 0.35rem 0 0;
+  max-width: 82ch;
+}
+
+/* the documents, as a quiet inventory in the foot */
+.cs-case-foot .k.opinion { color: var(--mg-ink); border-color: var(--mg-ink); }
+.cs-case-foot .k.dissent { color: var(--mg-accent); border-color: currentColor; }
+.cs-case-foot .k.concurrence { color: #b45309; border-color: currentColor; }
+.cs-case-foot .k.argument { color: #1e3a8a; border-color: currentColor; }
+
+/* one line of method up top; the rest is folded below the cases */
+.cs-top .how1 {
+  font-family: var(--mg-sans);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--mg-dim);
+  max-width: 72ch;
+  margin: 0 0 0.85rem;
+}
+/* folded, it is a line rather than a panel */
+details.cs-how {
+  margin: 2.5rem 0 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--mg-rule);
+  border-radius: 0;
+}
+details.cs-how[open] { padding-bottom: 0.6rem; }
+details.cs-how > summary { cursor: pointer; list-style: none; padding: 0.7rem 0 0.5rem; }
+details.cs-how > ol { margin-top: 0; }
+details.cs-how > summary::-webkit-details-marker { display: none; }
+details.cs-how > summary::after {
+  content: " ▾";
+  color: var(--mg-dim);
+  font-size: 0.6rem;
+}
+details.cs-how[open] > summary::after { content: " ▴"; }
+details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
+
+/* a note from another case: same shape, visibly not from here */
+.cr-note.far {
+  background: var(--mg-paper);
+  border-style: dashed;
+  border-left-style: solid;
+  border-left-color: #6b665e;
+}
+.cr-note .from {
+  font-family: var(--mg-sans);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mg-dim);
+  margin: 0 0 0.3rem;
+}
+.cr-note .from::before { content: "elsewhere in the term · "; opacity: 0.75; }
+.cr-chip.far { border-style: dashed; }
+
+/* the term arguing with itself */
+.cs-kin { margin-top: 0.8rem; display: flex; align-items: baseline; gap: 0.4rem; flex-wrap: wrap; }
+.cs-kin .k {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-family: var(--mg-sans);
+  font-size: 0.7rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px dashed var(--mg-rule);
+  border-radius: 999px;
+  color: var(--mg-ink);
+  text-decoration: none;
+}
+.cs-kin .k:hover { border-color: var(--mg-dim); border-style: solid; }
+.cs-kin .k .n { font-family: var(--mg-mono); font-size: 0.62rem; color: var(--mg-dim); }
+
+/* --- the chrome on a phone ------------------------------------------------
+   The bar is a flex row and a flex item will not shrink below its own
+   content, so brand plus five nav links came to more than 390px and the
+   whole document went wider than the screen — every page clipped at the
+   right edge, not just the wide ones. Let it wrap. */
+@media (max-width: 640px) {
+  .mg-bar {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+    padding: 0.7rem 1rem 0.6rem;
+  }
+  .mg-brand { flex: 0 1 auto; min-width: 0; }
+  .mg-bar nav { flex-wrap: wrap; gap: 0.75rem; row-gap: 0.3rem; }
+  .mg-bar nav a, .mg-bar nav button { font-size: 0.74rem; }
+}
+
+/* the Court's own sentence, quoted rather than summarised */
+.cs-held {
+  margin: 0.6rem 0 0;
+  padding-left: 0.85rem;
+  border-left: 2px solid var(--mg-ink);
+  font-family: var(--mg-serif);
+  font-size: 0.96rem;
+  line-height: 1.55;
+  max-width: 76ch;
+}
+.cs-held .mg-label { display: block; margin-bottom: 0.15rem; }
+
+/* the way into the tour */
+.cs-tour {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+  padding: 0.3rem 0.7rem;
+  font-family: var(--mg-sans);
+  font-size: 0.74rem;
+  color: var(--mg-paper);
+  background: var(--mg-accent);
+  border: 1px solid var(--mg-accent);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.cs-tour:hover { background: #73291d; border-color: #73291d; }
+/* a note's way into the chat, beside its way into the pair */
+.cr-note > footer .ask {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--mg-dim);
+  cursor: pointer;
+  border-bottom: 1px dotted var(--mg-rule);
+  margin-left: auto;
+  margin-right: 0.7rem;
+}
+.cr-note > footer .ask:hover { color: var(--mg-accent); }
+.cr-note > footer > span { margin-right: 0; }
+
+
+/* --- the phone, continued --------------------------------------------------
+   Three things the first mobile pass left behind, found by looking at
+   the pages at 393px rather than reasoning about them. */
+
+/* 1. The chat was a floating box on a phone: a panel inset from every
+      edge, a third of it empty, and the bubble sitting on its own
+      bottom-right corner. At this width a panel is a sheet. */
+@media (max-width: 700px) {
+  .lc { right: 1rem; bottom: 1rem; }
+
+  .lc-panel {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: 100%;
+    height: min(86dvh, 100dvh - 2.5rem);
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -14px 44px rgb(28 26 23 / 0.3);
+  }
+  .lc-head { padding: 0.7rem 1rem; }
+  .lc-body { padding-inline: 1rem; }
+  .lc-foot { padding: 0.6rem 1rem calc(0.7rem + env(safe-area-inset-bottom)); }
+
+  /* the bubble is the way in; once you are in, it is in the way */
+  .lc-bubble.on { display: none; }
+
+  /* a phone keyboard's return key is a newline, not a send */
+  .lc-foot .row .mg-hint { display: none; }
+}
+
+/* 2. The whole-case reading spent two hundred and thirty pixels on its
+      head before a word of the opinion: the title wrapped, the source
+      chips wrapped, the relation chips took a third row. One row that
+      scrolls, like the pairwise view's. */
+@media (max-width: 1060px) {
+  .cr-bar-in {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.7rem;
+    padding: 0.4rem 0.9rem;
+    scrollbar-width: none;
+  }
+  .cr-bar-in::-webkit-scrollbar { display: none; }
+  .cr-bar-in > * { flex: none; }
+  .cr-srcs, .cr-kinds { flex-wrap: nowrap; }
+  .cr-who .mg-label, .cr-srcs .mg-label { display: none; }
+  .cr-pick .t { max-width: 13rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cr-chip { font-size: 0.62rem; }
+}
+
+/* 3. "Opinion of the Court AGAINST Dissent (Sotomayor)" in a 393px row
+      wrapped each name over three lines with the separator stranded in
+      the middle. Stack them: one document per line, the separator
+      between, the count underneath. */
+@media (max-width: 560px) {
+  .cs-ways a {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.1rem 0.5rem;
+    align-items: baseline;
+  }
+  .cs-ways .a { grid-column: 1; }
+  .cs-ways .x { grid-column: 1; font-size: 0.55rem; opacity: 0.75; }
+  .cs-ways .b { grid-column: 1; }
+  /* the count is the signal; the arrow is decoration, and the whole
+     row is the tap target anyway */
+  .cs-ways .n {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    align-self: center;
+    margin-left: 0;
+    padding: 0.15rem 0.45rem;
+    border: 1px solid var(--mg-rule);
+    border-radius: 999px;
+    color: var(--mg-ink);
+  }
+  .cs-ways .n::after { content: ""; }
+  .cs-ways .arrow { display: none; }
+}
+
+/* somewhere to start, rather than an empty box and a keyboard */
+.lc-openers { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.9rem; }
+.lc-openers button {
+  text-align: left;
+  font-family: var(--mg-sans);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--mg-ink);
+  background: var(--mg-margin);
+  border: 1px solid var(--mg-rule);
+  border-radius: 4px;
+  padding: 0.45rem 0.6rem;
+  cursor: pointer;
+}
+.lc-openers button:hover { border-color: var(--mg-dim); background: #f2efe9; }
+.lc-openers button:active { background: #eae6de; }

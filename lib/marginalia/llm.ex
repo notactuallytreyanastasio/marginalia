@@ -195,7 +195,7 @@ defmodule Marginalia.LLM do
   end
 
   defp request(body, prov, key, timeout, attempt) do
-    case Req.post(prov.endpoint,
+    case Req.post(endpoint(prov),
            headers: [{"authorization", "Bearer #{key}"}],
            json: body,
            receive_timeout: timeout
@@ -226,14 +226,19 @@ defmodule Marginalia.LLM do
   defp interpret(other, _body, _prov, _key, _timeout, _attempt),
     do: {:error, {:unexpected, inspect(other) |> String.slice(0, 200)}}
 
-  defp retry_or_fail(error, _body, _prov, _key, _timeout, attempt) when attempt >= @max_attempts,
-    do: error
+  defp retry_or_fail(error, _body, _prov, _key, _timeout, attempt)
+       when attempt >= @max_attempts,
+       do: error
 
   defp retry_or_fail(_error, body, prov, key, timeout, attempt) do
     # jittered backoff: 0.5s, 1.5s, with noise so concurrent section reads
-    # don't all come back at the same instant
-    sleep = trunc(:math.pow(2, attempt) * 250) + :rand.uniform(400)
-    Process.sleep(sleep)
+    # don't all come back at the same instant.
+    #
+    # Zero in test, where the endpoint is a closed port: every call then
+    # spent seconds backing off from a refusal that is never going to
+    # stop refusing, and the task outlived the test that started it.
+    sleep = trunc(:math.pow(2, attempt) * Application.get_env(:marginalia, :llm_backoff_ms, 250))
+    if sleep > 0, do: Process.sleep(sleep + :rand.uniform(400))
     request(body, prov, key, timeout, attempt + 1)
   end
 
@@ -320,6 +325,18 @@ defmodule Marginalia.LLM do
 
   @doc "Whether a key is configured for the given (or default) provider."
   def configured?(provider \\ nil), do: match?({:ok, _}, api_key(resolve(provider)))
+
+  @doc """
+  Where a provider's calls go.
+
+  Overridable so the test environment can point at an address that goes
+  nowhere. A suite that reaches a third-party API is slow, flaky and, if
+  the machine happens to have a real key, billable.
+  """
+  def endpoint(prov) do
+    Application.get_env(:marginalia, :llm_endpoints, %{})
+    |> Map.get(prov.key, prov.endpoint)
+  end
 
   defp api_key(prov) do
     case Application.get_env(:marginalia, prov.key) do

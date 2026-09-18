@@ -50,8 +50,16 @@ config :marginalia, :llm_provider, System.get_env("LLM_PROVIDER", "deepseek")
 # who pays for the tokens, so it is its own setting rather than a second
 # meaning bolted onto is_admin.
 config :marginalia, :owner_email, System.get_env("OWNER_EMAIL", "bobbbygrayson@gmail.com")
-config :marginalia, :deepseek_api_key, System.get_env("DEEPSEEK_API_KEY")
-config :marginalia, :openai_api_key, System.get_env("OPENAI_API_KEY")
+
+# Never in test. This file runs in every environment and runs *after*
+# config/test.exs, so a developer with DEEPSEEK_API_KEY exported had a
+# test suite that would read a draft against the real paid API — slowly,
+# flakily, and on their card. Tests get no key at all, and the endpoint
+# they would call is a dead address anyway; see config/test.exs.
+if config_env() != :test do
+  config :marginalia, :deepseek_api_key, System.get_env("DEEPSEEK_API_KEY")
+  config :marginalia, :openai_api_key, System.get_env("OPENAI_API_KEY")
+end
 # Optional overrides; each provider has a sensible default model.
 config :marginalia, :llm_model, System.get_env("LLM_MODEL")
 config :marginalia, :llm_fast_model, System.get_env("LLM_FAST_MODEL")

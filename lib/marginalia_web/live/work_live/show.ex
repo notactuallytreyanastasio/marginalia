@@ -946,10 +946,22 @@ defmodule MarginaliaWeb.WorkLive.Show do
               open={@linking?}
               others={Links.linkable(@current_scope.user.id, @work.id)}
             />
+
             <%= if @mine? and @work.status == "read" and @counts.beats == 0 do %>
               <button class="mg-btn sm" phx-click="start_read">Read again</button>
             <% end %>
           </div>
+        </div>
+
+        <%!-- A draft can be related to several others, and a relationship
+              that only appears inside a dropdown is one nobody remembers
+              they made. --%>
+        <div :if={@links != []} class="mg-linkrow">
+          <span class="mg-label">read alongside</span>
+          <.link :for={l <- @links} navigate={~p"/links/#{l.id}?lead=#{@work.slug}"} class="one">
+            <span class="t">{Links.other(l, @work.id).title}</span>
+            <span :if={l.status != "linked"} class={["st", l.status]}>{l.status}</span>
+          </.link>
         </div>
 
         <div class="mt-5 flex items-baseline gap-5 flex-wrap border-b border-[var(--mg-rule)] pb-0">
@@ -1035,7 +1047,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
                 />
               <% _ -> %>
                 <.tour_card :if={@tour} tour={@tour} walk?={Walkthrough.for_view?(@view)} />
-                <.walk_overlay :if={@walk != []} steps={@walk} />
+                <MarginaliaWeb.Walk.overlay :if={@walk != []} steps={@walk} />
 
                 <%= if @work.status == "reading" do %>
                   <.progress
@@ -1131,6 +1143,26 @@ defmodule MarginaliaWeb.WorkLive.Show do
         machine getting everything after that wrong, so have a look before anything is read.
       </p>
 
+      <%!-- The action goes above the list, not below it.
+            It was below, and the one draft a stranger left sitting
+            unread for two days was the one with the most sections —
+            twenty-five rows, which is about eight hundred pixels, which
+            put the only button on the page under the fold. The list is
+            there to be checked, not read: whoever wants to check it can
+            scroll, and whoever does not should not have to. --%>
+      <div :if={@llm_ready and @mine?} class="mt-5 flex items-baseline gap-3 flex-wrap">
+        <button class="mg-btn" phx-click="start_read">
+          Read it — {length(@sections)} sections
+        </button>
+        <span class="mg-hint mt-0">
+          Takes a few minutes. Everything else on the page stays usable while it runs.
+        </span>
+      </div>
+
+      <div :if={not (@llm_ready and @mine?)} class="mt-5 text-[0.85rem] border-l-2 border-[var(--mg-accent)] pl-3 py-1.5">
+        No {Marginalia.LLM.label(@provider)} key is configured on this deploy, so the read can't run.
+      </div>
+
       <div class="mg-rows mt-5 max-w-[62ch]">
         <%= for s <- @sections do %>
           <div class="mg-row">
@@ -1141,15 +1173,10 @@ defmodule MarginaliaWeb.WorkLive.Show do
         <% end %>
       </div>
 
-      <%= if @llm_ready and @mine? do %>
-        <button class="mg-btn mt-6" phx-click="start_read">
-          Read it — {length(@sections)} sections
-        </button>
-      <% else %>
-        <div class="mt-6 text-[0.85rem] border-l-2 border-[var(--mg-accent)] pl-3 py-1.5">
-          No {Marginalia.LLM.label(@provider)} key is configured on this deploy, so the read can't run.
-        </div>
-      <% end %>
+      <%!-- and again at the end, for anyone who did read to the bottom --%>
+      <button :if={@llm_ready and @mine? and length(@sections) > 8} class="mg-btn mt-5" phx-click="start_read">
+        Read it — {length(@sections)} sections
+      </button>
     </div>
     """
   end
@@ -1753,255 +1780,6 @@ defmodule MarginaliaWeb.WorkLive.Show do
                  ${into.length ? `<div class="k">follows from</div>${rel(into, "in")}` : ""}
                  ${out.length ? `<div class="k">leads to</div>${rel(out, "out")}` : ""}
                </div>`;
-          },
-        };
-      </script>
-    </div>
-    """
-  end
-
-  attr :steps, :list, required: true
-
-  # The spotlight and the card that walks it.
-  #
-  # The steps are handed over as data rather than driven from the server one
-  # render at a time: the hook needs to measure an element, scroll to it and
-  # follow it while the page reflows, all of which is per-frame work and none
-  # of which is any of the server's business. What does cross the wire is
-  # each step's action, as the ordinary event the control itself would send —
-  # so the tour exercises the real handlers, and a step that breaks because
-  # the feature broke is the point rather than a nuisance.
-  defp walk_overlay(assigns) do
-    ~H"""
-    <div id="walk" phx-hook=".Walk" data-steps={Jason.encode!(@steps)}>
-      <div class="mg-walk-ring" hidden></div>
-      <div class="mg-walk-veil" hidden></div>
-
-      <div class="mg-walk-card" hidden>
-        <div class="mg-walk-head">
-          <span class="mg-label">Walkthrough</span>
-          <span class="n"></span>
-          <button class="mg-btn sm ghost ml-auto" phx-click="end_walk">end</button>
-        </div>
-        <h3></h3>
-        <p class="body"></p>
-        <div class="mg-walk-foot">
-          <button class="mg-btn sm ghost back">Back</button>
-          <button class="mg-btn sm next">Next</button>
-        </div>
-        <p class="mg-walk-safe">
-          Nothing here is saved, and no model is called — the answers are fixed examples.
-        </p>
-      </div>
-
-      <script :type={Phoenix.LiveView.ColocatedHook} name=".Walk">
-        // Spotlight one control, press it, wait for the page to answer, move
-        // on. The spotlight is a transparent box over the control with a
-        // very large shadow spread, so the lit thing keeps its own colours
-        // and everything else goes under a tint.
-        export default {
-          mounted() {
-            this.steps = JSON.parse(this.el.dataset.steps || "[]");
-            this.i = -1;
-
-            this.ring = this.el.querySelector(".mg-walk-ring");
-            this.veil = this.el.querySelector(".mg-walk-veil");
-            this.card = this.el.querySelector(".mg-walk-card");
-
-            this.card.querySelector(".next").addEventListener("click", () => this.go(this.i + 1));
-            this.card.querySelector(".back").addEventListener("click", () => this.go(this.i - 1));
-
-            this.onKey = (e) => {
-              if (e.key === "Escape") this.pushEvent("end_walk", {});
-              if (e.key === "ArrowRight") this.go(this.i + 1);
-              if (e.key === "ArrowLeft") this.go(this.i - 1);
-            };
-            document.addEventListener("keydown", this.onKey);
-
-            // the target moves: panels open below it, the margin reflows,
-            // the page scrolls. Re-measure rather than paint once.
-            this.track = () => this.place();
-            window.addEventListener("scroll", this.track, {passive: true});
-            window.addEventListener("resize", this.track);
-            this.timer = setInterval(this.track, 250);
-
-            this.go(0);
-          },
-
-          updated() {
-            // a step's action re-renders the page; the element it lit may
-            // have been replaced, so look it up again
-            this.place();
-          },
-
-          destroyed() {
-            document.removeEventListener("keydown", this.onKey);
-            window.removeEventListener("scroll", this.track);
-            window.removeEventListener("resize", this.track);
-            clearInterval(this.timer);
-          },
-
-          go(i) {
-            if (i < 0) return;
-            if (i >= this.steps.length) return this.pushEvent("end_walk", {});
-
-            this.i = i;
-            const step = this.steps[i];
-
-            this.card.querySelector("h3").textContent = step.title;
-            this.card.querySelector(".body").textContent = step.body;
-            this.card.querySelector(".n").textContent = `${i + 1} / ${this.steps.length}`;
-            this.card.querySelector(".back").disabled = i === 0;
-            this.card.querySelector(".next").textContent =
-              i === this.steps.length - 1 ? "Done" : "Next";
-
-            this.card.hidden = false;
-            this.place();
-
-            // let the spotlight land before the control is pressed, or the
-            // reader never sees which one it was
-            clearTimeout(this.actTimer);
-            this.actTimer = setTimeout(() => this.act(step), 550);
-          },
-
-          act(step) {
-            if (!step.act || this.i !== this.steps.indexOf(step)) return;
-
-            if (step.act.kind === "push") {
-              this.pushEvent(step.act.event, step.act.params || {});
-            } else {
-              this.client(step.act.name);
-            }
-            setTimeout(() => this.place(), 260);
-          },
-
-          // Everything here goes through the real control: the tour clicks
-          // what you would click. The only thing it does that you cannot is
-          // make a text selection, which has no button.
-          client(name) {
-            const body = document.querySelector(".mg-read-body");
-            const block = body && body.querySelector(".mg-block");
-
-            if (name === "open_map") {
-              const rail = document.querySelector(".mg-map-rail");
-              if (rail && !document.querySelector(".mg-map").classList.contains("open")) rail.click();
-              return;
-            }
-
-            if (name === "open_thread") {
-              const tick = block && block.querySelector(".mg-tick");
-              if (tick) tick.click();
-              return;
-            }
-
-            if (name === "ask_thread") {
-              const form = document.querySelector('form[phx-submit="thread_send"]');
-              const box = form && form.querySelector("textarea, input[name=message]");
-              if (!box) return;
-              box.value = "What is this paragraph actually doing?";
-              box.dispatchEvent(new Event("input", {bubbles: true}));
-              form.dispatchEvent(new Event("submit", {bubbles: true, cancelable: true}));
-              return;
-            }
-
-            if (name === "select") {
-              const p = block && block.querySelector("p");
-              if (!p) return;
-              const range = document.createRange();
-              range.selectNodeContents(p);
-              const sel = window.getSelection();
-              sel.removeAllRanges();
-              sel.addRange(range);
-              // the selection toolbar listens on the document, as a real
-              // drag would end
-              document.dispatchEvent(new MouseEvent("mouseup", {bubbles: true}));
-              return;
-            }
-
-            if (name === "rewrite") {
-              const btn = document.querySelector("#sel-rewrite");
-              // it binds mousedown, because a click clears the selection first
-              if (btn) btn.dispatchEvent(new MouseEvent("mousedown", {bubbles: true, cancelable: true}));
-              return;
-            }
-
-            if (name === "edit") {
-              if (block) this.pushEvent("edit_block", {ref: block.id.replace(/^block-/, "")});
-              return;
-            }
-
-            if (name === "reset") {
-              window.getSelection()?.removeAllRanges();
-              document.querySelector(".mg-map")?.classList.remove("open");
-              // the server holds the thread, the rewrite and the open editor
-              this.pushEvent("walk_reset", {});
-            }
-          },
-
-          target() {
-            const step = this.steps[this.i];
-            return step && step.target ? document.querySelector(step.target) : null;
-          },
-
-          place() {
-            if (this.card.hidden) return;
-            const el = this.target();
-
-            if (!el) {
-              // a step with nothing to point at — or a target that has not
-              // rendered yet. Centre the card and drop the spotlight rather
-              // than lighting the top-left corner of the page.
-              this.ring.hidden = true;
-              this.veil.hidden = false;
-              this.card.className = "mg-walk-card centre";
-              this.card.style.top = "";
-              this.card.style.left = "";
-              return;
-            }
-
-            const r = el.getBoundingClientRect();
-            const pad = 6;
-            const box = {
-              top: r.top - pad, left: r.left - pad,
-              width: r.width + pad * 2, height: r.height + pad * 2,
-            };
-
-            if (r.top < 90 || r.bottom > window.innerHeight - 60) {
-              el.scrollIntoView({behavior: "smooth", block: "center"});
-            }
-
-            this.ring.hidden = false;
-            this.veil.hidden = true;
-            Object.assign(this.ring.style, {
-              top: `${box.top}px`, left: `${box.left}px`,
-              width: `${box.width}px`, height: `${box.height}px`,
-            });
-
-            this.card.className = "mg-walk-card";
-            const cw = 22 * 16, gap = 16;
-            let left, top;
-            const place = this.steps[this.i].place;
-
-            if (place === "left") {
-              left = box.left - cw - gap;
-              top = box.top;
-            } else if (place === "bottom") {
-              left = box.left;
-              top = box.top + box.height + gap;
-            } else {
-              left = box.left + box.width + gap;
-              top = box.top;
-            }
-
-            // never off-screen: a card the reader has to scroll to find is
-            // worse than one on the wrong side
-            if (left + cw > window.innerWidth - 12) left = box.left - cw - gap;
-            if (left < 12) left = Math.min(box.left + box.width + gap, window.innerWidth - cw - 12);
-            if (left < 12) left = 12;
-            top = Math.max(12, Math.min(top, window.innerHeight - this.card.offsetHeight - 12));
-
-            this.card.style.left = `${left}px`;
-            this.card.style.top = `${top}px`;
           },
         };
       </script>
@@ -2715,6 +2493,17 @@ defmodule MarginaliaWeb.WorkLive.Show do
                 // anything with its own job keeps it: the thread tick, a link in
                 // the prose, an open thread or rewrite panel nested in the block
                 if (e.target.closest("a, button, input, textarea, form, .mg-thread-panel, .mg-rewrite")) return;
+
+                // A highlight is the note's own affordance — hover peeks,
+                // click pins — so a click on one belongs to the margin, not
+                // to the editor. With the drawer open that is the whole way
+                // a passage gets fed to the conversation, and opening an
+                // editor on top of it made adding a second one impossible.
+                if (e.target.closest("mark[id]")) return;
+
+                // and with the drawer open the draft is the reference, not
+                // the thing being edited
+                if (body.closest(".mg-read")?.classList.contains("collapsed")) return;
 
                 this.pushEvent("edit_block", {ref: block.id.replace(/^block-/, "")});
               },

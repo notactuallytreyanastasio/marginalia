@@ -243,8 +243,6 @@ defmodule Marginalia.Accounts do
     Repo.one(query)
   end
 
-
-
   @doc ~S"""
   Delivers the update email instructions to the given user.
 
@@ -261,7 +259,6 @@ defmodule Marginalia.Accounts do
     Repo.insert!(user_token)
     UserNotifier.deliver_update_email_instructions(user, update_email_url_fun.(encoded_token))
   end
-
 
   @doc """
   Deletes the signed token with the given context.
@@ -284,6 +281,7 @@ defmodule Marginalia.Accounts do
       end
     end)
   end
+
   ## Model backend
 
   @doc """
@@ -298,6 +296,17 @@ defmodule Marginalia.Accounts do
   end
 
   def owner?(_user), do: false
+
+  @doc "The account this deploy belongs to, or nil."
+  def owner do
+    case owner_email() do
+      "" ->
+        nil
+
+      email ->
+        Repo.one(from u in User, where: fragment("lower(?)", u.email) == ^String.downcase(email))
+    end
+  end
 
   defp owner_email, do: Application.get_env(:marginalia, :owner_email, "")
 
@@ -355,5 +364,4 @@ defmodule Marginalia.Accounts do
   end
 
   def mark_tour_seen(user, _view), do: {:ok, user}
-
 end

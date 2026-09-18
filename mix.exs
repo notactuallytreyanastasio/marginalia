@@ -45,6 +45,8 @@ defmodule Marginalia.MixProject do
       {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
       {:mdex, "~> 0.9"},
+      # reading an article off the web: Req fetches, Floki takes it apart
+      {:floki, "~> 0.36"},
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},

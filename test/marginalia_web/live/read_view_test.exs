@@ -98,4 +98,20 @@ defmodule MarginaliaWeb.ReadViewTest do
     {:ok, view, _html} = live(conn, ~p"/works/#{work.slug}?view=read")
     assert render_click(view, "discuss", %{"key" => "beat:0"})
   end
+
+  describe "the draft while the chat drawer is open" do
+    test "is marked as collapsed, which is what turns click-to-edit off", %{
+      conn: conn,
+      work: work
+    } do
+      {:ok, view, html} = live(conn, ~p"/works/#{work.slug}?view=read")
+      refute html =~ "mg-read mt-6 collapsed"
+
+      # with the drawer open the left column is the reference you feed the
+      # conversation from — clicking a highlight there has to reach the
+      # margin, not open an editor on top of it
+      html = render_click(view, "toggle_chat", %{})
+      assert html =~ "collapsed"
+    end
+  end
 end
