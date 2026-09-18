@@ -394,6 +394,37 @@ body {
   font-family: var(--mg-mono); font-size: 0.6rem; color: var(--mg-accent);
   border: 1px solid var(--mg-rule); border-radius: 2px; padding: 0 0.25rem; flex: none;
 }
+/* The weave: members as rows, claims as arcs between the pairs they rest on.
+   Ink only — this is a reading, not a dashboard, and a second hue here would
+   be the loudest thing on a page whose job is to be quiet. */
+.cut-weave { margin-top: 1.1rem; }
+.cut-weave svg { display: block; width: 100%; max-width: 17rem; overflow: visible; }
+.cw-rule { stroke: var(--mg-rule); stroke-width: 1; }
+.cw-dot { fill: var(--mg-card); stroke: var(--mg-dim); stroke-width: 1.2; }
+.cw-dot.lit { animation: cw-lit 1.15s ease-out; }
+.cw-lbl {
+  font-family: var(--mg-mono); font-size: 9px; fill: var(--mg-dim); text-anchor: end;
+}
+.cw-arc { stroke: var(--mg-ink); stroke-width: 1.2; opacity: 0.55; }
+.cw-arc.k-tension { stroke: var(--mg-accent); opacity: 0.7; }
+.cw-try { stroke: var(--mg-accent); stroke-width: 1.1; opacity: 0.5; }
+
+@keyframes cw-draw { to { stroke-dashoffset: 0; } }
+@keyframes cw-try {
+  0%   { stroke-dashoffset: var(--len, 200); opacity: 0; }
+  35%  { opacity: 0.55; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes cw-lit {
+  0%   { fill: var(--mg-card); r: 3.2; }
+  30%  { fill: var(--mg-accent); stroke: var(--mg-accent); r: 4.4; }
+  100% { fill: var(--mg-card); r: 3.2; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cw-arc, .cw-try, .cw-dot { animation: none !important; stroke-dashoffset: 0 !important; }
+  .cw-try { display: none; }
+}
+
 .cut-hole {
   font-size: 0.8rem; color: var(--mg-dim); line-height: 1.55;
   border-left: 2px solid var(--mg-rule); padding-left: 0.8rem; margin-top: 0.8rem;
