@@ -22,7 +22,13 @@ defmodule Marginalia.Application do
     # See https://elixir.hexdocs.pm/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Marginalia.Supervisor]
-    Supervisor.start_link(children, opts)
+    started = Supervisor.start_link(children, opts)
+
+    # anything that was mid-read or mid-link when this release last stopped
+    # has no process behind it any more — see Marginalia.Recovery
+    if started != :ignore, do: Marginalia.Recovery.sweep()
+
+    started
   end
 
   # Tell Phoenix to update the endpoint configuration
