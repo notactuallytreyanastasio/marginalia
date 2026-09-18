@@ -15,12 +15,19 @@ defmodule Marginalia.Links.Chat do
   retrieval — the maps are small, they cache, and a pass that could go
   looking would spend a minute doing it for a question that is answerable
   from the structure it already has.
+
+  ## It is not kept
+
+  The turns live in the LiveView and nowhere else. Closing the panel keeps
+  them, because the process is still there; opening the page again starts
+  over. That is deliberate: this is a conversation about a *shape*, and the
+  shape changes every time either draft is re-read or the pair is linked
+  again. A resumed thread would be answering questions about a graph that
+  no longer exists, and half its turns would quietly be about the old one.
+  A thread pinned to a paragraph is worth keeping. This is not.
   """
 
-  import Ecto.Query, warn: false
-
-  alias Marginalia.{LLM, Links, Repo, Works}
-  alias Marginalia.Chat.{Conversation, Message}
+  alias Marginalia.{LLM, Links, Works}
 
   @system """
   You are reading two manuscripts that someone has related to each other, and answering
@@ -61,19 +68,6 @@ defmodule Marginalia.Links.Chat do
         prompt: @system
       }
     ]
-  end
-
-  @doc "The conversation for this link, made on first use."
-  def conversation(%Links.Link{} = link) do
-    case Repo.get_by(Conversation, link_id: link.id) do
-      nil ->
-        %Conversation{}
-        |> Conversation.changeset(%{link_id: link.id, anchor_kind: "link"})
-        |> Repo.insert()
-
-      convo ->
-        {:ok, convo}
-    end
   end
 
   @doc "Ask about the pair. `history` is the turns so far, oldest first."
@@ -206,22 +200,4 @@ defmodule Marginalia.Links.Chat do
   end
 
   defp one_line(q), do: q |> String.replace(~r/\s+/u, " ") |> String.slice(0, 160)
-
-  @doc "Turns so far, oldest first, in the shape the model wants."
-  def history(%Conversation{} = convo, limit \\ 40) do
-    Message
-    |> where([m], m.conversation_id == ^convo.id)
-    |> order_by([m], desc: m.id)
-    |> limit(^limit)
-    |> select([m], %{role: m.role, content: m.content})
-    |> Repo.all()
-    |> Enum.reverse()
-    |> Enum.map(&%{"role" => &1.role, "content" => &1.content})
-  end
-
-  def append(%Conversation{} = convo, role, content) when is_binary(content) do
-    %Message{}
-    |> Message.changeset(%{conversation_id: convo.id, role: role, content: content})
-    |> Repo.insert()
-  end
 end

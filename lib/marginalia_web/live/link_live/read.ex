@@ -18,7 +18,7 @@ defmodule MarginaliaWeb.LinkLive.Read do
   """
   use MarginaliaWeb, :live_view
 
-  alias Marginalia.{Links, Reading}
+  alias Marginalia.{Accounts, Links, Reading, Walkthrough}
   alias Marginalia.Links.Chat, as: LinkChat
 
   @impl true
@@ -31,28 +31,53 @@ defmodule MarginaliaWeb.LinkLive.Read do
         if connected?(socket), do: Phoenix.PubSub.subscribe(Marginalia.PubSub, "link:#{link.id}")
 
         {:ok,
-         assign(socket,
+         socket
+         |> assign(
            link: link,
            page_robots: "noindex, nofollow",
            chat_open: false,
            chat_thinking: false,
-           chat_history: chat_history(link),
-           chat_convo: nil
-         )}
+           chat_history: [],
+           chat_cited: [],
+           walk: []
+         )
+         |> maybe_tour()}
     end
   end
 
   @impl true
   def handle_params(params, _uri, socket) do
-    link = socket.assigns.link
+    # Switching reference is a patch to a different :id, so the link has to
+    # come from the params — taking it from the assigns left the old pair
+    # in place and the page showed the wrong document under the right title.
+    link = swap(socket, params["id"])
     {a, b} = Links.works(link)
     {lead, other} = if params["lead"] == b.slug, do: {b, a}, else: {a, b}
 
     {page_a, page_b} = Links.pages(link)
     {lead_page, other_page} = if lead.id == a.id, do: {page_a, page_b}, else: {page_b, page_a}
 
+    # the nodes the pass is relating, for the wait; skipped once it is done
+    {wait_a, wait_b} = waiting_nodes(link, lead, other)
+
+    # every other draft this one has been related to, so the reference can
+    # be swapped without going back to a list
+    others =
+      lead.id
+      |> Links.for_work()
+      |> Enum.reject(&(&1.id == link.id))
+      |> Enum.map(fn l -> {l, Links.other(l, lead.id)} end)
+
     {:noreply,
      assign(socket,
+       link: link,
+       # the previous leg of the tour hands over in the query string, so a
+       # reader can also be sent straight into the middle of it by link
+       walk: if(params["walk"] == "1", do: Walkthrough.Cases.steps(:follow), else: socket.assigns.walk),
+       tour: if(params["walk"] == "1", do: nil, else: socket.assigns[:tour]),
+       others: others,
+       wait_a: wait_a,
+       wait_b: wait_b,
        page_title: "#{lead.title} · alongside #{other.title}",
        lead: lead,
        other: other,
@@ -63,10 +88,91 @@ defmodule MarginaliaWeb.LinkLive.Read do
      )}
   end
 
+  # --- the tour -------------------------------------------------------------
+
+  @doc false
+  # Nothing on this page announces itself: the right column dims, the wire
+  # appears under the pointer, the gaps fold. Every one of those is better
+  # than a label until you have never seen it before, which is everybody
+  # the first time. Six sentences, once.
+  def maybe_tour(socket) do
+    user = socket.assigns.current_scope.user
+
+    cond do
+      Accounts.seen_tour?(user, :follow) ->
+        assign(socket, tour: nil)
+
+      # A LiveView renders twice, over HTTP and then over the socket. Marking
+      # it seen on the first pass means the second pass finds it already read
+      # and shows nothing at all -- the bug this page's sibling shipped with.
+      connected?(socket) ->
+        {:ok, user} = Accounts.mark_tour_seen(user, :follow)
+
+        assign(socket,
+          tour: Marginalia.Tour.for_view(:follow),
+          current_scope: %{socket.assigns.current_scope | user: user}
+        )
+
+      true ->
+        assign(socket, tour: Marginalia.Tour.for_view(:follow))
+    end
+  end
+
+  def handle_event("dismiss_tour", _params, socket), do: {:noreply, assign(socket, tour: nil)}
+
+  def handle_event("start_walk", _params, socket),
+    do: {:noreply, assign(socket, tour: nil, walk: Walkthrough.Cases.steps(:follow))}
+
+  def handle_event("end_walk", _params, socket), do: {:noreply, assign(socket, walk: [])}
+
+  # on to the same opinion with the whole case in its margin
+  def handle_event("walk_hop", %{"to" => "case_read"}, socket) do
+    lead = socket.assigns.lead
+
+    case lead.collection do
+      nil -> {:noreply, assign(socket, walk: [])}
+      name ->
+        {:noreply,
+         push_navigate(socket,
+           to: ~p"/cases/#{Marginalia.Cases.slug(name)}/read/#{lead.slug}?walk=1"
+         )}
+    end
+  end
+
+  def handle_event("show_tour", _params, socket),
+    do: {:noreply, assign(socket, tour: Marginalia.Tour.for_view(:follow))}
+
   # --- the chat about this pair ---------------------------------------------
 
   def handle_event("toggle_chat", _params, socket),
     do: {:noreply, assign(socket, chat_open: !socket.assigns.chat_open)}
+
+  # Clicking the line between two passages puts both of them into the chat.
+  # The map already names every edge; this hands over the actual prose on
+  # each end, which is what a question about "this bit" needs.
+  def handle_event("cite_edge", %{"edge" => id}, socket) do
+    id = String.to_integer(id)
+    cited = socket.assigns.chat_cited
+
+    {:noreply,
+     assign(socket,
+       chat_cited: if(id in cited, do: cited, else: cited ++ [id]),
+       chat_open: true
+     )}
+  end
+
+  # The phone's equivalent of clicking the line: whichever connection the
+  # sheet is showing goes into the chat. The hook keeps the edge id on the
+  # button, so this does not have to work out what is current.
+  def handle_event("cite_current", %{"edge" => id}, socket),
+    do: handle_event("cite_edge", %{"edge" => id}, socket)
+
+  def handle_event("cite_current", _params, socket), do: {:noreply, socket}
+
+  def handle_event("uncite", %{"edge" => id}, socket) do
+    id = String.to_integer(id)
+    {:noreply, assign(socket, chat_cited: socket.assigns.chat_cited -- [id])}
+  end
 
   def handle_event("close_chat", _params, socket),
     do: {:noreply, assign(socket, chat_open: false)}
@@ -78,16 +184,15 @@ defmodule MarginaliaWeb.LinkLive.Read do
     if text == "" or a.chat_thinking do
       {:noreply, socket}
     else
-      {:ok, convo} = LinkChat.conversation(a.link)
-      {:ok, _} = LinkChat.append(convo, "user", text)
-
-      history = LinkChat.history(convo)
+      # the turns live here and nowhere else — see Links.Chat
+      history = a.chat_history ++ [%{"role" => "user", "content" => text}]
       link = a.link
+      cited = a.chat_cited
 
       {:noreply,
        socket
-       |> assign(chat_history: history, chat_thinking: true, chat_convo: convo)
-       |> start_async(:chat, fn -> LinkChat.ask(link, history) end)}
+       |> assign(chat_history: history, chat_thinking: true, chat_cited: [])
+       |> start_async(:chat, fn -> LinkChat.ask(link, history, cited: cited) end)}
     end
   end
 
@@ -127,12 +232,10 @@ defmodule MarginaliaWeb.LinkLive.Read do
 
   @impl true
   def handle_async(:chat, {:ok, {:ok, reply}}, socket) do
-    {:ok, _} = LinkChat.append(socket.assigns.chat_convo, "assistant", reply)
-
     {:noreply,
      assign(socket,
        chat_thinking: false,
-       chat_history: LinkChat.history(socket.assigns.chat_convo)
+       chat_history: socket.assigns.chat_history ++ [%{"role" => "assistant", "content" => reply}]
      )}
   end
 
@@ -149,30 +252,22 @@ defmodule MarginaliaWeb.LinkLive.Read do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} bleed>
-      <%!-- Landed here straight from the Link button: the pass is still
-            running. The page is subscribed, so it fills in by itself. --%>
-      <div :if={@link.status in ["pending", "linking"]} class="lk-wait">
-        <div class="mg-dots" aria-label="reading both graphs">
-          <span class="mg-dot"></span>
-          <span class="mg-dot" style="animation-delay:.18s"></span>
-          <span class="mg-dot" style="animation-delay:.36s"></span>
-        </div>
-        <h2>Relating the two maps</h2>
-        <p>
-          <strong>{@lead.title}</strong> and <strong>{@other.title}</strong>. It is reading both
-          graphs — every beat, the spine, the threads — and drawing the edges between them.
-          A minute or two. This page fills in on its own.
-        </p>
-      </div>
-
-      <div :if={@link.status == "failed"} class="lk-wait">
-        <h2>That did not go through</h2>
-        <p>{@link.error}</p>
-        <button class="mg-btn sm" phx-click="relink">Try again</button>
-      </div>
+      <%!-- While the pass runs: both maps, and the pairs it is trying
+            between them. The nodes are real; the arcs are not results and
+            say so. --%>
+      <MarginaliaWeb.LinkWaiting.waiting
+        :if={@link.status != "linked"}
+        a={@lead}
+        b={@other}
+        a_nodes={@wait_a}
+        b_nodes={@wait_b}
+        status={@link.status}
+        error={@link.error}
+      />
 
       <div :if={@link.status == "linked"} class="fl" id="follow" phx-hook=".Follow">
         <div class="fl-bar">
+          <button class="fl-help" phx-click="show_tour" title="How this page works">?</button>
           <.link
             patch={read_path(assigns, lead: @other.slug)}
             class="fl-swap"
@@ -180,11 +275,6 @@ defmodule MarginaliaWeb.LinkLive.Read do
           >
             <span aria-hidden="true">⇄</span> swap sides
           </.link>
-
-          <div class="fl-tabs">
-            <.link navigate={~p"/links/#{@link.id}"} class="mg-tab">Split</.link>
-            <span class="mg-tab on">Follow</span>
-          </div>
 
           <div class="fl-legend">
             <button
@@ -196,6 +286,19 @@ defmodule MarginaliaWeb.LinkLive.Read do
           </div>
 
           <%!-- how much of the relationship you have actually been past --%>
+          <%!-- The model's account of the relationship. It lived in the
+                split view, and deleting that orphaned it — it was only
+                visible on the index rows, which is not where you are when
+                you want it. --%>
+          <details :if={@link.summary} class="fl-sum">
+            <summary>
+              <span class="mg-label">why</span>
+              <span class="peek">{Links.summary(@link)}</span>
+              <span class="more" aria-hidden="true"></span>
+            </summary>
+            <p>{Links.summary(@link)}</p>
+          </details>
+
           <span class="fl-count"><b>0</b> / {@stats.edges} addressed</span>
         </div>
 
@@ -222,13 +325,52 @@ defmodule MarginaliaWeb.LinkLive.Read do
             <path class="w2" fill="none" />
             <circle class="d1" r="4" />
             <circle class="d2" r="4" />
+            <%!-- a 2.5px line is not a thing anyone can hit. These are the
+                  same two curves, invisible and fourteen pixels wide, and
+                  they are what actually takes the click. --%>
+            <path class="h1 hit" fill="none" />
+            <path class="h2 hit" fill="none" />
           </svg>
 
           <div class="fl-mid">
+            <%!-- The phone's answer to "what does the other document say
+                  about this paragraph". A paragraph can carry five
+                  connections and the sheet was showing one of them —
+                  whichever happened to be first in the DOM — with no
+                  sign the other four existed. So: the stack, one card
+                  per connection, built by the hook because only the
+                  browser knows which paragraph was tapped.
+
+                  The strip below it is the wide-screen version and
+                  stays as it was: there, the drawn line points at one
+                  connection at a time, so one is the right number. --%>
+            <div class="fl-sheet" hidden>
+              <div class="fl-sheet-head">
+                <span class="n"></span>
+                <button type="button" class="shut" aria-label="Back to the reading">×</button>
+              </div>
+              <div class="fl-stack"></div>
+            </div>
+
             <div class="fl-strip" hidden>
-              <span class="rel"></span>
+              <%!-- On a phone this strip is the whole of the other
+                    document, so it needs the head a wide screen gets for
+                    free from the column beside it: the relation, whose
+                    passage it is, and a way into the chat. Clicking the
+                    drawn line does that on a wide screen; there is no
+                    line here to click. --%>
+              <div class="fl-strip-head">
+                <span class="rel"></span>
+                <span class="nth"></span>
+                <button type="button" class="ask" phx-click="cite_current">ask about this</button>
+                <button type="button" class="shut" aria-label="Back to the reading">×</button>
+              </div>
               <p class="why"></p>
-              <span class="nth"></span>
+              <%!-- On a phone the right-hand document has nowhere to be,
+                    so the strip carries the passage itself. The hook
+                    copies it out of the column, which is still in the
+                    DOM — hidden, not absent. --%>
+              <blockquote class="far"></blockquote>
             </div>
             <div class="fl-idle">
               Scroll. Where this draft touches the other, it will be shown here.
@@ -237,19 +379,80 @@ defmodule MarginaliaWeb.LinkLive.Read do
 
           <div class="fl-col other" id="fl-other" tabindex="0">
             <div class="fl-colhead">
-              <span class="mg-label">Referencing…</span>
-              <a href={~p"/works/#{@other.slug}"}>{@other.title}</a>
+              <%!-- A draft can be related to several others, and reading it
+                    against each of them in turn is the point of having
+                    more than one. Swapping is here rather than back on a
+                    list page. --%>
+              <%= if @others == [] do %>
+                <span class="mg-label">Referencing…</span>
+                <a href={~p"/works/#{@other.slug}"}>{@other.title}</a>
+              <% else %>
+                <details class="fl-pick">
+                  <summary>
+                    <span class="mg-label">Referencing…</span>
+                    <span class="t">{@other.title}</span>
+                    <span class="n">{length(@others) + 1}</span>
+                  </summary>
+                  <div class="fl-pick-menu">
+                    <span class="here">
+                      <span class="t">{@other.title}</span>
+                      <span class="mg-label">reading against this</span>
+                    </span>
+                    <.link
+                      :for={{l, w} <- @others}
+                      patch={~p"/links/#{l.id}?lead=#{@lead.slug}"}
+                      class="row"
+                    >
+                      <span class="t">{w.title}</span>
+                      <span class={["st", l.status]}>
+                        {if l.status == "linked", do: "#{edge_count(l)} edges", else: l.status}
+                      </span>
+                    </.link>
+                    <.link navigate={~p"/links"} class="row more">Relate it to another…</.link>
+                  </div>
+                </details>
+              <% end %>
             </div>
             <.side page={@other_page} only={@only} side="other" />
           </div>
         </div>
       </div>
 
+      <%!-- Over the page rather than beside it: the things it describes are
+            the page, and a card in a corner is read after you have already
+            failed to work out what the dimmed half is for. --%>
+      <div :if={@tour} class="fl-tour-veil" phx-click="dismiss_tour">
+        <div class="fl-tour" phx-click-away="dismiss_tour">
+          <div class="fl-tour-head">
+            <h2>{@tour.title}</h2>
+            <button class="mg-btn sm ghost" phx-click="dismiss_tour">Got it</button>
+          </div>
+          <ul>
+            <li :for={point <- @tour.points}>{point}</li>
+          </ul>
+          <p class="mg-hint">The <strong>?</strong> in the bar brings this back.</p>
+        </div>
+      </div>
+
+      <MarginaliaWeb.Walk.overlay
+        :if={@walk != []}
+        steps={@walk}
+        note="Real documents, really read: these are the Court's own files and nothing here is a fixture. The tour presses the same controls you would."
+      />
+
+      <%!-- Not while the tour card is up. The card's veil covers the whole
+            viewport at a higher z-index than the bubble, so a click on the
+            bubble was landing on the veil: the tour dismissed and the chat
+            did not open. Twice in a row looks exactly like a broken
+            button, and it was — a control you can see, cannot press, and
+            get no feedback from. --%>
       <MarginaliaWeb.LinkChat.bubble
+        :if={is_nil(@tour)}
         open={@chat_open}
         history={@chat_history}
         thinking={@chat_thinking}
         count={length(@chat_history)}
+        cited={cited_edges(@link, @chat_cited)}
       />
 
       <script :type={Phoenix.LiveView.ColocatedHook} name=".Follow">
@@ -261,14 +464,39 @@ defmodule MarginaliaWeb.LinkLive.Read do
         // counterpart at the same height. Reading is the input; nothing has
         // to be clicked.
         export default {
-          mounted() {
+          // Every element this hook touches, looked up in one place.
+          //
+          // These used to be cached once in mounted() and never again.
+          // A server re-render — dismissing the one-time card is enough —
+          // can replace those nodes, and the hook then holds detached
+          // ones: it adds the open class to a `.fl-mid` that is no longer
+          // in the document, so a tap highlights the paragraph and the
+          // reference never appears. Nothing throws, nothing logs, and
+          // the feature is simply dead until reload.
+          cache() {
             this.lead = this.el.querySelector("#fl-lead");
             this.other = this.el.querySelector("#fl-other");
             this.strip = this.el.querySelector(".fl-strip");
+            this.sheet = this.el.querySelector(".fl-sheet");
+            this.stack = this.el.querySelector(".fl-stack");
             this.svg = this.el.querySelector(".fl-wire");
             this.split = this.el.querySelector(".fl-split");
             this.idle = this.el.querySelector(".fl-idle");
             this.count = this.el.querySelector(".fl-count b");
+            this.mid = this.el.querySelector(".fl-mid");
+          },
+
+          mounted() {
+            this.cache();
+
+            // clicking the line carries both passages into the chat;
+            // delegated for the same reason as the sheet's controls
+            this.onWireClick = (e) => {
+              if (e.target.closest(".fl-wire .hit") && this.edge) {
+                this.pushEvent("cite_edge", {edge: this.edge});
+              }
+            };
+            this.el.addEventListener("click", this.onWireClick);
             this.seen = new Set();
             this.current = null;
 
@@ -299,12 +527,81 @@ defmodule MarginaliaWeb.LinkLive.Read do
             this.other.addEventListener("wheel", () => this.release(), {passive: true});
             window.addEventListener("resize", this.onScroll);
 
+            // A tap on a highlighted passage picks it, rather than making
+            // someone scroll it past the focus line. On a phone, where
+            // the other column is not on screen at all, that is the only
+            // way to point at something.
+            this.onTap = (e) => {
+              const block = e.target.closest(".fl-block.linked");
+              if (!block) return;
+              if (window.getSelection()?.toString()) return;
+              this.current = block;
+              this.free = false;
+              this.mark(block);
+
+              if (this.phone()) {
+                if (this.fillStack(block)) {
+                  this.sheet.hidden = false;
+                  this.strip.hidden = true;
+                  this.stack.scrollTop = 0;
+                  this.openSheet();
+                }
+              } else {
+                this.align(block);
+              }
+            };
+            this.lead.addEventListener("click", this.onTap);
+
+            this.onSheetKey = (e) => {
+              if (e.key === "Escape" && this.mid?.classList.contains("open")) this.closeSheet();
+            };
+            document.addEventListener("keydown", this.onSheetKey);
+
+            // Delegated, not bound to the nodes themselves: a patch can
+            // replace them, and a listener on a node that is no longer in
+            // the document is a control that silently stops working.
+            this.onSheetClick = (e) => {
+              // asking about it takes you into the chat, so the reference
+              // gets out of the way rather than sitting on top of it
+              // The stack's cards are created here, not rendered by the
+              // server, so LiveView never bound their clicks — the hook
+              // sends the event itself.
+              const ask = e.target.closest(".fl-card .ask");
+              if (ask) {
+                if (ask.dataset.edge) this.pushEvent("cite_edge", {edge: ask.dataset.edge});
+                return this.closeSheet();
+              }
+
+              if (e.target.closest(".shut") || e.target.closest(".fl-strip .ask")) {
+                return this.closeSheet();
+              }
+              // the dimmed part, outside the sheet itself
+              if (e.target.classList && e.target.classList.contains("fl-mid")) {
+                return this.closeSheet();
+              }
+            };
+            this.el.addEventListener("click", this.onSheetClick);
+
             this.follow();
           },
 
-          updated() { this.seen.clear(); this.current = null; this.follow(); },
+          updated() {
+            // the patch may have swapped the nodes underneath us
+            const wasOpen = this.mid?.classList.contains("open");
+            this.cache();
+            if (wasOpen) this.mid?.classList.add("open");
+
+            this.seen.clear();
+            this.current = null;
+            this.follow();
+          },
 
           destroyed() {
+            document.documentElement.classList.remove("fl-sheet-open");
+            document.removeEventListener("keydown", this.onSheetKey);
+            this.lead.removeEventListener("click", this.onTap);
+            this.el.removeEventListener("click", this.onSheetClick);
+            this.el.removeEventListener("click", this.onWireClick);
             this.lead.removeEventListener("scroll", this.onScroll);
             this.el.removeEventListener("wheel", this.onWheel);
             cancelAnimationFrame(this.frame);
@@ -312,6 +609,92 @@ defmodule MarginaliaWeb.LinkLive.Read do
           },
 
           release() { this.free = true; },
+
+          // A phone has no room for a second column and no room for a
+          // permanent strip either: the screenshot that killed the last
+          // design had six hundred pixels of chrome, a sliver of reading
+          // and a sheet competing with it for the rest. So the reference
+          // is a place you go and come back from.
+          phone() { return window.matchMedia("(max-width: 1100px)").matches; },
+
+          // The sheet scrolls, and it kept its position between passages,
+          // so it opened halfway down the previous one. Defined here with
+          // the other methods rather than as a closure in mounted(),
+          // where deleting the code above it took this with it and left
+          // mark() calling a function that no longer existed — which
+          // threw after the highlight and before the sheet, so a tap lit
+          // the paragraph and did nothing else.
+          rewind() { if (this.strip) this.strip.scrollTop = 0; },
+
+          // One card per connection on the tapped paragraph, in the order
+          // the page has them. Built here rather than rendered by the
+          // server because the server does not know which paragraph a
+          // thumb landed on, and shipping every paragraph's stack up
+          // front would be the whole document twice.
+          fillStack(block) {
+            const notes = [...block.querySelectorAll("[data-peer-ref]")];
+            if (!notes.length) return false;
+
+            this.sheet.querySelector(".n").textContent =
+              notes.length === 1 ? "1 connection" : `${notes.length} connections`;
+
+            this.stack.replaceChildren(
+              ...notes.map((note) => {
+                const card = document.createElement("article");
+                card.className = `fl-card k-${note.dataset.kind}`;
+
+                const peer = this.other.querySelector(
+                  `#blk-other-${CSS.escape(note.dataset.peerRef || "")}`
+                );
+                const prose = peer
+                  ? [...peer.querySelectorAll("p")].map((el) => el.textContent.trim()).join(" ")
+                  : "";
+
+                const head = document.createElement("header");
+                const rel = document.createElement("span");
+                rel.className = "rel";
+                rel.textContent = (note.dataset.kind || "").replace(/_/g, " ");
+                const src = document.createElement("span");
+                src.className = "src";
+                src.textContent = note.dataset.src || "";
+                head.append(rel, src);
+
+                const why = document.createElement("p");
+                why.className = "why";
+                why.textContent = note.dataset.why || "";
+
+                const ask = document.createElement("button");
+                ask.type = "button";
+                ask.className = "ask";
+                ask.dataset.edge = note.dataset.edge || "";
+                ask.textContent = "ask about this";
+
+                card.append(head, why);
+
+                if (prose) {
+                  const far = document.createElement("blockquote");
+                  far.className = "far";
+                  far.textContent = prose;
+                  card.append(far);
+                }
+
+                card.append(ask);
+                return card;
+              })
+            );
+
+            return true;
+          },
+
+          openSheet() {
+            this.mid.classList.add("open");
+            document.documentElement.classList.add("fl-sheet-open");
+          },
+
+          closeSheet() {
+            this.mid.classList.remove("open");
+            document.documentElement.classList.remove("fl-sheet-open");
+          },
 
           // The linked paragraph you are currently on: the last one to have
           // crossed the focus line while still being on screen. The "still
@@ -338,6 +721,10 @@ defmodule MarginaliaWeb.LinkLive.Read do
           },
 
           follow() {
+            // nothing to follow with: the reference is not on screen and
+            // the reader opens it deliberately
+            if (this.phone()) return;
+
             const block = this.currentBlock();
             if (!block) return this.blank();
 
@@ -370,7 +757,26 @@ defmodule MarginaliaWeb.LinkLive.Read do
             this.seen.add(note.dataset.edge);
             this.count.textContent = this.seen.size;
             this.strip.querySelector(".nth").textContent = note.dataset.src;
+
+            // The passage on the other side, for the half of the screen a
+            // phone does not have. The paragraphs only: the block also
+            // holds the relation tag
+            // and the hidden spans carrying this data, and on a phone the
+            // column is display:none, where innerText falls back to
+            // textContent and would sweep both of them in
+            const far = this.strip.querySelector(".far");
+            const prose = peer
+              ? [...peer.querySelectorAll("p")].map((el) => el.textContent.trim()).join(" ")
+              : "";
+            far.textContent = prose;
+            far.hidden = !prose;
             this.svg.dataset.kind = note.dataset.kind;
+            this.edge = note.dataset.edge;
+
+            // the phone's ask button posts the edge it can see
+            const ask = this.strip.querySelector(".ask");
+            if (ask) ask.setAttribute("phx-value-edge", this.edge);
+            this.rewind();
             this.chase();
           },
 
@@ -416,10 +822,12 @@ defmodule MarginaliaWeb.LinkLive.Read do
 
             this.svg.removeAttribute("hidden");
             this.svg.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
-            this.svg.querySelector(".w1").setAttribute(
-              "d", `M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${ym}, ${x2} ${ym}`);
-            this.svg.querySelector(".w2").setAttribute(
-              "d", `M ${x3} ${ym} C ${(x3 + x4) / 2} ${ym}, ${(x3 + x4) / 2} ${y4}, ${x4} ${y4}`);
+            const d1 = `M ${x1} ${y1} C ${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${ym}, ${x2} ${ym}`;
+            const d2 = `M ${x3} ${ym} C ${(x3 + x4) / 2} ${ym}, ${(x3 + x4) / 2} ${y4}, ${x4} ${y4}`;
+            this.svg.querySelector(".w1").setAttribute("d", d1);
+            this.svg.querySelector(".w2").setAttribute("d", d2);
+            this.svg.querySelector(".h1").setAttribute("d", d1);
+            this.svg.querySelector(".h2").setAttribute("d", d2);
             this.svg.querySelector(".d1").setAttribute("cx", x1);
             this.svg.querySelector(".d1").setAttribute("cy", y1);
             this.svg.querySelector(".d2").setAttribute("cx", x4);
@@ -490,14 +898,20 @@ defmodule MarginaliaWeb.LinkLive.Read do
                 </summary>
                 <div class="fl-gap-body">
                   <div :for={b <- blocks} class="fl-block quiet" id={"blk-#{@side}-#{b.ref}"}>
-                    {Reading.render_block(b.text, nil, b.ref)}
+                    {Reading.render_block(b.text, nil, "#{@side}-#{b.ref}")}
                   </div>
                 </div>
               </details>
             <% {:block, block} -> %>
               <% notes = Enum.filter(block.notes, &shown?(&1, @only)) %>
               <div class={["fl-block", notes != [] && "linked"]} id={"blk-#{@side}-#{block.ref}"}>
-                {Reading.render_block(block.text, notes != [] && block.mark, block.ref)}
+                <%!-- The anchor id is namespaced by side. Both columns
+                      number their paragraphs from their own first one, so
+                      an anchored quote at the same position in each
+                      produced two elements with id "anchor-s1p1" — which
+                      breaks DOM patching and means getElementById returns
+                      whichever one happens to be first. --%>
+                {Reading.render_block(block.text, notes != [] && block.mark, "#{@side}-#{block.ref}")}
 
                 <%!-- the relation is carried on the paragraph as data; the strip
                   between the columns is what actually shows it --%>
@@ -579,11 +993,41 @@ defmodule MarginaliaWeb.LinkLive.Read do
     |> Enum.map(fn {t, n} -> {t, "#{String.replace(t, "_", " ")} #{n}"} end)
   end
 
-  # the conversation lives in the database, so a reload comes back to it
-  defp chat_history(link) do
-    case Marginalia.Repo.get_by(Marginalia.Chat.Conversation, link_id: link.id) do
-      nil -> []
-      convo -> LinkChat.history(convo)
+  # ids in, something showable out
+  defp cited_edges(_link, []), do: []
+
+  defp cited_edges(link, ids) do
+    link |> Links.edges() |> Enum.filter(&(&1.id in ids))
+  end
+
+  # Only while it is running: once the link is drawn the page shows the
+  # real thing and these would be two unused queries on every render.
+  defp waiting_nodes(%{status: "linked"}, _a, _b), do: {[], []}
+
+  defp waiting_nodes(_link, a, b),
+    do: {beats(a), beats(b)}
+
+  defp beats(work),
+    do: work.id |> Marginalia.Works.list_nodes() |> Enum.filter(&(&1.node_type == "beat"))
+
+  # the link named in the URL, resubscribing if it is a different one
+  defp swap(socket, id) do
+    current = socket.assigns.link
+
+    with false <- is_nil(id),
+         {n, _} <- Integer.parse(to_string(id)),
+         true <- n != current.id,
+         %{} = link <- Links.get(n) do
+      if connected?(socket) do
+        Phoenix.PubSub.unsubscribe(Marginalia.PubSub, "link:#{current.id}")
+        Phoenix.PubSub.subscribe(Marginalia.PubSub, "link:#{link.id}")
+      end
+
+      link
+    else
+      _ -> current
     end
   end
+
+  defp edge_count(link), do: link |> Links.edges() |> length()
 end

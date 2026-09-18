@@ -55,43 +55,21 @@ defmodule Marginalia.LinkChatTest do
     %{link: link, a: a, b: b}
   end
 
-  describe "where it lives" do
-    test "a conversation belongs to the link, not to either draft", %{link: link} do
-      {:ok, convo} = LinkChat.conversation(link)
-
-      assert convo.link_id == link.id
-      assert is_nil(convo.work_id)
-      assert convo.anchor_kind == "link"
+  describe "it is not kept" do
+    test "the module offers no way to store a turn" do
+      # the turns live in the LiveView and die with it: this is a
+      # conversation about a shape, and the shape changes whenever either
+      # draft is re-read or the pair is linked again
+      refute function_exported?(LinkChat, :append, 3)
+      refute function_exported?(LinkChat, :history, 1)
+      refute function_exported?(LinkChat, :conversation, 1)
     end
 
-    test "asking twice returns the same one, so the state survives closing", %{link: link} do
-      {:ok, one} = LinkChat.conversation(link)
-      LinkChat.append(one, "user", "does it hold up?")
-      {:ok, two} = LinkChat.conversation(link)
-
-      assert one.id == two.id
-      assert [%{"role" => "user", "content" => "does it hold up?"}] = LinkChat.history(two)
-    end
-
-    test "a conversation cannot belong to both a draft and a link", %{link: link, a: a} do
+    test "and a conversation row still has to belong to a draft" do
       assert {:error, changeset} =
-               %Conversation{}
-               |> Conversation.changeset(%{work_id: a.id, link_id: link.id})
-               |> Repo.insert()
+               %Conversation{} |> Conversation.changeset(%{}) |> Repo.insert()
 
-      assert "a conversation belongs to one or the other, not both" in errors_on(changeset).work_id
-    end
-
-    test "or to neither" do
-      assert {:error, changeset} = %Conversation{} |> Conversation.changeset(%{}) |> Repo.insert()
-      assert "a conversation belongs to a draft or to a link" in errors_on(changeset).work_id
-    end
-
-    test "deleting a draft takes the link's conversation with it", %{link: link, a: a} do
-      {:ok, _convo} = LinkChat.conversation(link)
-      Repo.delete!(a)
-
-      assert Repo.get_by(Conversation, link_id: link.id) == nil
+      assert "can't be blank" in errors_on(changeset).work_id
     end
   end
 
@@ -123,21 +101,6 @@ defmodule Marginalia.LinkChatTest do
       assert p =~ "do not rank them"
       # and the discipline that makes it worth reading
       assert p =~ "An edge you were not given does not exist"
-    end
-  end
-
-  describe "the reply" do
-    test "only text is ever stored — a message map is not a reply", %{link: link} do
-      {:ok, convo} = LinkChat.conversation(link)
-
-      # LLM.chat returns the whole message; appending that map instead of its
-      # text failed the insert quietly and the answer never appeared
-      assert_raise FunctionClauseError, fn ->
-        LinkChat.append(convo, "assistant", %{"role" => "assistant", "content" => "hi"})
-      end
-
-      assert {:ok, _} = LinkChat.append(convo, "assistant", "hi")
-      assert [%{"content" => "hi"}] = LinkChat.history(convo)
     end
   end
 end

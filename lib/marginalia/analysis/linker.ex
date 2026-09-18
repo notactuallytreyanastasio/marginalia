@@ -134,8 +134,15 @@ defmodule Marginalia.Analysis.Linker do
         fail(link, :not_read)
 
       true ->
-        case ask(a, b, a_nodes, b_nodes, provider) do
+        # One model call, so there is no incremental progress to report —
+        # but there are three distinct things happening around it, and a
+        # reader waiting ninety seconds deserves to know which one.
+        broadcast(link, {:link, :stage, :reading})
+        broadcast(link, {:link, :stage, :asking})
+
+        case ask_with_retry(a, b, a_nodes, b_nodes, provider) do
           {:ok, %{"edges" => edges} = out} when is_list(edges) ->
+            broadcast(link, {:link, :stage, :checking})
             Links.clear_edges(link)
             {kept, dropped} = Links.store_edges(link, edges, @types)
 
@@ -165,7 +172,34 @@ defmodule Marginalia.Analysis.Linker do
     {:error, reason}
   end
 
-  defp ask(a, b, a_nodes, b_nodes, provider) do
+  @crowded """
+
+  THIS PAIR IS LARGE AND YOUR LAST ANSWER DID NOT FIT.
+  Return AT MOST 45 edges — the strongest ones, spread across both documents rather than
+  clustered at the front. Keep every "why" to a single short sentence. Everything else
+  above still applies: no invented relations, and every edge still has one end in each
+  manuscript.
+  """
+
+  # Two large maps can produce more edges than the budget holds, and a
+  # truncated answer is not a short answer — it is a cut-off JSON array,
+  # which parses as nothing and stores nothing. Raising the ceiling only
+  # moves the wall; the fix is to ask for less of the thing that overflowed.
+  defp ask_with_retry(a, b, a_nodes, b_nodes, provider) do
+    case ask(a, b, a_nodes, b_nodes, provider) do
+      {:error, :truncated} ->
+        Logger.warning(
+          "marginalia: link #{a.id}<->#{b.id} overflowed, asking again for the strongest only"
+        )
+
+        ask(a, b, a_nodes, b_nodes, provider, @crowded)
+
+      other ->
+        other
+    end
+  end
+
+  defp ask(a, b, a_nodes, b_nodes, provider, extra \\ "") do
     LLM.json(
       provider: provider,
       model: LLM.default_model(provider),
@@ -177,7 +211,7 @@ defmodule Marginalia.Analysis.Linker do
       # returned :truncated and stored nothing
       max_tokens: 24_000,
       messages: [
-        %{"role" => "system", "content" => @prompt},
+        %{"role" => "system", "content" => @prompt <> extra},
         %{"role" => "user", "content" => catalogue(a, b, a_nodes, b_nodes)}
       ]
     )

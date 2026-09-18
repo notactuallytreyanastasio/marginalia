@@ -76,6 +76,103 @@ defmodule Marginalia.Links do
     |> Repo.all()
   end
 
+  @doc "Every link this writer has, newest first, both works loaded."
+  def for_user(user_id) do
+    from(l in Link,
+      join: a in assoc(l, :a_work),
+      join: b in assoc(l, :b_work),
+      where: a.user_id == ^user_id or b.user_id == ^user_id,
+      order_by: [desc: l.updated_at],
+      preload: [a_work: a, b_work: b]
+    )
+    |> Repo.all()
+  end
+
+  @doc """
+  The writer's links, grouped into the constellations they actually form.
+
+  Links are pairs, but pairs chain: relate an opinion to the argument that
+  produced it and to the dissents that answer it, and what you have is not
+  two unrelated facts, it is one body of documents. A list of pairs hides
+  that. This returns the connected components — every group of drafts that
+  can be reached from each other through links — so the shape can be drawn.
+
+  Each group also carries the pairs inside it that are *not* linked yet,
+  which is the useful part: in a group of three with two links, the third
+  pair is the obvious next question, and nothing else in the product would
+  ever have raised it.
+  """
+  def clusters(user_id) do
+    links = for_user(user_id)
+
+    works =
+      links
+      |> Enum.flat_map(&[&1.a_work, &1.b_work])
+      |> Enum.uniq_by(& &1.id)
+      |> Map.new(&{&1.id, &1})
+
+    links
+    |> components()
+    |> Enum.map(fn ids ->
+      inside = Enum.filter(links, &(&1.a_work_id in ids))
+      members = ids |> Enum.map(&works[&1]) |> Enum.sort_by(& &1.title)
+      linked = MapSet.new(inside, &{&1.a_work_id, &1.b_work_id})
+
+      %{
+        works: members,
+        links: inside,
+        missing: unlinked_pairs(members, linked)
+      }
+    end)
+    |> Enum.sort_by(&(-length(&1.works)))
+  end
+
+  # the pairs inside a group that nobody has related yet
+  defp unlinked_pairs(members, linked) do
+    for a <- members,
+        b <- members,
+        a.id < b.id,
+        not MapSet.member?(linked, {a.id, b.id}),
+        do: {a, b}
+  end
+
+  # union-find over the pairs, which is all a connected component is
+  defp components(links) do
+    parent =
+      links
+      |> Enum.flat_map(&[&1.a_work_id, &1.b_work_id])
+      |> Enum.uniq()
+      |> Map.new(&{&1, &1})
+
+    parent =
+      Enum.reduce(links, parent, fn l, acc ->
+        {ra, acc} = root(acc, l.a_work_id)
+        {rb, acc} = root(acc, l.b_work_id)
+        if ra == rb, do: acc, else: Map.put(acc, ra, rb)
+      end)
+
+    parent
+    |> Map.keys()
+    |> Enum.group_by(fn id -> elem(root(parent, id), 0) end)
+    |> Map.values()
+  end
+
+  defp root(parent, id) do
+    case parent[id] do
+      ^id -> {id, parent}
+      up -> root(parent, up)
+    end
+  end
+
+  @doc "Drafts that could be linked at all: this writer's, and read."
+  def linkable(user_id) do
+    from(w in Marginalia.Works.Work,
+      where: w.user_id == ^user_id and w.status == "read",
+      order_by: [desc: w.inserted_at]
+    )
+    |> Repo.all()
+  end
+
   @doc "Every link either side of this work, newest first."
   def for_work(work_id) do
     Link
@@ -94,7 +191,14 @@ defmodule Marginalia.Links do
   end
 
   @doc "Edges of a link, with both ends loaded, in the order they were drawn."
-  def edges(%Link{} = link), do: edges(link.id)
+  # Decorated with the documents' names in place of the pass's A and B —
+  # here rather than in each view, so nothing that renders a reason has
+  # to remember to do it. See `plain/2`.
+  def edges(%Link{} = link) do
+    link.id
+    |> edges()
+    |> Enum.map(&%{&1 | rationale: plain(&1.rationale, link)})
+  end
 
   def edges(link_id) do
     LinkEdge
@@ -195,7 +299,8 @@ defmodule Marginalia.Links do
   is the thing people misread — the paragraph around it is what makes it
   mean what it means.
   """
-  def passage(%Node{quote: q, section_id: sid}) when is_binary(q) and q != "" and not is_nil(sid) do
+  def passage(%Node{quote: q, section_id: sid})
+      when is_binary(q) and q != "" and not is_nil(sid) do
     case Repo.get(Marginalia.Works.Section, sid) do
       nil ->
         q
@@ -214,7 +319,7 @@ defmodule Marginalia.Links do
   def passage(%Node{quote: q}) when is_binary(q) and q != "", do: q
   def passage(%Node{title: t}), do: t
 
-    @doc "Counts for the header of a linked graph."
+  @doc "Counts for the header of a linked graph."
   def stats(%Link{} = link) do
     edges = edges(link)
 
@@ -264,7 +369,7 @@ defmodule Marginalia.Links do
             kind: e.edge_type,
             quote: near.quote,
             title: direction(e, near) <> far.title,
-            body: e.rationale,
+            body: plain(e.rationale, link),
             stale: false,
             edge_id: e.id,
             peer: far.id
@@ -298,26 +403,95 @@ defmodule Marginalia.Links do
     {a, b} = works(link)
     {lead, other} = if a.id == lead_id, do: {a, b}, else: {b, a}
 
+    %{lead: lead, other: other, page: Marginalia.Reading.page(lead, notes: margin(link, lead_id))}
+  end
+
+  @doc """
+  A link's summary with the documents called by their names.
+
+  The pass is handed the two drafts as "Manuscript A" and "Manuscript B",
+  which is right for the prompt — it stops the model reasoning from a
+  title instead of from the text — and wrong for every page that shows the
+  answer. "Manuscript A is Kagan's majority opinion" is a sentence a
+  reader has to decode before they can read it.
+
+  Substituted here rather than fixed in the prompt, because it also has to
+  be true of the summaries already written.
+  """
+  def summary(%Link{summary: nil}), do: nil
+
+  def summary(%Link{summary: text} = link), do: plain(text, link)
+
+  @doc """
+  Any of the pass's prose, with the documents called by their names.
+
+  The pass is handed the two drafts as "Manuscript A" and "Manuscript B"
+  and shortens that to a bare "A" and "B" in the reasons it writes. Both
+  are right for the prompt — they stop the model reasoning from a title
+  instead of from the text — and both are wrong on the page, where "A
+  says Congress entrenched the common law; B Jackson charges" is a
+  sentence a reader has to decode before they can read it.
+
+  The bare letters are only substituted where a sentence starts, which is
+  where the convention puts them. "Part A" and "Exhibit B" are left
+  alone, and they are the reason this is not a plain word replacement.
+  """
+  def plain(nil, _link), do: nil
+
+  def plain(text, %Link{} = link) when is_binary(text) do
+    {a, b} = works(link)
+
+    text
+    |> String.replace(~r/\bManuscripts?\s+A\b/, name(a))
+    |> String.replace(~r/\bManuscripts?\s+B\b/, name(b))
+    |> letter("A", name(a))
+    |> letter("B", name(b))
+  end
+
+  def plain(text, _link), do: text
+
+  # a lone capital at the start of the text or of a sentence
+  defp letter(text, letter, replacement) do
+    String.replace(text, ~r/(\A|(?<=[.;:—-])\s+)#{letter}\b/, "\\1#{replacement}")
+  end
+
+  # the case name is repeated on every document in a collection and is
+  # already on the page; what distinguishes them is what comes after it
+  defp name(work) do
+    case String.split(work.title, " — ", parts: 2) do
+      [_collection, rest] -> rest
+      [whole] -> whole
+    end
+  end
+
+  @doc """
+  The notes one draft gets from one link, each carrying its far end whole.
+
+  Split out of `reading/2` because a draft can be related to more than one
+  other, and a collection wants all of those margins at once rather than one
+  page per pair — see `Marginalia.Cases.reading/2`. The far end travels with
+  the note (its relation, the reason, the section, and the sentence it is
+  anchored to) so whoever renders it does not have to go back for the graph.
+  """
+  def margin(%Link{} = link, lead_id) do
+    other = other(link, lead_id)
     far_sections = Marginalia.Works.list_sections(other.id) |> Map.new(&{&1.id, &1.ordinal})
 
     # the edges once, not once per note
     by_edge = link |> edges() |> Map.new(&{&1.id, &1})
 
-    notes =
-      link
-      |> notes_for(lead.id)
-      |> Enum.map(fn note ->
-        far = far_node(by_edge[note.edge_id], lead.id)
+    link
+    |> notes_for(lead_id)
+    |> Enum.map(fn note ->
+      far = far_node(by_edge[note.edge_id], lead_id)
 
-        note
-        |> Map.put(:far_title, far && far.title)
-        |> Map.put(:far_body, far && far.body)
-        |> Map.put(:far_quote, far && far.quote)
-        |> Map.put(:far_kind, far && far.node_type)
-        |> Map.put(:far_section, far && far_sections[far.section_id])
-      end)
-
-    %{lead: lead, other: other, page: Marginalia.Reading.page(lead, notes: notes)}
+      note
+      |> Map.put(:far_title, far && far.title)
+      |> Map.put(:far_body, far && far.body)
+      |> Map.put(:far_quote, far && far.quote)
+      |> Map.put(:far_kind, far && far.node_type)
+      |> Map.put(:far_section, far && far_sections[far.section_id])
+    end)
   end
 
   defp far_node(nil, _lead_id), do: nil
