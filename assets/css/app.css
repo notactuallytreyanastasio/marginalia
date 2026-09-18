@@ -1755,6 +1755,31 @@ body {
 .fl-strip[data-kind="pays_off"] .rel { color: #166534; border-bottom-color: #166534; }
 .fl-strip[data-kind="requires"] .rel { color: #b45309; border-bottom-color: #b45309; }
 .fl-strip .why { font-size: 0.82rem; line-height: 1.55; margin: 0.65rem 0 0; }
+/* The head is only a wrapper: `.rel` and `.nth` below are already blocks
+   with their own rule and spacing, so it must not lay them out. It had no
+   rule here at all until now — its only styling lived under
+   `@media (max-width: 1100px)`, in the same block that sets
+   `.fl-strip { display: none }`. So it was dead there and absent here, and
+   the head rendered as running prose: the relation, the back-reference and
+   the button all reading as one sentence. */
+.fl-strip-head { display: block; }
+/* Same story: the ask button inherited the column's serif at full size with
+   no background, which is why it read as a stray line of text rather than
+   something you press. */
+.fl-strip .ask {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-family: var(--mg-sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  color: var(--mg-paper);
+  background: var(--mg-ink);
+  border: 0;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+}
+.fl-strip .ask:hover { background: var(--mg-accent); }
 .fl-strip .nth {
   display: block;
   margin-top: 0.6rem;
@@ -2002,55 +2027,6 @@ body {
   }
   .fl-card .ask:active { background: var(--mg-accent); }
 
-  .fl-strip-head {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: var(--mg-paper);
-    padding: 0.7rem 0 0.5rem;
-    margin-bottom: 0.6rem;
-    border-bottom: 1px solid var(--mg-rule);
-  }
-  .fl-strip .rel {
-    font-size: 0.6rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    font-weight: 600;
-    flex: none;
-  }
-  .fl-strip .nth {
-    font-size: 0.68rem;
-    color: var(--mg-dim);
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .fl-strip .ask {
-    margin-left: auto;
-    flex: none;
-    font-family: var(--mg-sans);
-    font-size: 0.68rem;
-    color: var(--mg-paper);
-    background: var(--mg-ink);
-    border: 0;
-    border-radius: 999px;
-    padding: 0.25rem 0.65rem;
-    cursor: pointer;
-  }
-  .fl-strip .shut {
-    flex: none;
-    background: none;
-    border: 0;
-    font-size: 1.4rem;
-    line-height: 1;
-    color: var(--mg-dim);
-    padding: 0 0.1rem;
-    cursor: pointer;
-  }
 
   .fl-strip .why {
     font-family: var(--mg-sans);

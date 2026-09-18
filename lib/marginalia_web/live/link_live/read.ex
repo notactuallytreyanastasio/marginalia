@@ -161,14 +161,6 @@ defmodule MarginaliaWeb.LinkLive.Read do
      )}
   end
 
-  # The phone's equivalent of clicking the line: whichever connection the
-  # sheet is showing goes into the chat. The hook keeps the edge id on the
-  # button, so this does not have to work out what is current.
-  def handle_event("cite_current", %{"edge" => id}, socket),
-    do: handle_event("cite_edge", %{"edge" => id}, socket)
-
-  def handle_event("cite_current", _params, socket), do: {:noreply, socket}
-
   def handle_event("uncite", %{"edge" => id}, socket) do
     id = String.to_integer(id)
     {:noreply, assign(socket, chat_cited: socket.assigns.chat_cited -- [id])}
@@ -353,17 +345,16 @@ defmodule MarginaliaWeb.LinkLive.Read do
             </div>
 
             <div class="fl-strip" hidden>
-              <%!-- On a phone this strip is the whole of the other
-                    document, so it needs the head a wide screen gets for
-                    free from the column beside it: the relation, whose
-                    passage it is, and a way into the chat. Clicking the
-                    drawn line does that on a wide screen; there is no
-                    line here to click. --%>
+              <%!-- This head was written when the strip *was* the phone
+                    UI. It is not any more — the sheet above replaced it
+                    there, and `.fl-strip` is display:none under 1100px — so
+                    everything here is wide-screen markup now. It used to
+                    carry a × as well, left over from the phone: nothing on
+                    a wide screen dismisses the strip (it follows the
+                    scroll), so the button sat there doing nothing. --%>
               <div class="fl-strip-head">
                 <span class="rel"></span>
                 <span class="nth"></span>
-                <button type="button" class="ask" phx-click="cite_current">ask about this</button>
-                <button type="button" class="shut" aria-label="Back to the reading">×</button>
               </div>
               <p class="why"></p>
               <%!-- On a phone the right-hand document has nowhere to be,
@@ -371,6 +362,10 @@ defmodule MarginaliaWeb.LinkLive.Read do
                     copies it out of the column, which is still in the
                     DOM — hidden, not absent. --%>
               <blockquote class="far"></blockquote>
+              <%!-- Last, not in the head: you decide to ask *after* reading
+                    what the connection is, and a button wedged between the
+                    relation and its reason reads as part of the sentence. --%>
+              <button type="button" class="ask">ask about this</button>
             </div>
             <div class="fl-idle">
               Scroll. Where this draft touches the other, it will be shown here.
@@ -572,7 +567,20 @@ defmodule MarginaliaWeb.LinkLive.Read do
                 return this.closeSheet();
               }
 
-              if (e.target.closest(".shut") || e.target.closest(".fl-strip .ask")) {
+              // The strip's ask is the same gesture as clicking the drawn
+              // line, so it sends the same event. It used to be a server
+              // `phx-click` whose edge id the hook wrote on with
+              // setAttribute — a server-owned attribute patched from JS,
+              // paired with a handler clause that silently did nothing when
+              // the attribute was missing. One path, pushed from here, is
+              // both shorter and impossible to half-wire.
+              const stripAsk = e.target.closest(".fl-strip .ask");
+              if (stripAsk) {
+                if (this.edge) this.pushEvent("cite_edge", {edge: this.edge});
+                return;
+              }
+
+              if (e.target.closest(".shut")) {
                 return this.closeSheet();
               }
               // the dimmed part, outside the sheet itself
@@ -771,11 +779,8 @@ defmodule MarginaliaWeb.LinkLive.Read do
             far.textContent = prose;
             far.hidden = !prose;
             this.svg.dataset.kind = note.dataset.kind;
+            // what the strip's ask button will cite, read at click time
             this.edge = note.dataset.edge;
-
-            // the phone's ask button posts the edge it can see
-            const ask = this.strip.querySelector(".ask");
-            if (ask) ask.setAttribute("phx-value-edge", this.edge);
             this.rewind();
             this.chase();
           },
