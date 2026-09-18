@@ -8,6 +8,11 @@ defmodule Marginalia.Works.Work do
     field :slug, :string
     field :title, :string
     field :intent, :string
+    # where it was read from, when it came off the web rather than a keyboard
+    field :source_url, :string
+    # several drafts that are one thing — a case, a book, a series
+    field :collection, :string
+    field :collection_role, :string
     field :body, :string
     field :word_count, :integer, default: 0
     field :status, :string, default: "pending"
@@ -25,7 +30,17 @@ defmodule Marginalia.Works.Work do
 
   def changeset(work, attrs) do
     work
-    |> cast(attrs, [:title, :intent, :body, :status, :status_detail, :first_impression])
+    |> cast(attrs, [
+      :title,
+      :intent,
+      :body,
+      :status,
+      :status_detail,
+      :first_impression,
+      :source_url,
+      :collection,
+      :collection_role
+    ])
     |> put_slug()
     |> validate_required([:title, :body])
     |> validate_length(:title, max: 200)
@@ -39,7 +54,11 @@ defmodule Marginalia.Works.Work do
   defp put_slug(changeset) do
     case get_field(changeset, :slug) do
       nil ->
-        put_change(changeset, :slug, :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false))
+        put_change(
+          changeset,
+          :slug,
+          :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
+        )
 
       _ ->
         changeset

@@ -1,0 +1,97 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  /* The cases card, in the same hand as priv/og/og.html.
+     What it has to sell is not "a legal database" — it is the thing the
+     site actually does: a line of an opinion, and the dissent arguing
+     with that exact line, joined. So the card is one real collision,
+     drawn the way the reading view draws it. */
+  :root{
+    --paper:#fbfaf7; --ink:#1c1a17; --dim:#6b665e; --rule:#e0dbd2;
+    --accent:#8a3324; --blue:#1e3a8a; --margin:#f4f1ea;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:1200px;height:630px;background:var(--paper);color:var(--ink);
+       font-family:var(--serif);overflow:hidden}
+  .frame{position:absolute;inset:0;padding:56px 66px 50px;display:flex;flex-direction:column}
+
+  .brand{font-family:var(--sans);font-size:16px;letter-spacing:.24em;
+         text-transform:uppercase;font-weight:600}
+  .brand span{color:var(--dim);font-weight:400;margin-left:14px;letter-spacing:.18em}
+
+  h1{font-size:56px;line-height:1.08;letter-spacing:-.024em;font-weight:600;margin-top:14px}
+  h1 em{font-style:normal;color:var(--accent)}
+
+  .sub{font-family:var(--sans);font-size:17px;color:var(--dim);margin-top:12px}
+
+  /* the collision: left is read, right argues, a rule runs through both */
+  .pair{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 54px minmax(0,430px);
+        align-items:start;align-content:center;margin-top:22px}
+  .pair .rule{grid-column:1/-1;height:1px;background:var(--rule);margin-bottom:14px}
+
+  .src{font-family:var(--sans);font-size:10.5px;letter-spacing:.14em;
+       text-transform:uppercase;color:var(--dim);font-weight:600;margin-bottom:8px}
+
+  .text{grid-column:1;font-size:20px;line-height:1.5;padding-right:10px}
+  .text mark{background:#fdf3a0;padding:1px 0}
+
+  .tie{grid-column:2;height:1px;background:var(--rule);margin-top:34px}
+
+  .note{grid-column:3;background:var(--margin);border-left:3px solid var(--accent);
+        padding:15px 17px;font-family:var(--sans);font-size:15px;line-height:1.5}
+  .note .who{display:flex;justify-content:space-between;align-items:baseline;
+             margin-bottom:8px}
+  .note .who b{font-size:13px;font-weight:600}
+  .note .who .rel{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+                  color:var(--accent);font-weight:600}
+  .note q{quotes:none;display:block;border-left:2px solid var(--rule);padding-left:11px;
+          margin:10px 0 0;color:#3a3630;font-family:var(--serif);font-size:15.5px}
+
+  .foot{display:flex;align-items:baseline;gap:20px;
+        border-top:1px solid var(--rule);padding-top:16px}
+  .foot .n{font-family:var(--sans);font-size:14px;color:var(--dim)}
+  .foot .n b{color:var(--ink);font-family:var(--serif);font-size:17px}
+  .foot .url{margin-left:auto;font-family:var(--sans);font-size:13.5px;
+             letter-spacing:.06em;color:var(--dim)}
+</style></head>
+<body>
+  <div class="frame">
+    <div class="brand">Marginalia <span>cases</span></div>
+    <h1>The term, <em>read closely</em>.</h1>
+    <div class="sub">
+      Every opinion, concurrence, dissent and argument read on its own — then read against each other.
+    </div>
+
+    <div class="pair">
+      <div class="rule"></div>
+
+      <div class="text">
+        <div class="src">Trump v. Slaughter — Opinion of the Court</div>
+        <mark>Nearly 250 years ago, the Framers decided to vest “[t]he executive
+        Power” in one person</mark>—“a President of the United States of America.”
+        The choice was not made lightly.
+      </div>
+
+      <div class="tie"></div>
+
+      <div class="note">
+        <div class="who">
+          <b>Dissent (Sotomayor)</b>
+          <span class="rel">Tension</span>
+        </div>
+        The Court grounds removal in the Framers’ choice of a single executive; the
+        dissent finds no founding-era support for removal at will.
+        <q>“The one exception, and only explicit removal power granted in the
+        Constitution, is for impeachment.”</q>
+      </div>
+    </div>
+
+    <div class="foot">
+      <span class="n"><b>16</b> cases</span>
+      <span class="n"><b>82</b> documents</span>
+      <span class="n"><b>607k</b> words, read</span>
+      <span class="url">marginalia.bobbby.online/cases</span>
+    </div>
+  </div>
+</body></html>

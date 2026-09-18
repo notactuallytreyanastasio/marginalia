@@ -22,6 +22,17 @@ defmodule Marginalia.Tour do
         "Move the pointer to the left edge of a paragraph and a thin line appears in the margin. Click it to start a thread pinned to that paragraph, which will still be there when you come back."
       ]
     },
+    follow: %{
+      title: "Two documents, read as one",
+      points: [
+        "The left is what you are reading. The right is the reference, and it is dimmed on purpose — it lights up only where it has something to say about the passage you are on.",
+        "Scroll the left. The right is scrolled for you, and snaps to the passage your paragraph is talking to. Stop following whenever you like: scroll the right yourself, read it, and the left picks you up again.",
+        "The line drawn between them runs through the reason in the middle — left passage, why, right passage, which is the actual shape of the claim. Click the line to carry both passages into the chat.",
+        "The filters leave one kind of relation in view: where the two documents disagree, where one answers the other, where one depends on the other.",
+        "Stretches where the two have nothing to say to each other are folded away, with their size on the label. Nothing is deleted — open one and read it.",
+        "Referencing… swaps which document sits in the margin, and swap sides reads the other one as the lead. The pair is symmetric and the two directions are genuinely different."
+      ]
+    },
     graph: %{
       title: "What leads to what",
       points: [
