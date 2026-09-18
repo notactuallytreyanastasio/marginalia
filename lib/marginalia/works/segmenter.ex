@@ -13,6 +13,13 @@ defmodule Marginalia.Works.Segmenter do
   3. **Paragraph windows** — no structure to find, so pack paragraphs into
      units of roughly `@target_words` without ever splitting a paragraph.
 
+  Whichever strategy wins, an oversized result is then windowed. Trusting the
+  writer's headings is right about *where* the breaks go and says nothing about
+  how far apart they are: an oral argument transcript with a title and a single
+  `## Rebuttal` has two headings and twelve thousand words between them, and
+  came back as one section the model could not read closely and the reader
+  could not navigate. A heading is a boundary, not a promise of brevity.
+
   A short piece (a blog post, an essay) legitimately comes back as one section.
   """
 
@@ -20,6 +27,9 @@ defmodule Marginalia.Works.Segmenter do
   # reads it properly and a failed section is cheap to retry
   @target_words 1_800
   @min_words 250
+  # past this a section stops being read closely, so it is windowed even when
+  # a heading put it there
+  @max_words 4_000
 
   @marker ~r/^\s*(?:(?:chapter|part|book|act|section)\s+(?:[0-9]+|[ivxlc]+|[a-z]+)|[ivxlc]{1,7}\.|\*\s*\*\s*\*|—{3,}|-{3,})\s*[:.\-—]?\s*(.{0,80})$/i
 
@@ -111,6 +121,18 @@ defmodule Marginalia.Works.Segmenter do
 
   defp by_windows(text) do
     text
+    |> window()
+    |> Enum.with_index(1)
+    |> Enum.map(fn {body, i} -> %{title: derive_title(body, i), body: body} end)
+    |> finish()
+  end
+
+  # Pack paragraphs into bodies of roughly @target_words, never splitting a
+  # paragraph. A single paragraph longer than the target is its own window --
+  # too big, but the alternative is cutting a sentence in half, and every
+  # downstream quote is anchored against this text.
+  defp window(text) do
+    text
     |> String.split(~r/\n\s*\n/, trim: true)
     |> Enum.reduce([], fn para, acc ->
       para = String.trim(para)
@@ -125,12 +147,7 @@ defmodule Marginalia.Works.Segmenter do
       end
     end)
     |> Enum.reverse()
-    |> Enum.with_index(1)
-    |> Enum.map(fn {chunk, i} ->
-      body = chunk.paras |> Enum.reverse() |> Enum.join("\n\n")
-      %{title: derive_title(body, i), body: body}
-    end)
-    |> finish()
+    |> Enum.map(fn c -> c.paras |> Enum.reverse() |> Enum.join("\n\n") end)
   end
 
   # --- shared --------------------------------------------------------------
@@ -154,17 +171,43 @@ defmodule Marginalia.Works.Segmenter do
       end
     end)
     |> Enum.reverse()
+    |> Enum.flat_map(&subdivide/1)
     |> case do
       [] -> nil
       chunks -> chunks
     end
   end
 
+  # An over-long section, windowed, keeping the heading the writer gave it so
+  # the pieces are still findable as parts of the same thing.
+  defp subdivide(%{title: title, body: body} = chunk) do
+    if word_count(body) <= @max_words do
+      [chunk]
+    else
+      parts = window(body)
+      n = length(parts)
+
+      if n < 2 do
+        [chunk]
+      else
+        parts
+        |> Enum.with_index(1)
+        |> Enum.map(fn {body, i} -> %{title: "#{title} (#{i}/#{n})", body: body} end)
+      end
+    end
+  end
+
+  # The first line of the window, as a label. Markdown is stripped rather
+  # than rendered: these titles go in a contents list, a minimap and a
+  # breadcrumb, none of which parse markdown, and "**JUSTICE GORSUCH:**
+  # Counsel --" was appearing with its asterisks in all three.
   defp derive_title(body, i) do
     first =
       body
       |> String.split("\n", parts: 2)
       |> hd()
+      |> String.replace(~r/^\#{1,6}\s+/, "")
+      |> String.replace(~r/[*_`]+/, "")
       |> String.trim()
       |> String.slice(0, 60)
 

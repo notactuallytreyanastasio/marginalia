@@ -82,6 +82,71 @@ defmodule Marginalia.Works.SegmenterTest do
     assert hd(sections).body =~ "two words"
   end
 
+  describe "oversized sections" do
+    # An oral argument transcript is the real case: "# Case" and "## Rebuttal"
+    # is two headings and twelve thousand words, which used to come back as one
+    # section no model reads closely.
+    test "a heading section far over target is windowed into parts" do
+      para = String.duplicate("alpha ", 300) <> "\n\n"
+
+      text = """
+      # Argument
+      #{String.duplicate(para, 20)}
+      ## Rebuttal
+      #{String.duplicate("omega ", 300)}
+      """
+
+      sections = Segmenter.split(text)
+
+      assert length(sections) > 2
+      assert Enum.all?(sections, &(word_count(&1.body) <= 4_000))
+      assert Enum.any?(sections, &(&1.title =~ ~r/^Argument \(1\/\d+\)$/))
+      assert Enum.any?(sections, &(&1.title == "Rebuttal"))
+    end
+
+    test "parts keep every word, in order, and never split a paragraph" do
+      paras = for i <- 1..30, do: "p#{i} " <> String.duplicate("word ", 200)
+      text = "# Whole\n\n" <> Enum.join(paras, "\n\n")
+
+      sections = Segmenter.split(text)
+      rejoined = Enum.map_join(sections, "\n\n", & &1.body)
+
+      for {p, i} <- Enum.with_index(paras, 1) do
+        assert String.contains?(rejoined, "p#{i} "), "lost paragraph #{i}"
+        assert Enum.any?(sections, &String.contains?(&1.body, String.trim(p))),
+               "paragraph #{i} was split across sections"
+      end
+    end
+
+    test "one enormous paragraph is left whole rather than cut mid-sentence" do
+      text = "# Wall\n\n" <> String.duplicate("word ", 6_000)
+
+      assert [only] = Segmenter.split(text)
+      assert word_count(only.body) >= 6_000
+    end
+  end
+
+  # A derived title goes into a contents list and a minimap, neither of
+  # which renders markdown; the asterisks were showing up in both.
+  test "a derived title carries no markdown syntax" do
+    text = "**JUSTICE GORSUCH:** Counsel, what is the limiting principle here?\n\n" <>
+             String.duplicate("word ", 400)
+
+    assert [only] = Segmenter.split(text)
+    assert only.title =~ "JUSTICE GORSUCH: Counsel"
+    refute only.title =~ "*"
+  end
+
+  test "a lone markdown heading does not become part of the title" do
+    text = "# Chatrie v. United States — Argument\n\n" <> String.duplicate("word ", 400)
+
+    assert [only] = Segmenter.split(text)
+    refute only.title =~ "#"
+    assert only.title =~ "Chatrie v. United States"
+  end
+
+  defp word_count(text), do: length(String.split(text, ~r/\s+/, trim: true))
+
   test "empty input yields nothing" do
     assert Segmenter.split("") == []
     assert Segmenter.split("   \n\n  ") == []
