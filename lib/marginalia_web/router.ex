@@ -101,7 +101,6 @@ defmodule MarginaliaWeb.Router do
       live "/works/new", WorkLive.New, :new
       live "/works/:id", WorkLive.Show, :show
       live "/cuts", CutLive.Index, :index
-      live "/cuts/new", CutLive.New, :new
       live "/cuts/:id", CutLive.Show, :show
       live "/links", LinkLive.Index, :index
       # the split view is gone; /read stays an alias so links already sent

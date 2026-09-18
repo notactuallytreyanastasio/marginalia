@@ -4,7 +4,7 @@ defmodule Marginalia.CutsTest do
 
   import Marginalia.AccountsFixtures
 
-  alias Marginalia.{Cuts, Works}
+  alias Marginalia.{Cuts, Folders, Works}
 
   setup do
     user = user_fixture()
@@ -52,83 +52,216 @@ defmodule Marginalia.CutsTest do
     end
   end
 
-  describe "addressing blocks" do
-    test "every block is reachable by its ref", %{user: user} do
-      w = draft(user, "Alpha")
-      blocks = Cuts.blocks(w)
+  describe "keeping only what can be checked" do
+    # These exist because the validator was private, nothing exercised it, and
+    # a rename from "document" to "member" silently dropped every claim on
+    # every folder while the theses still looked fine.
+    setup do
+      members = [
+        %{
+          n: 1,
+          kind: "work",
+          id: 10,
+          label: "Opinion",
+          text: "The court held that standing\nwas absent from the start."
+        },
+        %{
+          n: 2,
+          kind: "work",
+          id: 11,
+          label: "Dissent",
+          text: "Standing was plainly present, and the majority says otherwise."
+        }
+      ]
 
-      assert length(blocks) > 1
-      assert Enum.all?(blocks, &String.match?(&1.ref, ~r/^s\d+b\d+$/))
-
-      for b <- blocks do
-        assert Cuts.block(w, b.ref).text == b.text
-      end
+      %{members: members}
     end
 
-    test "a ref that is not there returns nil", %{user: user} do
-      assert Cuts.block(draft(user, "Alpha"), "s9b9") == nil
+    defp thread(evidence),
+      do: %{"threads" => [%{"claim" => "They disagree.", "evidence" => evidence}]}
+
+    test "a claim with two locatable quotes survives", %{members: members} do
+      raw =
+        thread([
+          %{"member" => 1, "quote" => "standing was absent"},
+          %{"member" => 2, "quote" => "Standing was plainly present"}
+        ])
+
+      {result, dropped} = Cuts.validate(raw, members)
+
+      assert dropped == []
+      assert [%{"claim" => "They disagree.", "evidence" => evidence}] = result.threads
+      assert Enum.map(evidence, & &1["label"]) == ["Opinion", "Dissent"]
+      assert Enum.map(evidence, & &1["id"]) == [10, 11]
+    end
+
+    test "the stored quote is the member's wording, not the model's", %{members: members} do
+      # the source has a line break in it; the model quotes across it
+      raw =
+        thread([
+          %{"member" => 1, "quote" => "held that standing was absent"},
+          %{"member" => 2, "quote" => "Standing was plainly present"}
+        ])
+
+      {result, []} = Cuts.validate(raw, members)
+      [first, _] = hd(result.threads)["evidence"]
+      assert String.contains?(first["quote"], "\n")
+    end
+
+    test "a fabricated quote takes the claim down with it", %{members: members} do
+      raw =
+        thread([
+          %{"member" => 1, "quote" => "standing was absent"},
+          %{"member" => 2, "quote" => "the court never reached the question"}
+        ])
+
+      {result, dropped} = Cuts.validate(raw, members)
+
+      assert result.threads == []
+      assert Enum.any?(dropped, &String.contains?(&1, "quote is not in member 2"))
+      assert Enum.any?(dropped, &String.contains?(&1, "needs 2"))
+    end
+
+    test "a claim resting on one member is not a finding about the group", %{members: members} do
+      raw = thread([%{"member" => 1, "quote" => "standing was absent"}])
+
+      {result, dropped} = Cuts.validate(raw, members)
+
+      assert result.threads == []
+      assert Enum.any?(dropped, &String.contains?(&1, "1 verifiable citation"))
+    end
+
+    test "a member number that is not in the group is refused", %{members: members} do
+      raw =
+        thread([
+          %{"member" => 1, "quote" => "standing was absent"},
+          %{"member" => 7, "quote" => "standing was absent"}
+        ])
+
+      {_result, dropped} = Cuts.validate(raw, members)
+      assert Enum.any?(dropped, &String.contains?(&1, "member 7 is not in this group"))
+    end
+
+    test "the older key name still parses, so a prompt tweak cannot silently void everything",
+         %{members: members} do
+      raw =
+        thread([
+          %{"document" => 1, "quote" => "standing was absent"},
+          %{"document" => 2, "quote" => "Standing was plainly present"}
+        ])
+
+      {result, dropped} = Cuts.validate(raw, members)
+      assert dropped == []
+      assert length(result.threads) == 1
+    end
+
+    test "tensions are checked exactly as threads are", %{members: members} do
+      raw = %{
+        "tensions" => [
+          %{
+            "claim" => "One says the opposite of the other.",
+            "evidence" => [
+              %{"member" => 1, "quote" => "standing was absent"},
+              %{"member" => 2, "quote" => "made this up entirely"}
+            ]
+          }
+        ]
+      }
+
+      {result, dropped} = Cuts.validate(raw, members)
+      assert result.tensions == []
+      assert dropped != []
     end
   end
 
-  describe "making a cut" do
-    test "it reads the quote out of the draft, not out of the caller", %{user: user} do
-      a = draft(user, "Alpha")
-      b = draft(user, "Beta")
-      [ba | _] = Cuts.blocks(a)
-      [bb | _] = Cuts.blocks(b)
+  describe "reading a folder" do
+    test "a leaf folder is read over its drafts", %{user: user} do
+      {:ok, f} = Folders.create_folder(user.id, %{name: "A case"})
+      a = draft(user, "Opinion")
+      b = draft(user, "Dissent")
+      for w <- [a, b], do: {:ok, _} = Folders.move_work(user.id, w.id, f.id)
 
-      {:ok, cut} =
-        Cuts.create_cut(user.id, %{"title" => "Two drafts"}, [{a.id, ba.ref}, {b.id, bb.ref}])
+      members = Cuts.members(user.id, f.id)
 
-      assert length(cut.picks) == 2
-      assert Enum.map(cut.picks, & &1.quote) == [ba.text, bb.text]
-      assert length(Cuts.works(cut)) == 2
+      assert length(members) == 2
+      assert Enum.map(members, & &1.kind) == ["work", "work"]
+      assert Enum.map(members, & &1.n) == [1, 2]
+      assert Enum.all?(members, &(&1.text != ""))
     end
 
-    test "another writer's draft cannot be picked", %{user: user, other: other} do
-      mine = draft(user, "Mine")
-      theirs = draft(other, "Theirs")
-      [bm | _] = Cuts.blocks(mine)
-      [bt | _] = Cuts.blocks(theirs)
+    test "a folder of folders is read over its children, not their drafts", %{user: user} do
+      {:ok, top} = Folders.create_folder(user.id, %{name: "Cases"})
+      {:ok, one} = Folders.create_folder(user.id, %{name: "Case one", parent_id: top.id})
+      {:ok, two} = Folders.create_folder(user.id, %{name: "Case two", parent_id: top.id})
+      {:ok, _} = Folders.move_work(user.id, draft(user, "Opinion").id, one.id)
+      {:ok, _} = Folders.move_work(user.id, draft(user, "Dissent").id, two.id)
 
-      {:ok, cut} =
-        Cuts.create_cut(user.id, %{"title" => "Try it"}, [{mine.id, bm.ref}, {theirs.id, bt.ref}])
+      members = Cuts.members(user.id, top.id)
 
-      assert Enum.map(cut.picks, & &1.work_id) == [mine.id]
+      assert Enum.map(members, & &1.kind) == ["folder", "folder"]
+      assert Enum.map(members, & &1.label) == ["Case one", "Case two"]
+      # neither child has been read, and the text says so rather than pretending
+      assert Enum.all?(members, &String.contains?(&1.text, "not read yet"))
+      refute Enum.any?(members, & &1.read?)
     end
 
-    test "a cut with no reachable passage is refused", %{user: user, other: other} do
-      theirs = draft(other, "Theirs")
-      [bt | _] = Cuts.blocks(theirs)
+    test "a read child contributes its reading, not its drafts", %{user: user} do
+      {:ok, top} = Folders.create_folder(user.id, %{name: "Cases"})
+      {:ok, one} = Folders.create_folder(user.id, %{name: "Case one", parent_id: top.id})
+      {:ok, _} = Folders.move_work(user.id, draft(user, "Opinion").id, one.id)
 
-      assert {:error, :no_passages} =
-               Cuts.create_cut(user.id, %{"title" => "Nope"}, [{theirs.id, bt.ref}])
+      {:ok, cut} = Cuts.open_folder_reading(user.id, one.id)
+
+      {:ok, _} =
+        cut
+        |> Marginalia.Cuts.Cut.result_changeset(%{
+          status: "read",
+          thesis: "The court split on standing.",
+          threads: [%{"claim" => "Both turn on the same footnote."}]
+        })
+        |> Marginalia.Repo.update()
+
+      [member] = Cuts.members(user.id, top.id)
+
+      assert member.read?
+      assert member.text =~ "The court split on standing."
+      assert member.text =~ "Both turn on the same footnote."
     end
 
-    test "a result is only current for the passages it was made from", %{user: user} do
-      a = draft(user, "Alpha")
-      [b1, b2 | _] = Cuts.blocks(a)
-      {:ok, cut} = Cuts.create_cut(user.id, %{"title" => "One"}, [{a.id, b1.ref}])
+    test "a folder has one reading, and re-opening replaces it", %{user: user} do
+      {:ok, f} = Folders.create_folder(user.id, %{name: "A case"})
+      {:ok, _} = Folders.move_work(user.id, draft(user, "Opinion").id, f.id)
 
-      refute Cuts.current?(cut)
+      {:ok, first} = Cuts.open_folder_reading(user.id, f.id, "why?")
+      {:ok, again} = Cuts.open_folder_reading(user.id, f.id, "why really?")
+
+      assert first.id == again.id
+      assert again.question == "why really?"
+      assert length(Cuts.list_cuts(user.id)) == 1
+    end
+
+    test "another writer's folder cannot be read", %{user: user, other: other} do
+      {:ok, theirs} = Folders.create_folder(other.id, %{name: "Theirs"})
+      assert {:error, :not_found} = Cuts.open_folder_reading(user.id, theirs.id)
+    end
+
+    test "a reading is stale once the folder holds something else", %{user: user} do
+      {:ok, f} = Folders.create_folder(user.id, %{name: "A case"})
+      {:ok, _} = Folders.move_work(user.id, draft(user, "Opinion").id, f.id)
+      {:ok, cut} = Cuts.open_folder_reading(user.id, f.id)
 
       {:ok, cut} =
         cut
         |> Marginalia.Cuts.Cut.result_changeset(%{
-          thesis: "x",
-          content_sha: Cuts.content_sha(cut),
-          status: "read"
+          status: "read",
+          content_sha: Cuts.content_sha(Cuts.members(user.id, f.id))
         })
         |> Marginalia.Repo.update()
 
-      cut = Cuts.get_cut(user.id, cut.id)
-      assert Cuts.current?(cut)
+      assert Cuts.current?(cut, user.id)
 
-      # add a passage: the stored reading is now about something else
-      {:ok, wider} =
-        Cuts.create_cut(user.id, %{"title" => "Two"}, [{a.id, b1.ref}, {a.id, b2.ref}])
-
-      refute Cuts.content_sha(wider) == cut.content_sha
+      {:ok, _} = Folders.move_work(user.id, draft(user, "Late arrival").id, f.id)
+      refute Cuts.current?(cut, user.id)
     end
   end
 end

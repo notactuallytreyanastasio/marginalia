@@ -15,10 +15,12 @@ defmodule Marginalia.Cuts.Cut do
     field :not_supported, :string
     field :dropped, {:array, :string}, default: []
     field :content_sha, :string
+    field :scope, :string, default: "folder"
+    # [%{"n" => 1, "kind" => "work"|"folder", "id" => 12, "label" => "..."}]
+    field :members, {:array, :map}, default: []
 
     belongs_to :user, Marginalia.Accounts.User
     belongs_to :folder, Marginalia.Folders.Folder
-    has_many :picks, Marginalia.Cuts.Pick, preload_order: [asc: :ordinal]
 
     timestamps(type: :utc_datetime)
   end
@@ -27,7 +29,7 @@ defmodule Marginalia.Cuts.Cut do
 
   def changeset(cut, attrs) do
     cut
-    |> cast(attrs, [:title, :question, :folder_id, :status, :status_detail])
+    |> cast(attrs, [:title, :question, :folder_id, :status, :status_detail, :scope])
     |> update_change(:title, &String.trim/1)
     |> validate_required([:title])
     |> validate_length(:title, max: 200)
@@ -37,7 +39,16 @@ defmodule Marginalia.Cuts.Cut do
   @doc "The result of a read, stored only with the fingerprint it was made from."
   def result_changeset(cut, attrs) do
     cut
-    |> cast(attrs, [:thesis, :threads, :tensions, :not_supported, :dropped, :content_sha, :status])
+    |> cast(attrs, [
+      :thesis,
+      :threads,
+      :tensions,
+      :not_supported,
+      :dropped,
+      :content_sha,
+      :status,
+      :members
+    ])
     |> validate_inclusion(:status, @statuses)
   end
 end

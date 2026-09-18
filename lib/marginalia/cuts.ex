@@ -1,68 +1,36 @@
 defmodule Marginalia.Cuts do
   @moduledoc """
-  Reading several drafts along one line.
+  Reading a folder: what a group of drafts says that none of them says alone.
 
-  A draft's own read is already here: `Marginalia.Analysis` turns one
-  manuscript into a map. This is the other axis. A reader picks paragraphs out
-  of four opinions and asks what they amount to together — a question no one
-  of them answers, and which the margin of any single draft has nowhere to put.
+  `Marginalia.Analysis` reads one manuscript into a map. This reads a *folder*
+  into one, and the two are the same shape one level apart.
 
-  Two rules shape the whole module.
+  A folder of drafts is read over the maps its drafts already have — their
+  nodes, their quotes — not over their raw text. Eight opinions at ten
+  thousand words each do not fit in a prompt, and would not be worth the money
+  if they did: the map is the part that was already worth keeping.
 
-  The model is shown the picked passages and nothing else. Not the rest of the
-  section, not the work's map, not the other drafts in the folder. Handed the
-  surrounding context it answers an easier question and returns something the
-  reader could have got from the table of contents.
+  A folder of *folders* is read over its children's readings. That is where
+  "higher order" stops being a word and starts being a mechanism — the input
+  to a case-law folder is what each case turned out to say, so the answer is
+  about the cases rather than about paragraphs. It also means the cost of
+  reading the top of a tree does not grow with the size of the tree.
 
-  Every claim has to quote a picked passage, and a claim resting on one
-  passage is not a finding about several drafts — it is a restatement of one.
-  So two verifiable citations are the floor, and anything that cannot be
-  located in the text it names is dropped and counted rather than softened.
+  Whatever the level, the same rule holds: every claim must quote something
+  that was actually sent, and name which member it came from. Two citations
+  are the floor, because a claim resting on one member is a restatement of
+  that member rather than a finding about the group. Anything that cannot be
+  located is dropped and counted.
   """
 
   import Ecto.Query
 
-  alias Marginalia.{LLM, Reading, Repo, Works}
-  alias Marginalia.Cuts.{Cut, Pick}
-  alias Marginalia.Works.Work
-
-  @max_picks 40
+  alias Marginalia.{Folders, LLM, Repo, Works}
+  alias Marginalia.Cuts.Cut
 
   # ==========================================================================
-  # Addressing a passage
+  # Quoting
   # ==========================================================================
-
-  @doc """
-  Every block of a work, addressable and stable.
-
-  A ref is `s<section ordinal>b<index>`, which is the same shape the reading
-  view already uses for anchors. Blocks come from `Reading.split/1` — the
-  splitter the rest of the app reads with — so a passage picked here is the
-  same passage the margin notes hang off, rather than a second opinion about
-  where paragraphs begin.
-  """
-  def blocks(%Work{} = work) do
-    work.id
-    |> Works.list_sections()
-    |> Enum.flat_map(fn section ->
-      section.body
-      |> Reading.split()
-      |> Enum.with_index(1)
-      |> Enum.map(fn {text, i} ->
-        %{
-          ref: "s#{section.ordinal}b#{i}",
-          section_ordinal: section.ordinal,
-          section_title: section.title,
-          text: text,
-          words: length(String.split(text, ~r/\s+/, trim: true))
-        }
-      end)
-    end)
-  end
-
-  def block(%Work{} = work, ref) do
-    work |> blocks() |> Enum.find(&(&1.ref == ref))
-  end
 
   @doc """
   Find `needle` in `haystack` and return *the haystack's own wording*.
@@ -123,99 +91,185 @@ defmodule Marginalia.Cuts do
   end
 
   # ==========================================================================
-  # Cuts
+  # Who is being read
+  # ==========================================================================
+
+  @doc """
+  The members of a folder reading, and the text each one contributes.
+
+  Subfolders win over drafts. A folder holding both is read at the level of
+  its subfolders, because mixing "what this case held" with "what this
+  paragraph says" in one prompt produces an answer that is about neither.
+  """
+  def members(user_id, folder_id) do
+    node = folder_node(user_id, folder_id)
+
+    cond do
+      node == nil -> []
+      node.folders != [] -> child_members(user_id, node)
+      true -> work_members(node.works)
+    end
+  end
+
+  defp folder_node(user_id, folder_id) do
+    user_id
+    |> Folders.tree()
+    |> find_node(folder_id)
+  end
+
+  defp find_node(%{folders: folders}, id) do
+    Enum.find_value(folders, fn f ->
+      if f.folder.id == id, do: f, else: find_node(f, id)
+    end)
+  end
+
+  defp child_members(user_id, node) do
+    node.folders
+    |> Enum.with_index(1)
+    |> Enum.map(fn {child, n} ->
+      cut = get_folder_cut(user_id, child.folder.id)
+
+      %{
+        n: n,
+        kind: "folder",
+        id: child.folder.id,
+        label: child.folder.name,
+        read?: cut != nil and cut.status == "read",
+        text: child_text(cut, child)
+      }
+    end)
+  end
+
+  # A child that has been read contributes its reading. One that has not
+  # contributes the titles of what is in it, and says so — an unread child is
+  # a hole in the answer and the reader should be able to see where.
+  defp child_text(nil, child), do: "(not read yet) holds: " <> titles(child)
+
+  defp child_text(%Cut{status: "read"} = cut, _child) do
+    threads = Enum.map_join(cut.threads, "\n", fn t -> "- " <> t["claim"] end)
+    String.trim("#{cut.thesis}\n\n#{threads}")
+  end
+
+  defp child_text(_cut, child), do: "(not read yet) holds: " <> titles(child)
+
+  defp titles(child) do
+    (Enum.map(child.works, & &1.title) ++ Enum.map(child.folders, & &1.folder.name))
+    |> Enum.join(", ")
+  end
+
+  defp work_members(works) do
+    works
+    |> Enum.sort_by(& &1.id)
+    |> Enum.with_index(1)
+    |> Enum.map(fn {work, n} ->
+      %{
+        n: n,
+        kind: "work",
+        id: work.id,
+        label: work.title,
+        read?: work.status == "read",
+        text: work_text(work)
+      }
+    end)
+  end
+
+  # The map, not the manuscript. `quote` is the draft's own words, which is
+  # what makes a citation checkable later; the node title is what the read
+  # thought it was doing.
+  defp work_text(work) do
+    nodes = Works.list_nodes(work.id)
+
+    body =
+      case nodes do
+        [] ->
+          work.id
+          |> Works.list_sections()
+          |> Enum.map_join("\n\n", fn s -> String.slice(s.body, 0, 1200) end)
+
+        nodes ->
+          Enum.map_join(nodes, "\n\n", fn nd ->
+            q = if nd.quote && nd.quote != "", do: "\n> #{nd.quote}", else: ""
+            "#{nd.node_type}: #{nd.title}#{q}"
+          end)
+      end
+
+    String.trim("#{work.first_impression || ""}\n\n#{body}")
+  end
+
+  # ==========================================================================
+  # Readings
   # ==========================================================================
 
   def list_cuts(user_id) do
     Cut
     |> where([c], c.user_id == ^user_id)
-    |> order_by([c], desc: c.id)
-    |> preload(picks: :work)
+    |> order_by([c], desc: c.updated_at)
+    |> preload(:folder)
     |> Repo.all()
   end
 
   def get_cut(user_id, id) do
     Cut
     |> where([c], c.user_id == ^user_id and c.id == ^id)
-    |> preload(picks: :work)
+    |> preload(:folder)
     |> Repo.one()
   end
 
-  def change_cut(cut \\ %Cut{}, attrs \\ %{}), do: Cut.changeset(cut, attrs)
-
-  @doc """
-  Make a cut from passages picked across drafts.
-
-  `picks` is a list of `{work_id, block_ref}`. The quote is read here from the
-  work rather than taken from the caller: a passage is whatever the draft
-  actually says, and a browser that has been open for an hour does not get to
-  decide that.
-  """
-  def create_cut(user_id, attrs, picks) do
-    picks = Enum.take(Enum.uniq(picks), @max_picks)
-
-    Repo.transaction(fn ->
-      with {:ok, cut} <- %Cut{user_id: user_id} |> Cut.changeset(attrs) |> Repo.insert(),
-           {:ok, _} <- put_picks(cut, user_id, picks) do
-        get_cut(user_id, cut.id)
-      else
-        {:error, reason} -> Repo.rollback(reason)
-      end
-    end)
-  end
-
-  defp put_picks(%Cut{} = cut, user_id, picks) do
-    rows =
-      picks
-      |> Enum.with_index()
-      |> Enum.map(fn {{work_id, ref}, i} ->
-        with %Work{} = work <- Works.get_work(user_id, work_id),
-             %{text: text} <- block(work, ref) do
-          %{cut_id: cut.id, work_id: work.id, block_ref: ref, quote: text, ordinal: i}
-        else
-          _ -> nil
-        end
-      end)
-      |> Enum.reject(&is_nil/1)
-
-    case rows do
-      [] ->
-        {:error, :no_passages}
-
-      rows ->
-        now = DateTime.utc_now() |> DateTime.truncate(:second)
-        rows = Enum.map(rows, &Map.merge(&1, %{inserted_at: now, updated_at: now}))
-        {:ok, Repo.insert_all(Pick, rows)}
-    end
+  @doc "The one reading a folder has, or nil."
+  def get_folder_cut(user_id, folder_id) do
+    Cut
+    |> where([c], c.user_id == ^user_id and c.folder_id == ^folder_id)
+    |> preload(:folder)
+    |> Repo.one()
   end
 
   def delete_cut(%Cut{} = cut), do: Repo.delete(cut)
 
-  @doc """
-  What the picks currently are, as a fingerprint.
+  def set_status(%Cut{} = cut, status, detail \\ nil) do
+    cut |> Ecto.Changeset.change(status: status, status_detail: detail) |> Repo.update()
+  end
 
-  Stored alongside a result so the page can tell an analysis of *these*
-  passages from one made before somebody changed them.
+  @doc """
+  Get or make the reading for a folder, and mark it queued.
+
+  One per folder: re-reading replaces what was there. A folder carrying six
+  readings is a folder nobody can quote.
   """
-  def content_sha(%Cut{picks: picks}) when is_list(picks) do
-    picks
-    |> Enum.sort_by(&{&1.work_id, &1.block_ref})
-    |> Enum.map_join("\n", & &1.quote)
+  def open_folder_reading(user_id, folder_id, question \\ nil) do
+    case Folders.get_folder(user_id, folder_id) do
+      nil ->
+        {:error, :not_found}
+
+      folder ->
+        attrs = %{
+          "title" => folder.name,
+          "folder_id" => folder.id,
+          "scope" => "folder",
+          "status" => "draft"
+        }
+
+        attrs = if question, do: Map.put(attrs, "question", question), else: attrs
+
+        case get_folder_cut(user_id, folder_id) do
+          nil -> %Cut{user_id: user_id} |> Cut.changeset(attrs) |> Repo.insert()
+          cut -> cut |> Cut.changeset(attrs) |> Repo.update()
+        end
+    end
+  end
+
+  @doc "A fingerprint of what was read, so a stale answer can say so."
+  def content_sha(members) when is_list(members) do
+    members
+    |> Enum.map_join("\n", fn m -> "#{m.kind}:#{m.id}:#{m.text}" end)
     |> then(&:crypto.hash(:sha256, &1))
     |> Base.encode16(case: :lower)
   end
 
-  @doc "Whether the stored result is about the passages the cut now holds."
+  @doc "Whether a stored reading is still about what the folder now holds."
   def current?(%Cut{content_sha: nil}), do: false
-  def current?(%Cut{} = cut), do: cut.content_sha == content_sha(cut)
 
-  @doc "The drafts a cut passes through, in order."
-  def works(%Cut{picks: picks}) when is_list(picks) do
-    picks |> Enum.map(& &1.work) |> Enum.uniq_by(& &1.id)
-  end
-
-  def set_status(%Cut{} = cut, status, detail \\ nil) do
-    cut |> Ecto.Changeset.change(status: status, status_detail: detail) |> Repo.update()
+  def current?(%Cut{} = cut, user_id) do
+    cut.folder_id && cut.content_sha == content_sha(members(user_id, cut.folder_id))
   end
 
   # ==========================================================================
@@ -223,34 +277,41 @@ defmodule Marginalia.Cuts do
   # ==========================================================================
 
   @system """
-  You are given passages a reader picked out of several different documents, \
-  and nothing else. Say what they amount to together.
+  You are given several members of one group — documents, or the readings of \
+  sub-groups — and nothing else. Say what they amount to together.
 
-  You have not been shown the rest of any document. Do not reach for context \
-  you do not have, and do not summarise the passages back — the reader has \
-  just read them. Say what is true across them that is not visible in any one.
+  You have not been shown anything but what is below. Do not reach for context \
+  you do not have, and do not summarise the members back one at a time: the \
+  reader can already see them. Say what is true across them that no single \
+  member states.
 
-  Every piece of evidence must quote one of the given passages and name the \
-  document it came from by its number. A program checks each quote against \
-  that document's passages and drops the ones it cannot find, so an \
-  approximate quote is a discarded claim.
+  Every piece of evidence must quote one of the members and name it by its \
+  number. A program checks each quote against that member's text and drops \
+  what it cannot find, so an approximate quote is a discarded claim.
 
-  An empty list is a real answer. If the passages have nothing in common, say \
+  An empty list is a real answer. If the members have nothing in common, say \
   so in the thesis and return no threads.
 
   Reply with one JSON object and nothing else.
   """
 
   @doc """
-  Read a cut, and store only what could be checked.
+  Read a folder, and store only what could be checked.
 
-  Synchronous and slow by design — the caller is a LiveView that has already
-  told the reader it is thinking. Returns the updated cut.
+  Slow and synchronous — the caller is a LiveView that has already told the
+  reader it is thinking.
   """
-  def read(%Cut{} = cut) do
-    sha = content_sha(cut)
-    docs = documents(cut)
+  def read(%Cut{} = cut, user_id) do
+    members = members(user_id, cut.folder_id)
 
+    if members == [] do
+      set_status(cut, "failed", "this folder holds nothing to read")
+    else
+      do_read(cut, members)
+    end
+  end
+
+  defp do_read(%Cut{} = cut, members) do
     case LLM.json(
            model: LLM.default_model(),
            effort: :high,
@@ -258,18 +319,19 @@ defmodule Marginalia.Cuts do
            max_tokens: 8_000,
            messages: [
              %{"role" => "system", "content" => @system},
-             %{"role" => "user", "content" => prompt(cut, docs)}
+             %{"role" => "user", "content" => prompt(cut, members)}
            ]
          ) do
       {:ok, raw} ->
-        {result, dropped} = validate(raw, docs)
+        {result, dropped} = validate(raw, members)
 
         cut
         |> Cut.result_changeset(
           Map.merge(result, %{
             dropped: dropped,
-            content_sha: sha,
-            status: "read"
+            content_sha: content_sha(members),
+            status: "read",
+            members: Enum.map(members, &Map.take(&1, [:n, :kind, :id, :label, :read?]))
           })
         )
         |> Repo.update()
@@ -279,53 +341,42 @@ defmodule Marginalia.Cuts do
     end
   end
 
-  # Documents numbered for the model, each holding only its picked passages.
-  defp documents(%Cut{picks: picks}) do
-    picks
-    |> Enum.group_by(& &1.work_id)
-    |> Enum.sort_by(fn {_id, [p | _]} -> p.ordinal end)
-    |> Enum.with_index(1)
-    |> Enum.map(fn {{_work_id, group}, n} ->
-      %{n: n, work: hd(group).work, picks: Enum.sort_by(group, & &1.ordinal)}
-    end)
-  end
-
-  defp prompt(%Cut{} = cut, docs) do
+  defp prompt(%Cut{} = cut, members) do
     asked =
       if cut.question && String.trim(cut.question) != "",
         do: "The reader asks: #{cut.question}\n\n",
         else: ""
 
-    body =
-      Enum.map_join(docs, "\n", fn d ->
-        passages =
-          Enum.map_join(d.picks, "\n\n", fn p -> "(#{p.block_ref})\n#{p.quote}" end)
+    kind = if Enum.all?(members, &(&1.kind == "folder")), do: "sub-groups", else: "documents"
 
-        "### Document #{d.n}: #{d.work.title}\n\n#{passages}\n"
+    body =
+      Enum.map_join(members, "\n", fn m ->
+        "### Member #{m.n}: #{m.label}\n\n#{m.text}\n"
       end)
 
     """
-    #{asked}Passages:
+    #{asked}Group: #{cut.title}
+    Its members are #{kind}.
 
     #{body}
     ---
 
     Report:
 
-    - `thesis`: one or two sentences. What these passages, together, establish.
+    - `thesis`: one or two sentences. What these members, together, establish.
       If they establish nothing together, say that.
-    - `threads`: things true across two or more documents that no single
-      passage states. Each: `claim` (one sentence) and `evidence` — two or more
-      entries, each `{"document": N, "quote": "..."}` quoted from that document.
-    - `tensions`: places these passages disagree, or where one revises another.
+    - `threads`: things true across two or more members that no single one
+      states. Each: `claim` (one sentence) and `evidence` — two or more entries,
+      each `{"member": N, "quote": "..."}` quoted from that member.
+    - `tensions`: places the members disagree, or where one revises another.
       Same shape. `[]` if there are none.
     - `not_supported`: one sentence naming something a reader might expect this
-      selection to show but which these passages do not support. `""` if none.
+      group to show but which these members do not support. `""` if none.
 
     Shape:
 
     {"thesis": "...",
-     "threads": [{"claim": "...", "evidence": [{"document": 1, "quote": "..."}]}],
+     "threads": [{"claim": "...", "evidence": [{"member": 1, "quote": "..."}]}],
      "tensions": [],
      "not_supported": "..."}
     """
@@ -333,8 +384,17 @@ defmodule Marginalia.Cuts do
 
   # --- validation -----------------------------------------------------------
 
-  defp validate(raw, docs) do
-    by_n = Map.new(docs, fn d -> {d.n, d} end)
+  @doc """
+  Keep only what can be checked, and say what was thrown away.
+
+  Public because it is the half of this module worth testing: the prompt can
+  be re-tuned freely, but a change that lets an unlocatable quote through is a
+  change that makes every reading untrustworthy. It was private once, nothing
+  exercised it, and a rename of `document` to `member` went unnoticed until
+  every claim on every folder had been silently dropped.
+  """
+  def validate(raw, members) do
+    by_n = Map.new(members, fn m -> {m.n, m} end)
 
     {threads, d1} = check_group(raw["threads"], by_n, "thread")
     {tensions, d2} = check_group(raw["tensions"], by_n, "tension")
@@ -372,25 +432,31 @@ defmodule Marginalia.Cuts do
 
   defp check_evidence(evidence, by_n, label, claim) when is_list(evidence) do
     Enum.reduce(evidence, {[], []}, fn ev, {kept, bad} ->
-      n = as_int(ev["document"])
-      quote = text(ev["quote"])
-      doc = Map.get(by_n, n)
-
-      found =
-        doc && quote != "" &&
-          Enum.find_value(doc.picks, fn p -> locate(quote, p.quote) end)
+      n = as_int(ev["member"] || ev["document"])
+      quoted = text(ev["quote"])
+      member = Map.get(by_n, n)
+      found = member && quoted != "" && locate(quoted, member.text)
 
       cond do
-        is_nil(doc) ->
+        is_nil(member) ->
           {kept,
            bad ++
-             ["#{label} #{short(claim)}: document #{inspect(ev["document"])} is not in this cut"]}
+             ["#{label} #{short(claim)}: member #{inspect(ev["member"])} is not in this group"]}
 
         found ->
-          {kept ++ [%{"document" => n, "work_id" => doc.work.id, "quote" => found}], bad}
+          {kept ++
+             [
+               %{
+                 "member" => n,
+                 "kind" => member.kind,
+                 "id" => member.id,
+                 "label" => member.label,
+                 "quote" => found
+               }
+             ], bad}
 
         true ->
-          {kept, bad ++ ["#{label} #{short(claim)}: quote is not in document #{n}"]}
+          {kept, bad ++ ["#{label} #{short(claim)}: quote is not in member #{n}"]}
       end
     end)
   end
