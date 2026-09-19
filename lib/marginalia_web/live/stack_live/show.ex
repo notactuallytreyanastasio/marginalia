@@ -21,7 +21,7 @@ defmodule MarginaliaWeb.StackLive.Show do
         {:ok, socket |> put_flash(:error, "No such folder.") |> push_navigate(to: ~p"/stacks")}
 
       folder ->
-        {:ok, socket |> assign(folder: folder, reading: nil) |> load()}
+        {:ok, socket |> assign(folder: folder, reading: nil, composing: false) |> load()}
     end
   end
 
@@ -31,6 +31,7 @@ defmodule MarginaliaWeb.StackLive.Show do
 
     assign(socket,
       page_title: folder.name,
+      story: Stacks.get_story(folder.id),
       guide: Stacks.guide(folder.id),
       documents: Stacks.documents(user_id, folder.id),
       stats: Stacks.stats(user_id, folder.id)
@@ -45,6 +46,15 @@ defmodule MarginaliaWeb.StackLive.Show do
   # ==========================================================================
 
   @impl true
+  def handle_event("compose", _params, socket) do
+    folder = socket.assigns.folder
+
+    {:noreply,
+     socket
+     |> assign(composing: true)
+     |> start_async(:compose, fn -> Stacks.compose(folder.id, building: folder.name) end)}
+  end
+
   def handle_event("deepen", _params, socket) do
     folder_id = socket.assigns.folder.id
     lv = self()
@@ -88,6 +98,21 @@ defmodule MarginaliaWeb.StackLive.Show do
      else
        put_flash(socket, :error, "#{length(errors)} document(s) did not read.")
      end}
+  end
+
+  def handle_async(:compose, {:ok, {:ok, _story}}, socket),
+    do: {:noreply, socket |> assign(composing: false) |> load()}
+
+  def handle_async(:compose, {:ok, {:error, reason}}, socket) do
+    {:noreply,
+     socket
+     |> assign(composing: false)
+     |> put_flash(:error, "Could not compose: #{inspect(reason)}")}
+  end
+
+  def handle_async(:compose, {:exit, reason}, socket) do
+    {:noreply,
+     socket |> assign(composing: false) |> put_flash(:error, "Compose crashed: #{inspect(reason)}")}
   end
 
   def handle_async(:read, {:exit, reason}, socket) do
@@ -212,6 +237,14 @@ defmodule MarginaliaWeb.StackLive.Show do
           >
             {if @stats.deepened > 0, do: "Deepen again", else: "Second pass"}
           </button>
+          <button
+            :if={@stats.read > 0}
+            class="mg-btn ghost"
+            phx-click="compose"
+            disabled={@reading != nil or @composing}
+          >
+            {if @composing, do: "Composing…", else: if(@story, do: "Compose again", else: "Compose the telling")}
+          </button>
           <span :if={@reading} class="mg-meta">
             {elem(@reading, 0)} of {elem(@reading, 1)} — each document waits on the one before it
           </span>
@@ -232,6 +265,18 @@ defmodule MarginaliaWeb.StackLive.Show do
             </li>
           </ol>
         <% else %>
+          <div :if={@story} class="st-story-card">
+            <div class="mg-label">The telling</div>
+            <.link navigate={~p"/stacks/#{@folder.id}/story"} class="t">{@story.title}</.link>
+            <div class="mg-meta">
+              {length(@story.movements)} parts
+              <span :if={@story.uncovered != []} class="cut-err">
+                · {length(@story.uncovered)} steps left out
+              </span>
+              <span :if={not Stacks.story_current?(@story, @folder.id)} class="cut-err">· stale</span>
+            </div>
+          </div>
+
           <h2 class="cut-h">The method</h2>
           <ol class="st-chain">
             <li :for={e <- @guide} class={if e.step.pitfall, do: "has-pitfall", else: ""}>

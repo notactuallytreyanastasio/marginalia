@@ -250,6 +250,88 @@ defmodule Marginalia.StacksTest do
     end
   end
 
+  describe "composing the telling" do
+    # Prose is not quote-checkable the way a claim is, so the thing that can
+    # be checked is whether the composition actually carries every step. A
+    # telling that covers four of ten has thrown the method away, and it is
+    # the failure least likely to look like one.
+    setup do
+      steps = for n <- 1..4, do: %Marginalia.Stacks.Step{ordinal: n, capability: "does #{n}"}
+      %{steps: steps}
+    end
+
+    defp part(heading, steps),
+      do: %{"heading" => heading, "prose" => "Some prose.", "steps" => steps, "turn" => ""}
+
+    test "a telling covering every step keeps all of it", %{steps: steps} do
+      raw = %{
+        "title" => "How it is built",
+        "opening" => "op",
+        "closing" => "cl",
+        "movements" => [part("Groundwork", [1, 2]), part("The hard part", [3, 4])]
+      }
+
+      {attrs, dropped, uncovered} = Stacks.validate_story(raw, steps)
+
+      assert dropped == []
+      assert uncovered == []
+      assert Enum.map(attrs.movements, & &1["heading"]) == ["Groundwork", "The hard part"]
+    end
+
+    test "a step left out of every part is named, not waved through", %{steps: steps} do
+      raw = %{"movements" => [part("Only the start", [1, 2])]}
+
+      {_attrs, dropped, uncovered} = Stacks.validate_story(raw, steps)
+
+      assert uncovered == [3, 4]
+      assert Enum.any?(dropped, &String.contains?(&1, "appear in no part: 3, 4"))
+    end
+
+    test "a step told twice is refused the second time", %{steps: steps} do
+      raw = %{"movements" => [part("A", [1, 2]), part("B", [2, 3, 4])]}
+
+      {attrs, dropped, uncovered} = Stacks.validate_story(raw, steps)
+
+      assert uncovered == []
+      assert Enum.any?(dropped, &String.contains?(&1, "step 2 is told twice"))
+      assert Enum.map(attrs.movements, & &1["steps"]) == [[1, 2], [3, 4]]
+    end
+
+    test "a step that is not in this stack is refused", %{steps: steps} do
+      raw = %{"movements" => [part("A", [1, 2, 3, 4, 9])]}
+
+      {_attrs, dropped, _} = Stacks.validate_story(raw, steps)
+      assert Enum.any?(dropped, &String.contains?(&1, "step 9 is not in this stack"))
+    end
+
+    test "parts are ordered by the work, not by what came back", %{steps: steps} do
+      raw = %{"movements" => [part("Later", [3, 4]), part("Earlier", [1, 2])]}
+
+      {attrs, [], []} = Stacks.validate_story(raw, steps)
+      assert Enum.map(attrs.movements, & &1["heading"]) == ["Earlier", "Later"]
+    end
+
+    test "a part with no prose is not a part", %{steps: steps} do
+      raw = %{
+        "movements" => [
+          %{"heading" => "Empty", "prose" => "  ", "steps" => [1, 2]},
+          part("Real", [3, 4])
+        ]
+      }
+
+      {attrs, dropped, uncovered} = Stacks.validate_story(raw, steps)
+
+      assert length(attrs.movements) == 1
+      assert uncovered == [1, 2]
+      assert Enum.any?(dropped, &String.contains?(&1, "no prose"))
+    end
+
+    test "completeness is a property the story carries" do
+      refute Marginalia.Stacks.Story.complete?(%Marginalia.Stacks.Story{uncovered: [3]})
+      assert Marginalia.Stacks.Story.complete?(%Marginalia.Stacks.Story{uncovered: []})
+    end
+  end
+
   describe "the guide" do
     test "links run both ways, and the ends know they are ends", %{user: user, folder: folder} do
       for {title, ord, req} <- [{"1. One", 1, []}, {"2. Two", 2, [1]}, {"3. Three", 3, [1, 2]}] do

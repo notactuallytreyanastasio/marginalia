@@ -32,7 +32,7 @@ defmodule Marginalia.Stacks do
   import Ecto.Query
 
   alias Marginalia.{Cuts, Folders, LLM, Reading, Repo, Works}
-  alias Marginalia.Stacks.Step
+  alias Marginalia.Stacks.{Step, Story}
   alias Marginalia.Works.Work
 
   @body_cap 14_000
@@ -628,6 +628,269 @@ defmodule Marginalia.Stacks do
       nil -> nil
       folder -> folder.name
     end
+  end
+
+  # ==========================================================================
+  # The composition
+  # ==========================================================================
+
+  @compose_tool %{
+    "type" => "function",
+    "function" => %{
+      "name" => "compose_story",
+      "description" => "Compose the longform telling of how this thing gets built.",
+      "parameters" => %{
+        "type" => "object",
+        "properties" => %{
+          "title" => %{
+            "type" => "string",
+            "description" => "A title for the whole telling. A claim, not a label."
+          },
+          "opening" => %{
+            "type" => "string",
+            "description" =>
+              "Two or three paragraphs. What is being built, what makes it hard, and what " <>
+                "the reader will have when they reach the end. Lead with the load-bearing " <>
+                "or surprising fact, never with \"this guide covers\"."
+          },
+          "movements" => %{
+            "type" => "array",
+            "description" =>
+              "The telling in parts, in the order the work is done. A part groups steps " <>
+                "that belong together as one stretch of the build. Every step must appear " <>
+                "in exactly one part.",
+            "items" => %{
+              "type" => "object",
+              "properties" => %{
+                "heading" => %{"type" => "string", "description" => "A claim, not a label."},
+                "steps" => %{
+                  "type" => "array",
+                  "items" => %{"type" => "integer"},
+                  "description" => "The step numbers this part tells."
+                },
+                "prose" => %{
+                  "type" => "string",
+                  "description" =>
+                    "Three to six paragraphs telling this stretch as continuous prose. " <>
+                      "Say what gets built and in what order, and name the pitfalls where " <>
+                      "they bite. Do not enumerate the steps one by one — that list already " <>
+                      "exists and the reader has it."
+                },
+                "turn" => %{
+                  "type" => "string",
+                  "description" =>
+                    "The thing in this stretch that a reader would not have guessed — a " <>
+                      "pitfall, or a place a later step walks an earlier one back. One or " <>
+                      "two sentences. Empty string if this stretch has none."
+                }
+              },
+              "required" => ["heading", "steps", "prose", "turn"]
+            }
+          },
+          "closing" => %{
+            "type" => "string",
+            "description" =>
+              "One or two paragraphs. What the reader now has, and what is honestly still " <>
+                "undone or unresolved at the end of this stack."
+          }
+        },
+        "required" => ["title", "opening", "movements", "closing"]
+      }
+    }
+  }
+
+  @compose_prompt """
+  You are writing the long-form telling of how a thing gets built, from notes \
+  that have already been checked line by line against the documents they came \
+  from. Your job is composition, not extraction: everything you need is in \
+  front of you, and anything not in front of you is something you do not know.
+
+  Write for someone about to build the same thing. They want the shape of the \
+  work and the order of it, and above all the places where the obvious move \
+  is wrong.
+
+  House rules. Lead with the load-bearing or surprising fact, never with \
+  "this guide will". Explain why the obvious version is wrong wherever the \
+  notes say so — that is usually the most valuable sentence available to you. \
+  Say plainly what is still undone. No marketing language, no bullet padding, \
+  no emoji, and do not enumerate the steps one by one: the reader already has \
+  that list, and your job is the prose between them.
+
+  Every step must appear in exactly one part. A telling that quietly covers \
+  half of them has thrown the method away.
+
+  Report by calling compose_story.
+  """
+
+  @doc """
+  Compose the longform telling of a stack.
+
+  Reads the steps, not the documents. Both passes have already distilled and
+  checked those, and a composer sent back to the source would be a third
+  extraction — free to introduce claims that nothing had verified — rather
+  than a composition of claims that were.
+  """
+  def compose(folder_id, opts \\ []) do
+    steps = list_steps(folder_id)
+
+    if steps == [] do
+      {:error, :not_read}
+    else
+      do_compose(folder_id, steps, opts)
+    end
+  end
+
+  defp do_compose(folder_id, steps, opts) do
+    case LLM.call_tool(
+           tool: @compose_tool,
+           model: LLM.default_model(),
+           effort: :high,
+           temperature: 0.4,
+           max_tokens: 16_000,
+           messages: [
+             %{"role" => "system", "content" => @compose_prompt},
+             %{"role" => "user", "content" => compose_message(steps, opts)}
+           ]
+         ) do
+      {:ok, raw} ->
+        {attrs, dropped, uncovered} = validate_story(raw, steps)
+
+        %Story{}
+        |> Story.changeset(
+          Map.merge(attrs, %{
+            folder_id: folder_id,
+            dropped: dropped,
+            uncovered: uncovered,
+            fingerprint: story_fingerprint(steps)
+          })
+        )
+        |> Repo.insert(
+          on_conflict: {:replace_all_except, [:id, :inserted_at]},
+          conflict_target: :folder_id
+        )
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp compose_message(steps, opts) do
+    building =
+      if is_binary(opts[:building]), do: opts[:building], else: "the thing this series builds"
+
+    body =
+      Enum.map_join(steps, "\n\n", fn s ->
+        [
+          "## Step #{s.ordinal}: #{s.capability}",
+          if(s.requires != [], do: "Stands on: #{Enum.join(s.requires, ", ")}", else: nil),
+          "What to do: #{s.lesson}",
+          s.mechanism && "How it works: #{s.mechanism}",
+          s.pitfall && "The obvious version is wrong: #{s.pitfall}",
+          s.watch_for && "Get right now: #{s.watch_for}",
+          s.revised_by && "Walked back by step #{s.revised_by}: #{s.revision}"
+        ]
+        |> Enum.reject(&is_nil/1)
+        |> Enum.join("\n")
+      end)
+
+    """
+    What is being built: #{building}
+    Steps: #{length(steps)}, to be told in order.
+
+    #{body}
+    """
+  end
+
+  @doc """
+  Keep the telling only if it accounts for the whole stack.
+
+  The coverage check is the point. Prose is not quote-checkable the way a
+  claim is, so the thing that can be checked is whether the composition
+  actually carries every step — and a story covering four of ten is the
+  failure this is most likely to produce and least likely to look like one.
+  """
+  def validate_story(raw, steps) do
+    ordinals = MapSet.new(steps, & &1.ordinal)
+    dropped = []
+
+    {movements, dropped, seen} =
+      (raw["movements"] || [])
+      |> Enum.reduce({[], dropped, MapSet.new()}, fn m, {keep, bad, seen} ->
+        heading = trimmed(is_map(m) && m["heading"])
+        prose = trimmed(is_map(m) && m["prose"])
+
+        {mine, bad} =
+          Enum.reduce(List.wrap(is_map(m) && m["steps"]), {[], bad}, fn n, {acc, b} ->
+            case as_int(n) do
+              i when is_integer(i) ->
+                cond do
+                  not MapSet.member?(ordinals, i) ->
+                    {acc, b ++ ["part #{inspect(heading)}: step #{i} is not in this stack"]}
+
+                  MapSet.member?(seen, i) ->
+                    {acc, b ++ ["part #{inspect(heading)}: step #{i} is told twice"]}
+
+                  true ->
+                    {acc ++ [i], b}
+                end
+
+              _ ->
+                {acc, b ++ ["part #{inspect(heading)}: #{inspect(n)} is not a step number"]}
+            end
+          end)
+
+        cond do
+          heading == "" or prose == "" ->
+            {keep, bad ++ ["a part with no #{if heading == "", do: "heading", else: "prose"}"],
+             seen}
+
+          true ->
+            {keep ++
+               [
+                 %{
+                   "heading" => heading,
+                   "prose" => prose,
+                   "steps" => mine,
+                   "turn" => trimmed(m["turn"])
+                 }
+               ], bad, MapSet.union(seen, MapSet.new(mine))}
+        end
+      end)
+
+    uncovered = ordinals |> MapSet.difference(seen) |> MapSet.to_list() |> Enum.sort()
+
+    dropped =
+      if uncovered == [],
+        do: dropped,
+        else:
+          dropped ++
+            ["#{length(uncovered)} step(s) appear in no part: #{Enum.join(uncovered, ", ")}"]
+
+    # parts are told in the order the work is done, so they sort by their
+    # first step rather than by whatever order they came back in
+    movements = Enum.sort_by(movements, fn m -> List.first(m["steps"]) || 9_999 end)
+
+    {%{
+       title: trimmed(raw["title"]),
+       opening: trimmed(raw["opening"]),
+       movements: movements,
+       closing: trimmed(raw["closing"])
+     }, dropped, uncovered}
+  end
+
+  def get_story(folder_id), do: Repo.get_by(Story, folder_id: folder_id)
+
+  @doc "Whether the telling was composed from the steps as they now stand."
+  def story_current?(%Story{} = story, folder_id),
+    do: story.fingerprint == story_fingerprint(list_steps(folder_id))
+
+  defp story_fingerprint(steps) do
+    steps
+    |> Enum.map_join("\n", fn s ->
+      "#{s.ordinal}|#{s.capability}|#{s.lesson}|#{s.mechanism}|#{s.pitfall}|#{s.revised_by}"
+    end)
+    |> then(&:crypto.hash(:sha256, &1))
+    |> Base.encode16(case: :lower)
   end
 
   # ==========================================================================
