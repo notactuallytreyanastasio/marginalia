@@ -18,15 +18,28 @@ defmodule MarginaliaWeb.CaseIndexTest do
 
   setup %{conn: conn} do
     Ecto.Adapters.SQL.Sandbox.mode(Marginalia.Repo, {:shared, self()})
+    # Restored, not deleted. `delete_env` drops the configured value instead
+    # of putting it back, so anything reading `:owner_email` afterwards sees
+    # nil rather than what config set — invisible in one run, because ExUnit
+    # runs the async readers before these sync modules, and immediately fatal
+    # under --repeat-until-failure, which is the tool for finding flakes.
+    previous_owner = Application.get_env(:marginalia, :owner_email)
     Application.put_env(:marginalia, :owner_email, "owner@example.com")
-    on_exit(fn -> Application.delete_env(:marginalia, :owner_email) end)
+
+    on_exit(fn ->
+      case previous_owner do
+        nil -> Application.delete_env(:marginalia, :owner_email)
+        email -> Application.put_env(:marginalia, :owner_email, email)
+      end
+    end)
 
     owner = user_fixture(%{email: "owner@example.com"})
 
     mk = fn title, role, extra ->
-        body =
+      body =
         "# #{title}\n\n#{@quote} to be a section. We hold that the removal power is " <>
           "the President's alone.\n\n" <> String.duplicate("word ", 200)
+
       {:ok, w} = Works.create_work(owner.id, %{"title" => title, "body" => body})
       {:ok, w} = Works.set_status(w, "read")
       {:ok, w} = Cases.place(w, "Trump v. Slaughter", role)
@@ -141,7 +154,8 @@ defmodule MarginaliaWeb.CaseIndexTest do
 
     test "a division heading before the sentence is not part of the quotation" do
       for lead <- ["III", "II A", "* * *", "1."] do
-        body = "Some earlier reasoning ends here.\n\n#{lead}\n\nWe hold that the statute is valid."
+        body =
+          "Some earlier reasoning ends here.\n\n#{lead}\n\nWe hold that the statute is valid."
 
         assert Cases.holding(%Marginalia.Works.Work{body: body}) ==
                  "We hold that the statute is valid.",
@@ -150,8 +164,9 @@ defmodule MarginaliaWeb.CaseIndexTest do
     end
 
     test "an opinion that never says it in one sentence gets nothing" do
-      body = "The judgment below rested on a mistaken premise about the text. " <>
-               String.duplicate("More reasoning follows. ", 40)
+      body =
+        "The judgment below rested on a mistaken premise about the text. " <>
+          String.duplicate("More reasoning follows. ", 40)
 
       assert Cases.holding(%Marginalia.Works.Work{body: body}) == nil
     end

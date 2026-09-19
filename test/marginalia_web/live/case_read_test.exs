@@ -18,8 +18,20 @@ defmodule MarginaliaWeb.CaseReadTest do
 
   setup %{conn: conn} do
     Ecto.Adapters.SQL.Sandbox.mode(Marginalia.Repo, {:shared, self()})
+    # Restored, not deleted. `delete_env` drops the configured value instead
+    # of putting it back, so anything reading `:owner_email` afterwards sees
+    # nil rather than what config set — invisible in one run, because ExUnit
+    # runs the async readers before these sync modules, and immediately fatal
+    # under --repeat-until-failure, which is the tool for finding flakes.
+    previous_owner = Application.get_env(:marginalia, :owner_email)
     Application.put_env(:marginalia, :owner_email, "owner@example.com")
-    on_exit(fn -> Application.delete_env(:marginalia, :owner_email) end)
+
+    on_exit(fn ->
+      case previous_owner do
+        nil -> Application.delete_env(:marginalia, :owner_email)
+        email -> Application.put_env(:marginalia, :owner_email, email)
+      end
+    end)
 
     owner = user_fixture(%{email: "owner@example.com"})
 
@@ -304,7 +316,6 @@ defmodule MarginaliaWeb.CaseReadTest do
       refute card =~ ~r/\bA:\[\d+\]/
       refute card =~ ~r/^A: /m
     end
-
   end
 
   describe "a hub paragraph" do
