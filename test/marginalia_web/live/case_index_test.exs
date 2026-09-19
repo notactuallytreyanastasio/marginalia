@@ -96,7 +96,7 @@ defmodule MarginaliaWeb.CaseIndexTest do
       Linker.types()
     )
 
-    %{conn: conn, owner: owner, op: op, ar: ar}
+    %{conn: conn, owner: owner, op: op, ar: ar, di: di}
   end
 
   test "the record facts a reader checks first are on the card", %{conn: conn} do
@@ -268,8 +268,11 @@ defmodule MarginaliaWeb.CaseIndexTest do
     assert html =~ "No. 25-332"
   end
 
-  test "a summary calls the documents by name, not Manuscript A and B", %{conn: conn, op: op} do
-    [l | _] = Links.for_work(op.id)
+  test "a summary calls the documents by name, not Manuscript A and B",
+       %{conn: conn, op: op, di: di} do
+    # by name, not the head of the list: `op` has two links and this asserts
+    # on which documents A and B resolve to
+    l = Enum.find(Links.for_work(op.id), &(&1.a_work_id == di.id or &1.b_work_id == di.id))
 
     {:ok, l} =
       Links.set_status(l, "linked", %{
@@ -286,8 +289,10 @@ defmodule MarginaliaWeb.CaseIndexTest do
 
   # "A says Congress entrenched the common law; B Jackson charges that..."
   # is a sentence a reader has to decode before they can read it.
-  test "a bare A and B at the start of a sentence are named too", %{op: op} do
-    [l | _] = Links.for_work(op.id)
+  test "a bare A and B at the start of a sentence are named too", %{op: op, di: di} do
+    # the dissent link by name, not the head of the list: `op` has two links
+    # and this asserts on which documents A and B resolve to
+    l = Enum.find(Links.for_work(op.id), &(&1.a_work_id == di.id or &1.b_work_id == di.id))
 
     {:ok, l} =
       Links.set_status(l, "linked", %{

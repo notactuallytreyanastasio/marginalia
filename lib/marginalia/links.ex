@@ -177,7 +177,12 @@ defmodule Marginalia.Links do
   def for_work(work_id) do
     Link
     |> where([l], l.a_work_id == ^work_id or l.b_work_id == ^work_id)
-    |> order_by([l], desc: l.updated_at)
+    # `updated_at` is second-precision, so two links touched in the same
+    # second tie and Postgres is free to return them either way round. The id
+    # breaks the tie and makes this a total order — which matters for a list
+    # a person reads, and mattered for a test that took the head of it and
+    # got a different pair about one run in thirty.
+    |> order_by([l], desc: l.updated_at, desc: l.id)
     |> preload([:a_work, :b_work])
     |> Repo.all()
   end
