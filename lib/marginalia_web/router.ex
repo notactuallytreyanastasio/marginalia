@@ -100,6 +100,9 @@ defmodule MarginaliaWeb.Router do
       live "/works", WorkLive.Index, :index
       live "/works/new", WorkLive.New, :new
       live "/works/:id", WorkLive.Show, :show
+      live "/stacks", StackLive.Index, :index
+      live "/stacks/:id", StackLive.Show, :show
+      live "/stacks/:id/:ordinal", StackLive.Show, :step
       live "/cuts", CutLive.Index, :index
       live "/cuts/:id", CutLive.Show, :show
       live "/links", LinkLive.Index, :index

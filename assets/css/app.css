@@ -394,6 +394,69 @@ body {
   font-family: var(--mg-mono); font-size: 0.6rem; color: var(--mg-accent);
   border: 1px solid var(--mg-rule); border-radius: 2px; padding: 0 0.25rem; flex: none;
 }
+/* --- a stack read forwards ---------------------------------------------- */
+/* The chain is the method at a glance. Numbers are the reading order and the
+   only ornament: a step that needs earlier ones says which, because that is
+   what makes the order load-bearing rather than incidental. */
+.st-chain, .st-docs { list-style: none; margin: 0.6rem 0 0; padding: 0; }
+.st-chain li {
+  display: flex; align-items: baseline; gap: 0.7rem;
+  padding: 0.5rem 0; border-bottom: 1px solid var(--mg-rule);
+}
+.st-chain li:last-child { border-bottom: 0; }
+.st-chain a { display: flex; gap: 0.7rem; align-items: baseline; flex: 1; min-width: 0; color: var(--mg-ink); }
+.st-chain a:hover .c { color: var(--mg-accent); }
+.st-chain .n, .st-docs .n, .st-links .n {
+  font-family: var(--mg-mono); font-size: 0.68rem; color: var(--mg-dim);
+  flex: none; width: 1.6rem; text-align: right;
+}
+.st-chain .c { font-family: var(--mg-serif); font-size: 1rem; line-height: 1.45; }
+.st-chain li.has-pitfall .n { color: var(--mg-accent); }
+.st-chain .dep { font-family: var(--mg-mono); font-size: 0.64rem; color: var(--mg-dim); flex: none; }
+.st-docs li {
+  display: flex; gap: 0.7rem; padding: 0.3rem 0; font-size: 0.86rem; color: var(--mg-dim);
+}
+
+.st-step-head { margin: 1.2rem 0 0.4rem; }
+.st-step-head .n {
+  font-family: var(--mg-mono); font-size: 0.66rem; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--mg-dim);
+}
+.st-step-head h1 { font-size: 1.6rem; font-weight: 600; line-height: 1.25; margin: 0.3rem 0 0.4rem; }
+.st-lesson { font-size: 1.02rem; line-height: 1.65; }
+.st-pitfall {
+  font-size: 1rem; line-height: 1.6; border-left: 2px solid var(--mg-accent); padding-left: 0.9rem;
+}
+.st-quote {
+  margin: 0.6rem 0 0; padding-left: 0.9rem; border-left: 2px solid var(--mg-mark);
+  font-family: var(--mg-serif); font-size: 0.92rem; line-height: 1.55; color: #3a3630;
+}
+.st-excerpt { margin: 0.7rem 0 1rem; }
+.st-excerpt pre {
+  margin: 0; padding: 0.7rem 0.85rem; background: var(--mg-margin); border-radius: 3px;
+  overflow-x: auto; font-family: var(--mg-mono); font-size: 0.76rem; line-height: 1.55;
+}
+.st-excerpt figcaption {
+  font-family: var(--mg-mono); font-size: 0.66rem; color: var(--mg-dim); margin-top: 0.3rem;
+}
+.st-links { list-style: none; margin: 0.4rem 0 0; padding: 0; }
+.st-links li { padding: 0.25rem 0; }
+.st-links a { display: flex; gap: 0.7rem; align-items: baseline; font-size: 0.92rem; color: var(--mg-ink); }
+.st-links a:hover { color: var(--mg-accent); }
+.st-nav {
+  display: flex; gap: 1rem; justify-content: space-between; margin-top: 2.5rem;
+  border-top: 1px solid var(--mg-rule); padding-top: 1rem;
+  font-family: var(--mg-serif); font-size: 0.92rem;
+}
+.st-nav .next { text-align: right; margin-left: auto; }
+.st-progress {
+  height: 2px; background: var(--mg-rule); margin-top: 0.9rem; overflow: hidden;
+}
+.st-progress span {
+  display: block; height: 100%; width: var(--done, 0%); background: var(--mg-accent);
+  transition: width .4s ease;
+}
+
 /* The weave: members as rows, claims as arcs between the pairs they rest on.
    Ink only — this is a reading, not a dashboard, and a second hue here would
    be the loudest thing on a page whose job is to be quiet. */
