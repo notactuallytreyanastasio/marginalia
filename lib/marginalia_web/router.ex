@@ -101,8 +101,11 @@ defmodule MarginaliaWeb.Router do
       live "/works/new", WorkLive.New, :new
       live "/works/:id", WorkLive.Show, :show
       live "/stacks", StackLive.Index, :index
-      live "/stacks/:id", StackLive.Show, :show
+      # `new` before `:id`, or the import page resolves as a folder called
+      # "new" and redirects away. The router takes the first match, not the
+      # most specific one.
       live "/stacks/new", StackLive.New, :new
+      live "/stacks/:id", StackLive.Show, :show
       live "/stacks/:id/story", StackLive.Story, :story
       live "/stacks/:id/:ordinal", StackLive.Show, :step
       live "/cuts", CutLive.Index, :index
