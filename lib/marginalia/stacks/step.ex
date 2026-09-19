@@ -14,6 +14,15 @@ defmodule Marginalia.Stacks.Step do
     field :fingerprint, :string
     field :dropped, {:array, :string}, default: []
 
+    # filled by the second pass, which can see the whole chain
+    field :mechanism, :string
+    field :watch_for, :string
+    field :revised_by, :integer
+    field :revision, :string
+    field :revision_quote, :string
+    field :deep_dropped, {:array, :string}, default: []
+    field :deepened_at, :utc_datetime
+
     belongs_to :folder, Marginalia.Folders.Folder
     belongs_to :work, Marginalia.Works.Work
 
@@ -34,6 +43,20 @@ defmodule Marginalia.Stacks.Step do
       :excerpts,
       :fingerprint,
       :dropped
+    ])
+  end
+
+  @doc "What only a pass holding the whole chain can say."
+  def deep_changeset(step, attrs) do
+    step
+    |> cast(attrs, [
+      :mechanism,
+      :watch_for,
+      :revised_by,
+      :revision,
+      :revision_quote,
+      :deep_dropped,
+      :deepened_at
     ])
     |> validate_required([:folder_id, :work_id, :ordinal])
     |> unique_constraint([:folder_id, :work_id])

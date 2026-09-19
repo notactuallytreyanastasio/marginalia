@@ -45,6 +45,20 @@ defmodule MarginaliaWeb.StackLive.Show do
   # ==========================================================================
 
   @impl true
+  def handle_event("deepen", _params, socket) do
+    folder_id = socket.assigns.folder.id
+    lv = self()
+
+    {:noreply,
+     socket
+     |> assign(reading: {0, socket.assigns.stats.read})
+     |> start_async(:read, fn ->
+       Stacks.deepen_stack(folder_id,
+         on_step: fn _s, i, total -> send(lv, {:step_done, i, total}) end
+       )
+     end)}
+  end
+
   def handle_event("read", _params, socket) do
     user_id = socket.assigns.current_scope.user.id
     folder_id = socket.assigns.folder.id
@@ -107,6 +121,27 @@ defmodule MarginaliaWeb.StackLive.Show do
           <h2 class="cut-h">What to do</h2>
           <p class="st-lesson">{@entry.step.lesson}</p>
 
+          <div :if={@entry.step.mechanism}>
+            <h2 class="cut-h">How it works</h2>
+            <p class="st-lesson">{@entry.step.mechanism}</p>
+          </div>
+
+          <div :if={@entry.step.watch_for}>
+            <h2 class="cut-h">Get this right now</h2>
+            <p class="st-watch">{@entry.step.watch_for}</p>
+          </div>
+
+          <div :if={@entry.step.revised_by}>
+            <h2 class="cut-h">A later step walks this back</h2>
+            <p class="st-pitfall">{@entry.step.revision}</p>
+            <blockquote class="st-quote">{@entry.step.revision_quote}</blockquote>
+            <p class="mg-meta mt-1">
+              <.link navigate={~p"/stacks/#{@folder.id}/#{@entry.step.revised_by}"}>
+                read step {@entry.step.revised_by} →
+              </.link>
+            </p>
+          </div>
+
           <div :if={@entry.step.pitfall}>
             <h2 class="cut-h">Why the obvious version is wrong</h2>
             <p class="st-pitfall">{@entry.step.pitfall}</p>
@@ -159,12 +194,23 @@ defmodule MarginaliaWeb.StackLive.Show do
         <div class="mg-meta mt-1">
           {@stats.documents} documents · {@stats.read} read · {@stats.pitfalls} pitfalls ·
           {@stats.links} dependencies
+          <span :if={@stats.deepened > 0}>
+            · {@stats.deepened} deepened · {@stats.revisions} revised later
+          </span>
           <span :if={@stats.dropped > 0}>· {@stats.dropped} claims dropped</span>
         </div>
 
         <div class="mt-5 flex items-center gap-3">
           <button class="mg-btn" phx-click="read" disabled={@reading != nil}>
             {if @stats.read > 0, do: "Read forwards again", else: "Read forwards"}
+          </button>
+          <button
+            :if={@stats.read > 0}
+            class="mg-btn ghost"
+            phx-click="deepen"
+            disabled={@reading != nil}
+          >
+            {if @stats.deepened > 0, do: "Deepen again", else: "Second pass"}
           </button>
           <span :if={@reading} class="mg-meta">
             {elem(@reading, 0)} of {elem(@reading, 1)} — each document waits on the one before it
@@ -196,11 +242,18 @@ defmodule MarginaliaWeb.StackLive.Show do
               <span :if={e.requires != []} class="dep">
                 needs {Enum.map_join(e.requires, ", ", &to_string(&1.ordinal))}
               </span>
+              <span :if={e.step.revised_by} class="dep rev">
+                revised by {e.step.revised_by}
+              </span>
             </li>
           </ol>
           <p class="mg-meta mt-5">
             Start at step 1. Every step links back to what it stands on and forward to what
             stands on it.
+            <span :if={@stats.deepened == 0}>
+              The second pass adds how each one works, what to get right now, and where a
+              later step walks it back — none of which the first pass can see.
+            </span>
           </p>
         <% end %>
       </div>

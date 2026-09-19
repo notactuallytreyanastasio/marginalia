@@ -102,7 +102,11 @@ defmodule Marginalia.StacksTest do
     end
 
     test "an excerpt is the paragraph around the quote, from the document" do
-      raw = %{"requires" => [], "excerpts" => [%{"quote" => "packed at the call site", "caption" => "the shape"}]}
+      raw = %{
+        "requires" => [],
+        "excerpts" => [%{"quote" => "packed at the call site", "caption" => "the shape"}]
+      }
+
       {attrs, []} = Stacks.validate(raw, @body, 5)
 
       assert [%{"caption" => "the shape", "text" => text}] = attrs.excerpts
@@ -111,7 +115,11 @@ defmodule Marginalia.StacksTest do
     end
 
     test "an invented excerpt is dropped" do
-      raw = %{"requires" => [], "excerpts" => [%{"quote" => "fn apply(args: List)", "caption" => "x"}]}
+      raw = %{
+        "requires" => [],
+        "excerpts" => [%{"quote" => "fn apply(args: List)", "caption" => "x"}]
+      }
+
       {attrs, dropped} = Stacks.validate(raw, @body, 5)
 
       assert attrs.excerpts == []
@@ -122,13 +130,123 @@ defmodule Marginalia.StacksTest do
       raw = %{
         "requires" => [],
         "excerpts" =>
-          for(q <- ["Blimp has no variadic", "packed at the call site", "unpacked in the handler"],
+          for(
+            q <- ["Blimp has no variadic", "packed at the call site", "unpacked in the handler"],
             do: %{"quote" => q, "caption" => "c"}
           )
       }
 
       {attrs, []} = Stacks.validate(raw, @body, 5)
       assert length(attrs.excerpts) == 2
+    end
+  end
+
+  describe "the second pass, which can see forwards" do
+    # The forward pass is told only what came before each step, so it cannot
+    # say "step 9 walks this back". That claim is the one the second pass can
+    # make and the one that can do damage — it sends a reader off to read
+    # something that may not say that at all — so it has to name a later step
+    # and quote that step's own summary.
+    setup do
+      later = [
+        %{
+          ordinal: 8,
+          capability: "holes type-check",
+          lesson: "Emit a hole operator.",
+          pitfall: nil
+        },
+        %{
+          ordinal: 9,
+          capability: "casts are checked",
+          lesson: "Replace the unchecked cast with a real test.",
+          pitfall: "The earlier cast compiled to nothing at all."
+        }
+      ]
+
+      %{later: later}
+    end
+
+    test "a revision naming a later step and quoting it is kept", %{later: later} do
+      raw = %{
+        "mechanism" => "It splits the body at the first exit and lifts the tail.",
+        "watch_for" => "Step 9 leans on the cast being a real test.",
+        "revised_by" => 9,
+        "revision" => "Step 9 replaces the unchecked cast.",
+        "revision_quote" => "Replace the unchecked cast with a real test."
+      }
+
+      {attrs, dropped} = Stacks.validate_deep(raw, later)
+
+      assert dropped == []
+      assert attrs.revised_by == 9
+      assert attrs.revision_quote == "Replace the unchecked cast with a real test."
+      assert attrs.watch_for =~ "Step 9"
+    end
+
+    test "a revision pointing at a step that is not later is refused", %{later: later} do
+      raw = %{
+        "mechanism" => "x",
+        "revised_by" => 3,
+        "revision" => "Step 3 changed it.",
+        "revision_quote" => "anything"
+      }
+
+      {attrs, dropped} = Stacks.validate_deep(raw, later)
+
+      assert attrs.revised_by == nil
+      assert Enum.any?(dropped, &String.contains?(&1, "step 3 is not a later step"))
+    end
+
+    test "a revision whose quote is not in that step's summary is refused", %{later: later} do
+      raw = %{
+        "mechanism" => "x",
+        "revised_by" => 9,
+        "revision" => "Step 9 deletes the whole translator.",
+        "revision_quote" => "Step 9 deletes the whole translator."
+      }
+
+      {attrs, dropped} = Stacks.validate_deep(raw, later)
+
+      assert attrs.revised_by == nil
+      assert attrs.revision == nil
+      assert Enum.any?(dropped, &String.contains?(&1, "quote is not in step 9"))
+    end
+
+    test "no revision is a normal answer", %{later: later} do
+      raw = %{
+        "mechanism" => "x",
+        "watch_for" => "",
+        "revised_by" => 0,
+        "revision" => "",
+        "revision_quote" => ""
+      }
+
+      {attrs, dropped} = Stacks.validate_deep(raw, later)
+
+      assert attrs.revised_by == nil
+      assert attrs.watch_for == nil
+      assert dropped == []
+    end
+
+    test "an empty mechanism is the one thing this pass must not return", %{later: later} do
+      {attrs, dropped} = Stacks.validate_deep(%{"revised_by" => 0}, later)
+
+      assert attrs.mechanism == nil
+      assert Enum.any?(dropped, &String.contains?(&1, "mechanism"))
+    end
+
+    test "the last step has nothing after it and that is fine" do
+      raw = %{
+        "mechanism" => "x",
+        "revised_by" => 4,
+        "revision" => "later",
+        "revision_quote" => "q"
+      }
+
+      {attrs, dropped} = Stacks.validate_deep(raw, [])
+
+      assert attrs.revised_by == nil
+      assert Enum.any?(dropped, &String.contains?(&1, "not a later step"))
     end
   end
 

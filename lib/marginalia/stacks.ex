@@ -296,7 +296,8 @@ defmodule Marginalia.Stacks do
 
         case q != "" && passage_around(body, q) do
           nil ->
-            {keep, bad ++ ["excerpt: #{String.slice(q, 0, 50) |> inspect()} is not in the document"]}
+            {keep,
+             bad ++ ["excerpt: #{String.slice(q, 0, 50) |> inspect()} is not in the document"]}
 
           false ->
             {keep, bad ++ ["excerpt: no quote"]}
@@ -353,6 +354,243 @@ defmodule Marginalia.Stacks do
   end
 
   defp as_int(_), do: nil
+
+  # ==========================================================================
+  # The second pass
+  # ==========================================================================
+
+  @deep_tool %{
+    "type" => "function",
+    "function" => %{
+      "name" => "deepen_step",
+      "description" =>
+        "Report what can only be said about this step with the whole series in hand.",
+      "parameters" => %{
+        "type" => "object",
+        "properties" => %{
+          "mechanism" => %{
+            "type" => "string",
+            "description" =>
+              "How this actually works, three or four sentences, below the level of what to " <>
+                "do. Name the moving parts and how they fit. Concrete, from the document."
+          },
+          "watch_for" => %{
+            "type" => "string",
+            "description" =>
+              "What to get right at this step because a later step leans on it, naming which. " <>
+                "Empty string if nothing later depends on the details here."
+          },
+          "revised_by" => %{
+            "type" => "integer",
+            "description" =>
+              "The number of a LATER step that corrects, replaces or materially changes what " <>
+                "this one established. 0 if none does."
+          },
+          "revision" => %{
+            "type" => "string",
+            "description" =>
+              "What that later step changes about this one, in one or two sentences. Empty " <>
+                "string if nothing revises it."
+          },
+          "revision_quote" => %{
+            "type" => "string",
+            "description" =>
+              "The exact sentence from the LATER step's own summary establishing the revision, " <>
+                "copied character for character. Empty string if there is no revision."
+          }
+        },
+        "required" => ["mechanism", "watch_for", "revised_by", "revision", "revision_quote"]
+      }
+    }
+  }
+
+  @deep_prompt """
+  You are reading one step of a series a second time, and this time you have \
+  the whole series in front of you — including everything that comes after it.
+
+  The first reading could not see forwards. It was told only what came before \
+  each step, which is the reading a learner follows, and it means nothing it \
+  said could account for what a later step changes. Your job is the part it \
+  could not do.
+
+  Do not restate the first reading. Say what only the whole chain reveals: how \
+  the thing actually works underneath, what must be got right here because \
+  something later leans on it, and whether a later step walks this back.
+
+  Quotes must be copied character for character. A program checks each one and \
+  drops what it cannot find.
+
+  Report by calling deepen_step.
+  """
+
+  @doc """
+  Read one step again, with the whole chain in hand.
+
+  The chain is given as every step's capability, before and after. `later` is
+  the summaries a revision may be quoted from — a revision claim has to point
+  at a real later step and quote it, or it is somebody's theory about the code.
+  """
+  def deepen_step(%Step{} = step, chain, opts \\ []) do
+    work = Repo.preload(step, :work).work
+    body = text_of(work)
+    later = Enum.filter(chain, &(&1.ordinal > step.ordinal))
+
+    case LLM.call_tool(
+           tool: @deep_tool,
+           model: LLM.default_model(),
+           effort: :high,
+           temperature: 0.2,
+           max_tokens: 3_000,
+           messages: [
+             %{"role" => "system", "content" => @deep_prompt},
+             %{"role" => "user", "content" => deep_message(step, work, body, chain, opts)}
+           ]
+         ) do
+      {:ok, raw} ->
+        {attrs, dropped} = validate_deep(raw, later)
+
+        step
+        |> Step.deep_changeset(
+          Map.merge(attrs, %{
+            deep_dropped: dropped,
+            deepened_at: DateTime.utc_now() |> DateTime.truncate(:second)
+          })
+        )
+        |> Repo.update()
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp deep_message(step, work, body, chain, opts) do
+    line = fn s ->
+      mark =
+        cond do
+          s.ordinal < step.ordinal -> "   "
+          s.ordinal == step.ordinal -> ">> "
+          true -> "   "
+        end
+
+      "#{mark}#{s.ordinal}. #{s.capability}"
+    end
+
+    later_detail =
+      chain
+      |> Enum.filter(&(&1.ordinal > step.ordinal))
+      |> Enum.map_join("\n\n", fn s ->
+        "### Step #{s.ordinal}: #{s.capability}\n#{s.lesson}" <>
+          if(s.pitfall, do: "\nPitfall: #{s.pitfall}", else: "")
+      end)
+
+    building =
+      if is_binary(opts[:building]), do: "The series builds: #{opts[:building]}\n\n", else: ""
+
+    """
+    #{building}# The whole series (>> marks the step you are re-reading)
+
+    #{Enum.map_join(chain, "\n", line)}
+
+    # Step #{step.ordinal}: #{work.title}
+
+    What the first reading said it establishes: #{step.capability}
+    What it said to do: #{step.lesson}
+    #{if step.pitfall, do: "The pitfall it named: " <> step.pitfall <> "\n", else: ""}
+    ## The document itself
+
+    #{body}
+
+    ## Everything that comes after it
+
+    #{if later_detail == "", do: "(nothing — this is the last step)", else: later_detail}
+    """
+  end
+
+  @doc """
+  Keep what can be checked. Public for the same reason the first pass's is.
+
+  A revision claim is the one here that can do damage: "step 14 walks this
+  back" sends a reader off to read something that may not say that at all. So
+  it has to name a later step and quote that step's own summary.
+  """
+  def validate_deep(raw, later) do
+    dropped = []
+    by_ordinal = Map.new(later, &{&1.ordinal, &1})
+
+    mechanism = trimmed(raw["mechanism"])
+    watch_for = trimmed(raw["watch_for"])
+
+    n = as_int(raw["revised_by"])
+    revision = trimmed(raw["revision"])
+    quote = trimmed(raw["revision_quote"])
+    target = n && Map.get(by_ordinal, n)
+
+    haystack =
+      case target do
+        nil -> ""
+        s -> Enum.join([s.capability, s.lesson, s.pitfall || ""], "\n")
+      end
+
+    found = if quote != "" and haystack != "", do: Cuts.locate(quote, haystack), else: nil
+
+    {revised_by, revision, revision_quote, dropped} =
+      cond do
+        is_nil(n) or n == 0 or revision == "" ->
+          {nil, nil, nil, dropped}
+
+        is_nil(target) ->
+          {nil, nil, nil, dropped ++ ["revision: step #{n} is not a later step"]}
+
+        is_nil(found) ->
+          {nil, nil, nil, dropped ++ ["revision: quote is not in step #{n}'s summary"]}
+
+        true ->
+          {n, revision, found, dropped}
+      end
+
+    # the mechanism is prose about the document, so it is not quote-checked —
+    # but it must not be the first pass's lesson handed back with new words
+    {mechanism, dropped} =
+      if mechanism == "" do
+        {nil, dropped ++ ["mechanism: empty"]}
+      else
+        {mechanism, dropped}
+      end
+
+    {%{
+       mechanism: mechanism,
+       watch_for: if(watch_for == "", do: nil, else: watch_for),
+       revised_by: revised_by,
+       revision: revision,
+       revision_quote: revision_quote
+     }, dropped}
+  end
+
+  @doc """
+  Second pass over every step of a folder.
+
+  Order does not matter here — each call already holds the whole chain — so
+  unlike the forward pass this one could be run in parallel. It is not,
+  because the provider's prefix cache covers the chain that every call
+  repeats, and sequential calls hit it.
+  """
+  def deepen_stack(folder_id, opts \\ []) do
+    chain = list_steps(folder_id)
+
+    chain
+    |> Enum.reduce({[], []}, fn step, {done, errors} ->
+      case deepen_step(step, chain, opts) do
+        {:ok, updated} ->
+          if is_function(opts[:on_step]),
+            do: opts[:on_step].(updated, length(done) + 1, length(chain))
+
+          {done ++ [updated], errors}
+
+        {:error, reason} ->
+          {done, errors ++ [{step.ordinal, reason}]}
+      end
+    end)
+  end
 
   # ==========================================================================
   # Reading the whole stack
@@ -434,7 +672,10 @@ defmodule Marginalia.Stacks do
       pitfalls: Enum.count(steps, &(&1.pitfall not in [nil, ""])),
       excerpts: steps |> Enum.map(&length(&1.excerpts || [])) |> Enum.sum(),
       links: steps |> Enum.map(&length(&1.requires || [])) |> Enum.sum(),
-      dropped: steps |> Enum.map(&length(&1.dropped || [])) |> Enum.sum()
+      dropped: steps |> Enum.map(&length(&1.dropped || [])) |> Enum.sum(),
+      deepened: Enum.count(steps, &(&1.deepened_at != nil)),
+      revisions: Enum.count(steps, &(&1.revised_by != nil)),
+      deep_dropped: steps |> Enum.map(&length(&1.deep_dropped || [])) |> Enum.sum()
     }
   end
 end
