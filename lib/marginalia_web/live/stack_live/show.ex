@@ -112,7 +112,9 @@ defmodule MarginaliaWeb.StackLive.Show do
 
   def handle_async(:compose, {:exit, reason}, socket) do
     {:noreply,
-     socket |> assign(composing: false) |> put_flash(:error, "Compose crashed: #{inspect(reason)}")}
+     socket
+     |> assign(composing: false)
+     |> put_flash(:error, "Compose crashed: #{inspect(reason)}")}
   end
 
   def handle_async(:read, {:exit, reason}, socket) do
@@ -139,7 +141,8 @@ defmodule MarginaliaWeb.StackLive.Show do
             <span class="n">Step {@entry.step.ordinal} of {@stats.read}</span>
             <h1 style="font-family:var(--mg-serif)">{@entry.step.capability}</h1>
             <div class="mg-meta">
-              from <.link navigate={~p"/works/#{@entry.step.work.slug}"}>{@entry.step.work.title}</.link>
+              from
+              <.link navigate={~p"/works/#{@entry.step.work.slug}"}>{@entry.step.work.title}</.link>
             </div>
           </div>
 
@@ -192,11 +195,18 @@ defmodule MarginaliaWeb.StackLive.Show do
           </div>
 
           <nav class="st-nav">
-            <.link :if={@entry.previous} navigate={~p"/stacks/#{@folder.id}/#{@entry.previous.ordinal}"}>
+            <.link
+              :if={@entry.previous}
+              navigate={~p"/stacks/#{@folder.id}/#{@entry.previous.ordinal}"}
+            >
               ← {@entry.previous.capability}
             </.link>
             <span :if={is_nil(@entry.previous)}></span>
-            <.link :if={@entry.next} navigate={~p"/stacks/#{@folder.id}/#{@entry.next.ordinal}"} class="next">
+            <.link
+              :if={@entry.next}
+              navigate={~p"/stacks/#{@folder.id}/#{@entry.next.ordinal}"}
+              class="next"
+            >
               {@entry.next.capability} →
             </.link>
           </nav>
@@ -217,10 +227,12 @@ defmodule MarginaliaWeb.StackLive.Show do
           {@folder.name}
         </h1>
         <div class="mg-meta mt-1">
-          {@stats.documents} documents · {@stats.read} read · {@stats.pitfalls} pitfalls ·
-          {@stats.links} dependencies
+          {@stats.documents} documents · {@stats.read} read · {@stats.pitfalls} pitfalls · {@stats.links} dependencies
           <span :if={@stats.deepened > 0}>
             · {@stats.deepened} deepened · {@stats.revisions} revised later
+          </span>
+          <span :if={@stats.deep_failed > 0} class="cut-err">
+            · {@stats.deep_failed} failed the second pass
           </span>
           <span :if={@stats.dropped > 0}>· {@stats.dropped} claims dropped</span>
         </div>
@@ -235,7 +247,11 @@ defmodule MarginaliaWeb.StackLive.Show do
             phx-click="deepen"
             disabled={@reading != nil}
           >
-            {if @stats.deepened > 0, do: "Deepen again", else: "Second pass"}
+            {cond do
+              @stats.deep_failed > 0 -> "Retry #{@stats.deep_failed} failed"
+              @stats.deepened > 0 -> "Deepen again"
+              true -> "Second pass"
+            end}
           </button>
           <button
             :if={@stats.read > 0}
@@ -243,7 +259,9 @@ defmodule MarginaliaWeb.StackLive.Show do
             phx-click="compose"
             disabled={@reading != nil or @composing}
           >
-            {if @composing, do: "Composing…", else: if(@story, do: "Compose again", else: "Compose the telling")}
+            {if @composing,
+              do: "Composing…",
+              else: if(@story, do: "Compose again", else: "Compose the telling")}
           </button>
           <span :if={@reading} class="mg-meta">
             {elem(@reading, 0)} of {elem(@reading, 1)} — each document waits on the one before it

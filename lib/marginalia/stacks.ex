@@ -459,6 +459,16 @@ defmodule Marginalia.Stacks do
         |> Repo.update()
 
       {:error, reason} ->
+        # A step that failed the second pass must not look like one nobody
+        # asked to deepen. Fifty-six of a hundred failed once — rate limited
+        # — and the only sign was a flash message that went away.
+        step
+        |> Step.deep_changeset(%{
+          deep_dropped: ["the second pass failed: #{inspect(reason)}"],
+          deepened_at: nil
+        })
+        |> Repo.update()
+
         {:error, reason}
     end
   end
@@ -577,7 +587,12 @@ defmodule Marginalia.Stacks do
   def deepen_stack(folder_id, opts \\ []) do
     chain = list_steps(folder_id)
 
-    chain
+    # Only what has not been deepened, unless asked for all of it. A pass
+    # that half-finished should be finishable without paying for the half
+    # that worked.
+    todo = if opts[:force], do: chain, else: Enum.filter(chain, &is_nil(&1.deepened_at))
+
+    todo
     |> Enum.reduce({[], []}, fn step, {done, errors} ->
       case deepen_step(step, chain, opts) do
         {:ok, updated} ->
@@ -999,6 +1014,11 @@ defmodule Marginalia.Stacks do
       links: steps |> Enum.map(&length(&1.requires || [])) |> Enum.sum(),
       dropped: steps |> Enum.map(&length(&1.dropped || [])) |> Enum.sum(),
       deepened: Enum.count(steps, &(&1.deepened_at != nil)),
+      deep_failed:
+        Enum.count(steps, fn s ->
+          is_nil(s.deepened_at) and
+            Enum.any?(s.deep_dropped || [], &String.starts_with?(&1, "the second pass failed"))
+        end),
       revisions: Enum.count(steps, &(&1.revised_by != nil)),
       deep_dropped: steps |> Enum.map(&length(&1.deep_dropped || [])) |> Enum.sum()
     }
