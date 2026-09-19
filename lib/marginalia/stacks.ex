@@ -634,11 +634,11 @@ defmodule Marginalia.Stacks do
   # The composition
   # ==========================================================================
 
-  @compose_tool %{
+  @outline_tool %{
     "type" => "function",
     "function" => %{
-      "name" => "compose_story",
-      "description" => "Compose the longform telling of how this thing gets built.",
+      "name" => "outline_story",
+      "description" => "Divide the series into the parts the telling will be written in.",
       "parameters" => %{
         "type" => "object",
         "properties" => %{
@@ -650,85 +650,93 @@ defmodule Marginalia.Stacks do
             "type" => "string",
             "description" =>
               "Two or three paragraphs. What is being built, what makes it hard, and what " <>
-                "the reader will have when they reach the end. Lead with the load-bearing " <>
-                "or surprising fact, never with \"this guide covers\"."
-          },
-          "movements" => %{
-            "type" => "array",
-            "description" =>
-              "The telling in parts, in the order the work is done. A part groups steps " <>
-                "that belong together as one stretch of the build. Every step must appear " <>
-                "in exactly one part.",
-            "items" => %{
-              "type" => "object",
-              "properties" => %{
-                "heading" => %{"type" => "string", "description" => "A claim, not a label."},
-                "steps" => %{
-                  "type" => "array",
-                  "items" => %{"type" => "integer"},
-                  "description" => "The step numbers this part tells."
-                },
-                "prose" => %{
-                  "type" => "string",
-                  "description" =>
-                    "Three to six paragraphs telling this stretch as continuous prose. " <>
-                      "Say what gets built and in what order, and name the pitfalls where " <>
-                      "they bite. Do not enumerate the steps one by one — that list already " <>
-                      "exists and the reader has it."
-                },
-                "turn" => %{
-                  "type" => "string",
-                  "description" =>
-                    "The thing in this stretch that a reader would not have guessed — a " <>
-                      "pitfall, or a place a later step walks an earlier one back. One or " <>
-                      "two sentences. Empty string if this stretch has none."
-                }
-              },
-              "required" => ["heading", "steps", "prose", "turn"]
-            }
+                "the reader will have at the end. Lead with the load-bearing or surprising " <>
+                "fact, never with \"this guide covers\"."
           },
           "closing" => %{
             "type" => "string",
             "description" =>
-              "One or two paragraphs. What the reader now has, and what is honestly still " <>
-                "undone or unresolved at the end of this stack."
+              "One or two paragraphs. What the reader has at the end, and what is honestly " <>
+                "still undone."
+          },
+          "parts" => %{
+            "type" => "array",
+            "description" =>
+              "The telling in parts, in the order the work is done. Every step must appear " <>
+                "in exactly one part. Aim for parts of five to fifteen steps.",
+            "items" => %{
+              "type" => "object",
+              "properties" => %{
+                "heading" => %{"type" => "string", "description" => "A claim, not a label."},
+                "steps" => %{"type" => "array", "items" => %{"type" => "integer"}}
+              },
+              "required" => ["heading", "steps"]
+            }
           }
         },
-        "required" => ["title", "opening", "movements", "closing"]
+        "required" => ["title", "opening", "closing", "parts"]
+      }
+    }
+  }
+
+  @part_tool %{
+    "type" => "function",
+    "function" => %{
+      "name" => "write_part",
+      "description" => "Write one part of the telling.",
+      "parameters" => %{
+        "type" => "object",
+        "properties" => %{
+          "prose" => %{
+            "type" => "string",
+            "description" =>
+              "Three to six paragraphs telling this stretch as continuous prose. Say what " <>
+                "gets built and in what order, and name the pitfalls where they bite. Do " <>
+                "not enumerate the steps one by one — the reader already has that list."
+          },
+          "turn" => %{
+            "type" => "string",
+            "description" =>
+              "The thing in this stretch a reader would not have guessed — a pitfall, or a " <>
+                "place a later step walks an earlier one back. One or two sentences. Empty " <>
+                "string if this stretch has none."
+          }
+        },
+        "required" => ["prose", "turn"]
       }
     }
   }
 
   @compose_prompt """
   You are writing the long-form telling of how a thing gets built, from notes \
-  that have already been checked line by line against the documents they came \
-  from. Your job is composition, not extraction: everything you need is in \
-  front of you, and anything not in front of you is something you do not know.
+  already checked line by line against the documents they came from. Your job \
+  is composition, not extraction: everything you need is in front of you, and \
+  anything not in front of you is something you do not know.
 
   Write for someone about to build the same thing. They want the shape of the \
-  work and the order of it, and above all the places where the obvious move \
-  is wrong.
+  work and the order of it, and above all the places where the obvious move is \
+  wrong.
 
-  House rules. Lead with the load-bearing or surprising fact, never with \
-  "this guide will". Explain why the obvious version is wrong wherever the \
-  notes say so — that is usually the most valuable sentence available to you. \
-  Say plainly what is still undone. No marketing language, no bullet padding, \
-  no emoji, and do not enumerate the steps one by one: the reader already has \
-  that list, and your job is the prose between them.
-
-  Every step must appear in exactly one part. A telling that quietly covers \
-  half of them has thrown the method away.
-
-  Report by calling compose_story.
+  Lead with the load-bearing or surprising fact, never with "this guide will". \
+  Explain why the obvious version is wrong wherever the notes say so — that is \
+  usually the most valuable sentence available to you. Say plainly what is \
+  still undone. No marketing language, no bullet padding, no emoji.
   """
 
   @doc """
   Compose the longform telling of a stack.
 
-  Reads the steps, not the documents. Both passes have already distilled and
-  checked those, and a composer sent back to the source would be a third
-  extraction — free to introduce claims that nothing had verified — rather
-  than a composition of claims that were.
+  Two stages, because one will not fit. A hundred steps of capability,
+  lesson, mechanism, pitfall and revision is about fifty thousand tokens of
+  input, and asking for sixteen thousand of output on top of that exceeds
+  the context — which is exactly what happened: the single call hung for an
+  hour and produced nothing. So the outline is drawn from the capabilities
+  alone, which is small, and each part's prose is written from only the steps
+  in that part. Every call is bounded by the size of a part rather than by
+  the size of the stack.
+
+  It is also the better composition. A part is written by something looking
+  at that stretch of work, not at everything at once.
   """
   def compose(folder_id, opts \\ []) do
     steps = list_steps(folder_id)
@@ -736,69 +744,123 @@ defmodule Marginalia.Stacks do
     if steps == [] do
       {:error, :not_read}
     else
-      do_compose(folder_id, steps, opts)
+      with {:ok, outline} <- outline(steps, opts) do
+        movements = Enum.map(outline["parts"] || [], &write_part(&1, steps, outline, opts))
+        store_story(folder_id, steps, Map.put(outline, "movements", movements))
+      end
     end
   end
 
-  defp do_compose(folder_id, steps, opts) do
-    case LLM.call_tool(
-           tool: @compose_tool,
-           model: LLM.default_model(),
-           effort: :high,
-           temperature: 0.4,
-           max_tokens: 16_000,
-           messages: [
-             %{"role" => "system", "content" => @compose_prompt},
-             %{"role" => "user", "content" => compose_message(steps, opts)}
-           ]
-         ) do
-      {:ok, raw} ->
-        {attrs, dropped, uncovered} = validate_story(raw, steps)
+  # Stage one: the spine only. One line per step, so a stack of any length
+  # fits in a prompt that does not grow with the detail of its steps.
+  defp outline(steps, opts) do
+    spine =
+      Enum.map_join(steps, "\n", fn s ->
+        marks =
+          [s.pitfall && "pitfall", s.revised_by && "revised by #{s.revised_by}"]
+          |> Enum.reject(&is_nil/1)
+          |> Enum.join(", ")
 
-        %Story{}
-        |> Story.changeset(
-          Map.merge(attrs, %{
-            folder_id: folder_id,
-            dropped: dropped,
-            uncovered: uncovered,
-            fingerprint: story_fingerprint(steps)
-          })
-        )
-        |> Repo.insert(
-          on_conflict: {:replace_all_except, [:id, :inserted_at]},
-          conflict_target: :folder_id
-        )
+        "#{s.ordinal}. #{s.capability}" <> if(marks == "", do: "", else: "   [#{marks}]")
+      end)
 
-      {:error, reason} ->
-        {:error, reason}
-    end
+    LLM.call_tool(
+      tool: @outline_tool,
+      model: LLM.default_model(),
+      effort: :high,
+      temperature: 0.4,
+      max_tokens: 6_000,
+      messages: [
+        %{"role" => "system", "content" => @compose_prompt},
+        %{
+          "role" => "user",
+          "content" => """
+          What is being built: #{opts[:building] || "the thing this series builds"}
+          #{length(steps)} steps, in order. Divide them into parts.
+
+          #{spine}
+          """
+        }
+      ]
+    )
   end
 
-  defp compose_message(steps, opts) do
-    building =
-      if is_binary(opts[:building]), do: opts[:building], else: "the thing this series builds"
+  # Stage two: one part, and only the steps in it.
+  defp write_part(part, steps, outline, opts) do
+    ordinals = (part["steps"] || []) |> Enum.map(&as_int/1) |> Enum.reject(&is_nil/1)
+    mine = Enum.filter(steps, &(&1.ordinal in ordinals))
 
-    body =
-      Enum.map_join(steps, "\n\n", fn s ->
+    detail =
+      Enum.map_join(mine, "\n\n", fn s ->
         [
           "## Step #{s.ordinal}: #{s.capability}",
-          if(s.requires != [], do: "Stands on: #{Enum.join(s.requires, ", ")}", else: nil),
+          s.requires != [] && "Stands on: #{Enum.join(s.requires, ", ")}",
           "What to do: #{s.lesson}",
           s.mechanism && "How it works: #{s.mechanism}",
           s.pitfall && "The obvious version is wrong: #{s.pitfall}",
           s.watch_for && "Get right now: #{s.watch_for}",
           s.revised_by && "Walked back by step #{s.revised_by}: #{s.revision}"
         ]
-        |> Enum.reject(&is_nil/1)
+        |> Enum.reject(&(&1 in [nil, false]))
         |> Enum.join("\n")
       end)
 
-    """
-    What is being built: #{building}
-    Steps: #{length(steps)}, to be told in order.
+    written =
+      LLM.call_tool(
+        tool: @part_tool,
+        model: LLM.default_model(),
+        effort: :high,
+        temperature: 0.4,
+        max_tokens: 4_000,
+        messages: [
+          %{"role" => "system", "content" => @compose_prompt},
+          %{
+            "role" => "user",
+            "content" => """
+            What is being built: #{opts[:building] || "the thing this series builds"}
+            The telling is called: #{outline["title"]}
 
-    #{body}
-    """
+            You are writing one part of it: **#{part["heading"]}**
+            It covers steps #{Enum.join(ordinals, ", ")} and nothing else.
+
+            #{detail}
+            """
+          }
+        ]
+      )
+
+    case written do
+      {:ok, %{"prose" => prose} = w} ->
+        %{
+          "heading" => part["heading"],
+          "steps" => ordinals,
+          "prose" => prose,
+          "turn" => w["turn"]
+        }
+
+      _ ->
+        # a part that would not write is dropped by the validator, and the
+        # coverage check then names every step it was carrying
+        %{"heading" => part["heading"], "steps" => ordinals, "prose" => "", "turn" => ""}
+    end
+  end
+
+  defp store_story(folder_id, steps, raw) do
+    {attrs, dropped, uncovered} = validate_story(raw, steps)
+
+    %Story{}
+    |> Story.changeset(
+      Map.merge(attrs, %{
+        folder_id: folder_id,
+        dropped: dropped,
+        uncovered: uncovered,
+        fingerprint: story_fingerprint(steps)
+      })
+    )
+    |> Repo.insert(
+      on_conflict: {:replace_all_except, [:id, :inserted_at]},
+      conflict_target: :folder_id
+    )
   end
 
   @doc """
