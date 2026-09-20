@@ -33,10 +33,12 @@ defmodule Marginalia.Cases do
   in a named collection by the person who owns it before it appears here.
   """
   def published do
-    case Marginalia.Accounts.owner() do
-      nil -> []
-      owner -> list(owner.id)
-    end
+    Marginalia.Cache.fetch(:published_cases, fn ->
+      case Marginalia.Accounts.owner() do
+        nil -> []
+        owner -> list(owner.id)
+      end
+    end)
   end
 
   @doc "Every collection this writer has, with its drafts and their links."
@@ -99,8 +101,7 @@ defmodule Marginalia.Cases do
     links =
       Repo.all(
         from l in Links.Link,
-          where:
-            l.status == "linked" and (l.a_work_id in ^ids or l.b_work_id in ^ids),
+          where: l.status == "linked" and (l.a_work_id in ^ids or l.b_work_id in ^ids),
           select: {l.id, l.a_work_id, l.b_work_id}
       )
 
@@ -118,7 +119,7 @@ defmodule Marginalia.Cases do
       b = Map.get(by_id, b_id)
       n = Map.get(counts, id, 0)
 
-      if a && b && a.collection != b.collection and n > 0 do
+      if (a && b && a.collection != b.collection) and n > 0 do
         [
           {a.collection, %{link_id: id, lead: a, other: b, case: b.collection, edges: n}},
           {b.collection, %{link_id: id, lead: b, other: a, case: a.collection, edges: n}}
@@ -334,6 +335,8 @@ defmodule Marginalia.Cases do
   words.
   """
   def place(%Work{} = work, collection, role) do
+    Marginalia.Cache.invalidate(:published_cases)
+
     work
     |> Work.changeset(%{collection: collection, collection_role: role})
     |> Repo.update()
@@ -369,7 +372,9 @@ defmodule Marginalia.Cases do
           c.links
           |> Enum.filter(&(&1.a_work_id == lead.id or &1.b_work_id == lead.id))
           |> Enum.map(fn l ->
-            other = Map.fetch!(by_id, if(l.a_work_id == lead.id, do: l.b_work_id, else: l.a_work_id))
+            other =
+              Map.fetch!(by_id, if(l.a_work_id == lead.id, do: l.b_work_id, else: l.a_work_id))
+
             %{link: l, work: other, elsewhere: nil}
           end)
           |> Enum.filter(&(&1.link.status == "linked"))

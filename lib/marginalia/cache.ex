@@ -1,6 +1,6 @@
-defmodule Marginalia.Links.Cache do
+defmodule Marginalia.Cache do
   @moduledoc """
-  The public list of linked pairs, held in ETS.
+  Answers that are the same for every visitor, held in ETS.
 
   `Links.public_links/0` measured 64ms on 392 pairs, and 63ms of that is one
   query loading every link with both its works preloaded. It is the same
@@ -27,8 +27,7 @@ defmodule Marginalia.Links.Cache do
 
   require Logger
 
-  @table :marginalia_links_cache
-  @key :public_links
+  @table :marginalia_cache
   @ttl_ms :timer.minutes(5)
 
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -46,37 +45,43 @@ defmodule Marginalia.Links.Cache do
   that this module knows nothing about what it is caching, which is what
   keeps it testable without a database.
   """
-  def fetch(fun, ttl \\ @ttl_ms) when is_function(fun, 0) do
+  def fetch(key, fun, ttl \\ @ttl_ms) when is_function(fun, 0) do
     now = System.monotonic_time(:millisecond)
 
-    case lookup(now, ttl) do
+    case lookup(key, now, ttl) do
       {:ok, rows} ->
         rows
 
       :miss ->
         rows = fun.()
-        put(rows, now)
+        put(key, rows, now)
         rows
     end
   end
 
   @doc "What is cached right now, without computing anything."
-  def peek(ttl \\ @ttl_ms) do
-    case lookup(System.monotonic_time(:millisecond), ttl) do
+  def peek(key, ttl \\ @ttl_ms) do
+    case lookup(key, System.monotonic_time(:millisecond), ttl) do
       {:ok, rows} -> {:ok, rows}
       :miss -> :miss
     end
   end
 
   @doc "Throw it away. Called from every path that can change the answer."
-  def invalidate do
-    if :ets.whereis(@table) != :undefined, do: :ets.delete(@table, @key)
+  def invalidate(key) do
+    if :ets.whereis(@table) != :undefined, do: :ets.delete(@table, key)
     :ok
   end
 
-  defp lookup(now, ttl) do
+  @doc "Throw all of it away."
+  def invalidate_all do
+    if :ets.whereis(@table) != :undefined, do: :ets.delete_all_objects(@table)
+    :ok
+  end
+
+  defp lookup(key, now, ttl) do
     with false <- :ets.whereis(@table) == :undefined,
-         [{@key, rows, at}] <- :ets.lookup(@table, @key),
+         [{^key, rows, at}] <- :ets.lookup(@table, key),
          true <- now - at < ttl do
       {:ok, rows}
     else
@@ -84,8 +89,8 @@ defmodule Marginalia.Links.Cache do
     end
   end
 
-  defp put(rows, now) do
-    if :ets.whereis(@table) != :undefined, do: :ets.insert(@table, {@key, rows, now})
+  defp put(key, rows, now) do
+    if :ets.whereis(@table) != :undefined, do: :ets.insert(@table, {key, rows, now})
     :ok
   rescue
     ArgumentError -> :ok

@@ -47,7 +47,8 @@ defmodule Marginalia.Links do
     case Repo.get_by(Link, a_work_id: a, b_work_id: b) do
       nil ->
         # a new pair changes the public list; finding an existing one does not
-        Marginalia.Links.Cache.invalidate()
+        Marginalia.Cache.invalidate(:public_links)
+        Marginalia.Cache.invalidate(:published_cases)
         %Link{} |> Link.changeset(%{a_work_id: a, b_work_id: b}) |> Repo.insert()
 
       link ->
@@ -191,7 +192,7 @@ defmodule Marginalia.Links do
   one page — invisible on the six pairs it was written against and the whole
   cost of the page at the size it actually reached.
   """
-  def public_links, do: Marginalia.Links.Cache.fetch(&compute_public_links/0)
+  def public_links, do: Marginalia.Cache.fetch(:public_links, &compute_public_links/0)
 
   defp compute_public_links do
     case Marginalia.Accounts.owner() do
@@ -291,7 +292,8 @@ defmodule Marginalia.Links do
   end
 
   def clear_edges(%Link{} = link) do
-    Marginalia.Links.Cache.invalidate()
+    Marginalia.Cache.invalidate(:public_links)
+    Marginalia.Cache.invalidate(:published_cases)
     do_clear_edges(link)
   end
 
@@ -308,7 +310,8 @@ defmodule Marginalia.Links do
   inventing ids, and the graph it produced is fiction.
   """
   def store_edges(%Link{} = link, proposed, types, max \\ @max_edges) do
-    Marginalia.Links.Cache.invalidate()
+    Marginalia.Cache.invalidate(:public_links)
+    Marginalia.Cache.invalidate(:published_cases)
     allowed = node_side(link)
 
     {rows, dropped} =
