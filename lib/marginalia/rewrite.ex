@@ -191,6 +191,43 @@ defmodule Marginalia.Rewrite do
   """
   def answer_budget(span), do: max(3_000, word_count(span) * 7)
 
+  @doc """
+  What the panel calls the span it is about to replace.
+
+  It said "Rewrites of one line" whatever was selected. That was true enough
+  when the ceiling was 250 words and false at 2,500 — and the panel renders
+  under the FIRST block of a multi-paragraph selection, so the rest of the
+  span runs off below it and a writer had nothing on screen saying how much
+  was about to be replaced.
+  """
+  def span_label(span) do
+    case word_count_of(span) do
+      0 -> "Rewrites"
+      n when n < 25 -> "Rewrites of one line"
+      n -> "Rewrites of #{n} words"
+    end
+  end
+
+  @doc """
+  The head and tail of the selection, for showing its extent. nil when short
+  enough that the writer can already see all of it.
+  """
+  def span_extent(span) when is_binary(span) do
+    flat = span |> String.replace(~r/\s+/, " ") |> String.trim()
+
+    cond do
+      flat == "" -> nil
+      String.length(flat) <= 120 -> nil
+      true -> String.slice(flat, 0, 64) <> " … " <> String.slice(flat, -48, 48)
+    end
+  end
+
+  def span_extent(_), do: nil
+
+  defp word_count_of(nil), do: 0
+  defp word_count_of(text) when is_binary(text), do: word_count(text)
+  defp word_count_of(_), do: 0
+
   @doc "The longest steer taken from the writer. Past this it is a brief, not a note."
   def max_steer_chars, do: 400
 

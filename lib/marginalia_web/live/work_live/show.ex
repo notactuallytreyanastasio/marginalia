@@ -1931,6 +1931,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :working, :boolean, default: false
   attr :block_ref, :string, default: nil
   attr :steer, :string, default: nil
+  attr :span, :string, default: nil
 
   # Candidates for one selected line, side by side with what is there now.
   # Three labelled options rather than one suggestion: a single rewrite reads
@@ -1938,10 +1939,18 @@ defmodule MarginaliaWeb.WorkLive.Show do
   defp rewrite_panel(assigns) do
     ~H"""
     <div class={"mg-rewrite" <> if(@working, do: " working", else: "")} id="rewrite-panel">
+      <%!-- It said "one line" regardless. A span can now be 2,500 words, the
+            panel renders under the FIRST block of a multi-paragraph selection,
+            and a writer looking at it had nothing on screen telling them how
+            much was about to be replaced. --%>
       <div class="mg-rewrite-head">
-        <span class="mg-label">Rewrites of one line</span>
+        <span class="mg-label">{Marginalia.Rewrite.span_label(@span)}</span>
         <button class="mg-btn sm ghost ml-auto" phx-click="close_rewrite">close</button>
       </div>
+
+      <p :if={Marginalia.Rewrite.span_extent(@span)} class="mg-rw-extent">
+        {Marginalia.Rewrite.span_extent(@span)}
+      </p>
 
       <%!-- Optional, and after the fact: the first three come back off one
             click, and this is for when none of them is what was wanted. --%>
@@ -2400,6 +2409,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   working={@rewriting}
                   block_ref={b.ref}
                   steer={@steer}
+                  span={@rewrite_span}
                 />
 
                 <.inline_thread

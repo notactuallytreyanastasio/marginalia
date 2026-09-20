@@ -137,4 +137,47 @@ defmodule Marginalia.RewriteTest do
       assert Rewrite.max_steer_chars() == 400
     end
   end
+
+  describe "what the panel says it is replacing" do
+    test "a short selection is still one line" do
+      assert Rewrite.span_label("a handful of words here") == "Rewrites of one line"
+    end
+
+    test "four paragraphs are not one line" do
+      four = String.duplicate("word ", 1_050)
+      assert Rewrite.span_label(four) == "Rewrites of 1050 words"
+    end
+
+    test "nothing selected claims nothing" do
+      assert Rewrite.span_label(nil) == "Rewrites"
+      assert Rewrite.span_label("") == "Rewrites"
+    end
+
+    test "a short span needs no extent line — it is all on screen" do
+      assert Rewrite.span_extent("a short selection") == nil
+      assert Rewrite.span_extent(nil) == nil
+    end
+
+    test "a long span shows its head and its tail, because the rest runs off below" do
+      span =
+        "The beginning of the selection. " <> String.duplicate("middle ", 200) <> "the very end."
+
+      extent = Rewrite.span_extent(span)
+
+      assert extent =~ "The beginning of the selection"
+      assert extent =~ "the very end."
+      assert extent =~ "…"
+      assert String.length(extent) < 200, "it is a label, not the span itself"
+    end
+
+    test "newlines in a multi-paragraph selection are flattened" do
+      extent =
+        Rewrite.span_extent(
+          "First para.\n\n" <> String.duplicate("word ", 60) <> "\n\nLast para."
+        )
+
+      refute extent =~ "\n"
+      assert extent =~ "First para."
+    end
+  end
 end

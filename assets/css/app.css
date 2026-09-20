@@ -4410,3 +4410,17 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
 }
 .mg-rw-steer input::placeholder { color: var(--mg-dim); opacity: 0.75; }
 .mg-rw-steer input:disabled { opacity: 0.55; }
+
+/* What is about to be replaced, head and tail. The panel sits under the
+   first block of the selection, so on a long span the rest of it is off
+   below the panel and there is otherwise nothing on screen saying how far
+   it goes. */
+.mg-rw-extent {
+  margin: 0 0 0.5rem;
+  padding: 0 0.75rem;
+  font-family: var(--mg-serif);
+  font-size: 0.78rem;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--mg-dim);
+}
