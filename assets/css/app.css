@@ -4558,3 +4558,13 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
   font-size: 0.87rem; line-height: 1.55; color: var(--mg-dim);
 }
 .mg-doc-rules.tensions .mg-doc-rule p { color: var(--mg-accent); }
+
+/* Triage before relating: a folder of 111 documents is 6,105 pairs, so what
+   the cheap pass chose is shown before anything is spent per pair. */
+.lx-bulk { margin: 1.5rem 0 2rem; padding: 0.9rem 1rem; border: 1px solid var(--mg-rule); border-radius: 4px; background: var(--mg-margin); }
+.lx-bulk-pick { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
+.lx-bulk-pick select { flex: 1; min-width: 12rem; padding: 0.3rem 0.4rem; border: 1px solid var(--mg-rule); border-radius: 3px; background: var(--mg-paper); font-size: 0.85rem; }
+.lx-bulk-out { margin-top: 0.9rem; }
+.lx-bulk-out .mg-rows li { padding: 0.45rem 0; border-top: 1px solid var(--mg-rule); }
+.lx-bulk-out .mg-rows .n { font-family: var(--mg-mono); font-size: 0.68rem; color: var(--mg-accent); margin-right: 0.4rem; }
+.lx-bulk-out .mg-rows p { margin: 0.2rem 0 0; }

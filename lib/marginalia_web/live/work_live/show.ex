@@ -220,6 +220,21 @@ defmodule MarginaliaWeb.WorkLive.Show do
     assign(socket, events: Works.list_events(w.id), event_stats: Works.event_stats(w.id))
   end
 
+  # Everything a read broadcasts used to end in `reload_work`, which rebuilds
+  # the map — the beats, the spine, the counts — and not `@page`. But the page
+  # is what the read view renders, and it is where a beat becomes a note in
+  # the margin beside the paragraph that caused it. So the counts ticked up
+  # live while the margin stayed empty until a refresh, which looked like the
+  # read had produced nothing.
+  #
+  # Rebuilt only while the read view is the one on screen. The other tabs get
+  # theirs from `load_for_view/1` when they are opened.
+  defp live_refresh(socket) do
+    socket = reload_work(socket)
+
+    if socket.assigns.view == :read, do: load_page(socket), else: socket
+  end
+
   defp load_map(socket) do
     w = socket.assigns.work
 
@@ -975,13 +990,13 @@ defmodule MarginaliaWeb.WorkLive.Show do
     {:noreply,
      socket
      |> assign(stages: Map.put(socket.assigns.stages, which, state))
-     |> reload_work()}
+     |> live_refresh()}
   end
 
-  def handle_info({:status, _status}, socket), do: {:noreply, reload_work(socket)}
-  def handle_info({:section, _id, _status}, socket), do: {:noreply, reload_work(socket)}
-  def handle_info({:nodes, _sid, _n}, socket), do: {:noreply, reload_work(socket)}
-  def handle_info({:synthesis, :done}, socket), do: {:noreply, reload_work(socket)}
+  def handle_info({:status, _status}, socket), do: {:noreply, live_refresh(socket)}
+  def handle_info({:section, _id, _status}, socket), do: {:noreply, live_refresh(socket)}
+  def handle_info({:nodes, _sid, _n}, socket), do: {:noreply, live_refresh(socket)}
+  def handle_info({:synthesis, :done}, socket), do: {:noreply, live_refresh(socket)}
 
   def handle_info({:graph, :done}, socket),
     do:

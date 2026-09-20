@@ -455,9 +455,24 @@ defmodule Marginalia.Links do
 
   def plain(text, _link), do: text
 
-  # a lone capital at the start of the text or of a sentence
+  # A lone capital at the start of the text or of a sentence.
+  #
+  # The replacement is a function rather than a pattern string, and that is
+  # the whole point. Built as `"\\1" <> replacement`, a title beginning with
+  # a digit — every chapter of a numbered stack — produced `"\\11. The
+  # out-grammar"`, which the regex engine reads as backreference *eleven*,
+  # not group one followed by a literal "1". Group 11 does not exist, so it
+  # expands to nothing and takes the chapter number with it:
+  #
+  #     "runner. B answers"  ->  "runner.. The backend scaffold answers"
+  #
+  # Silent, and wrong in a way that reads as a typo rather than a bug. A
+  # function replacement is never scanned for backreferences, so no title
+  # can be misread as syntax.
   defp letter(text, letter, replacement) do
-    String.replace(text, ~r/(\A|(?<=[.;:—-])\s+)#{letter}\b/, "\\1#{replacement}")
+    Regex.replace(~r/(\A|(?<=[.;:—-])\s+)#{letter}\b/, text, fn _whole, lead ->
+      lead <> replacement
+    end)
   end
 
   # the case name is repeated on every document in a collection and is

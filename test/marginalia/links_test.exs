@@ -268,4 +268,51 @@ defmodule Marginalia.LinksTest do
       assert s.b_nodes == 1
     end
   end
+
+  describe "calling the documents by their names" do
+    setup %{a: a, b: b} do
+      # what a numbered stack produces, and what broke it
+      {:ok, a} = Works.update_work(a, %{"title" => "1. The out-grammar"})
+      {:ok, b} = Works.update_work(b, %{"title" => "2. The backend scaffold"})
+      {:ok, link} = Links.get_or_create(a.id, b.id)
+      %{link: link}
+    end
+
+    test "a title beginning with a digit survives the substitution", %{link: link} do
+      out = Links.plain("runner. B answers A. A is upstream.", link)
+
+      # `"\\1" <> "2. The backend scaffold"` is `"\\12..."`, which the regex
+      # engine reads as backreference 12, not group 1 then a literal "2".
+      # It expanded to nothing and ate the chapter number with it.
+      assert out =~ "2. The backend scaffold",
+             "the chapter number was eaten by a backreference that was never meant to be one"
+
+      assert out =~ "1. The out-grammar"
+
+      refute out =~ "runner.. ",
+             "the captured whitespace vanished along with the number, doubling the full stop"
+    end
+
+    test "the summary goes through the same substitution", %{link: link} do
+      {:ok, link} = Links.set_status(link, "linked", %{summary: "B develops it. A is upstream."})
+
+      assert Links.summary(link) =~ "2. The backend scaffold"
+      assert Links.summary(link) =~ "1. The out-grammar"
+    end
+
+    # Pinned as the current behaviour, not endorsed. `letter/2` substitutes
+    # only at the start of the text or of a sentence, which is what keeps
+    # "Part A" and "Exhibit B" intact — but the model writes "A's grammar"
+    # and "downstream of B" constantly, and those survive untouched. A
+    # reader gets one paragraph naming the same document two different ways.
+    # Widening the match is a product decision, so this records the cost
+    # rather than hiding it.
+    test "a letter in the middle of a sentence is left alone, titles and all", %{link: link} do
+      out = Links.plain("It sits downstream of A's grammar and extends B.", link)
+
+      assert out =~ "A's grammar", "mid-sentence possessive is not substituted"
+      assert out =~ "extends B.", "mid-sentence object is not substituted"
+      refute out =~ "1. The out-grammar"
+    end
+  end
 end

@@ -13,7 +13,8 @@ defmodule MarginaliaWeb.LinkLive.Index do
   """
   use MarginaliaWeb, :live_view
 
-  alias Marginalia.{Links, Works}
+  alias Marginalia.{Folders, Links, Works}
+  alias Marginalia.Links.Bulk
   alias Marginalia.Analysis.Linker
 
   @impl true
@@ -22,7 +23,15 @@ defmodule MarginaliaWeb.LinkLive.Index do
 
     {:ok,
      socket
-     |> assign(page_title: "Linked drafts", a: nil, b: nil)
+     |> assign(
+       page_title: "Linked drafts",
+       a: nil,
+       b: nil,
+       folders: Folders.list_folders(user.id),
+       bulk_folder: nil,
+       bulk: nil,
+       bulk_running: false
+     )
      |> load(user)}
   end
 
@@ -37,6 +46,47 @@ defmodule MarginaliaWeb.LinkLive.Index do
       unread: Enum.count(Works.list_works(user.id), &(&1.status != "read")),
       stats: Map.new(links, &{&1.id, Links.stats(&1)})
     )
+  end
+
+  # Triage first, relate second. A folder of a hundred and eleven is six
+  # thousand pairs; the point of this button is to not run six thousand
+  # model calls, so the cheap pass runs on its own and shows its work.
+  def handle_event("bulk_propose", %{"folder" => id}, socket) do
+    user = socket.assigns.user
+
+    case Integer.parse(id) do
+      {folder_id, _} ->
+        provider = Marginalia.Accounts.provider_for(user)
+
+        {:noreply,
+         socket
+         |> assign(bulk_running: true, bulk: nil, bulk_folder: folder_id)
+         |> start_async(:bulk, fn ->
+           Bulk.run(user.id, folder_id, provider: provider, propose_only: true)
+         end)}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  # Only now does anything cost per pair, and only the pairs shown above.
+  def handle_event("bulk_relate", _params, socket) do
+    %{user: user, bulk: bulk} = socket.assigns
+
+    if bulk && bulk.pairs != [] do
+      provider = Marginalia.Accounts.provider_for(user)
+      pairs = bulk.pairs
+
+      {:noreply,
+       socket
+       |> assign(bulk_running: true)
+       |> start_async(:relate, fn ->
+         {:ok, Marginalia.Links.Bulk.relate_pairs(pairs, provider: provider)}
+       end)}
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -65,6 +115,35 @@ defmodule MarginaliaWeb.LinkLive.Index do
   end
 
   @impl true
+  def handle_async(:bulk, {:ok, {:ok, result}}, socket),
+    do: {:noreply, assign(socket, bulk_running: false, bulk: result)}
+
+  def handle_async(:bulk, {:ok, {:error, reason}}, socket),
+    do:
+      {:noreply,
+       socket
+       |> assign(bulk_running: false)
+       |> put_flash(:error, "Could not read that folder: #{inspect(reason)}")}
+
+  def handle_async(:bulk, {:exit, reason}, socket),
+    do:
+      {:noreply,
+       socket |> assign(bulk_running: false) |> put_flash(:error, "Crashed: #{inspect(reason)}")}
+
+  def handle_async(:relate, {:ok, {:ok, out}}, socket) do
+    {:noreply,
+     socket
+     |> assign(bulk_running: false, bulk: nil)
+     |> load(socket.assigns.user)
+     |> put_flash(:info, "Started #{length(out.started)} readings.")}
+  end
+
+  def handle_async(:relate, {:exit, reason}, socket),
+    do:
+      {:noreply,
+       socket |> assign(bulk_running: false) |> put_flash(:error, "Crashed: #{inspect(reason)}")}
+
+  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
@@ -76,6 +155,62 @@ defmodule MarginaliaWeb.LinkLive.Index do
           where they argue. Both drafts have to have been read first, because that is what
           produces the maps.
         </p>
+
+        <%!-- Triage, then relate. A folder of 111 documents is 6,105 pairs, so
+              the cheap pass runs alone and shows what it chose before
+              anything is spent per pair. --%>
+        <div :if={@folders != []} class="lx-bulk">
+          <span class="mg-label">relate a whole folder</span>
+
+          <form phx-submit="bulk_propose" class="lx-bulk-pick">
+            <select name="folder" disabled={@bulk_running}>
+              <option :for={f <- @folders} value={f.id}>{f.name}</option>
+            </select>
+            <button type="submit" class="mg-btn sm" disabled={@bulk_running}>
+              {if @bulk_running, do: "Reading the folder…", else: "Work out what to relate"}
+            </button>
+          </form>
+
+          <div :if={@bulk} class="lx-bulk-out">
+            <p :if={@bulk.pairs == []} class="none">
+              Nothing in that folder looked worth relating.
+            </p>
+
+            <ol :if={@bulk.pairs != []} class="mg-rows">
+              <li :for={p <- @bulk.pairs}>
+                <span class="n">{p.expect}</span>
+                <strong>{p.a.title}</strong>
+                ↔ <strong>{p.b.title}</strong>
+                <p class="mg-meta">{p.why}</p>
+              </li>
+            </ol>
+
+            <p :if={@bulk.skipped != ""} class="mg-meta">
+              Left out: {@bulk.skipped}
+            </p>
+
+            <p :if={@bulk.dropped != []} class="cut-err">
+              {length(@bulk.dropped)} proposal(s) discarded: {Enum.join(@bulk.dropped, "; ")}
+            </p>
+
+            <p :if={Bulk.ineligible(@bulk.pairs) != []} class="cut-err">
+              {length(Bulk.ineligible(@bulk.pairs))} of these cannot be read yet — {Enum.join(
+                Bulk.ineligible(@bulk.pairs),
+                "; "
+              )}
+            </p>
+
+            <button
+              :if={@bulk.pairs != [] and Bulk.ineligible(@bulk.pairs) != @bulk.pairs}
+              class="mg-btn sm"
+              phx-click="bulk_relate"
+              disabled={@bulk_running}
+              data-confirm="Read each of these pairs against each other? That is one model call per pair."
+            >
+              Relate these {length(@bulk.pairs) - length(Bulk.ineligible(@bulk.pairs))}
+            </button>
+          </div>
+        </div>
 
         <div class="lx-make">
           <span class="mg-label">relate two drafts</span>
