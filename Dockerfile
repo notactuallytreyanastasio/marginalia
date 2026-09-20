@@ -97,6 +97,12 @@ ENV MIX_ENV="prod"
 # Only copy the final release from the build stage
 COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/marginalia ./
 
+# Created here, owned here. Docker seeds a fresh named volume from the image's
+# directory, ownership included; without this the mount point is made by the
+# daemon as root and the release — which runs as nobody — gets :eacces on the
+# first commit, with the repository silently never created.
+RUN mkdir -p /data/drafts && chown -R nobody:root /data/drafts
+
 USER nobody
 
 # If using an environment that doesn't automatically reap zombie processes, it is

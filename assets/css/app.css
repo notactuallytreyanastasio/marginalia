@@ -4537,3 +4537,24 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
     color: #7ee787;
   }
 }
+
+/* The whole document, above its sections: what it does, and the rules it is
+   working under. Two readings side by side rather than one blended one. */
+.mg-doc { max-width: 62ch; margin: 0 auto 2rem; }
+.mg-doc-head { display: flex; align-items: baseline; gap: 0.75rem; }
+.mg-doc-body { margin-top: 0.7rem; border-left: 2px solid var(--mg-accent); padding-left: 0.9rem; }
+.mg-doc-summary { font-family: var(--mg-serif); font-size: 1rem; line-height: 1.65; margin: 0; }
+.mg-doc-through {
+  margin: 0.6rem 0 0; font-family: var(--mg-serif); font-style: italic;
+  font-size: 0.95rem; color: var(--mg-dim);
+}
+.mg-doc-moves, .mg-doc-rules { margin-top: 1.1rem; }
+.mg-doc-move, .mg-doc-rule { margin-top: 0.55rem; }
+.mg-doc-move strong, .mg-doc-rule strong {
+  font-family: var(--mg-serif); font-size: 0.92rem; font-weight: 600;
+}
+.mg-doc-move p, .mg-doc-rule p {
+  margin: 0.15rem 0 0; font-family: var(--mg-serif);
+  font-size: 0.87rem; line-height: 1.55; color: var(--mg-dim);
+}
+.mg-doc-rules.tensions .mg-doc-rule p { color: var(--mg-accent); }

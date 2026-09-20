@@ -64,6 +64,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
            revision_count: Works.revision_count(work.id),
            diff_rows: [],
            summarising: MapSet.new(),
+           doc_running: false,
+           document: Marginalia.Document.get(work.id),
            diff_stat: nil,
            revisions: [],
            # the writer's optional note on the rewrite, kept so the box still
@@ -230,6 +232,9 @@ defmodule MarginaliaWeb.WorkLive.Show do
       counts: Works.counts(w.id)
     )
   end
+
+  defp load_document(socket),
+    do: assign(socket, document: Marginalia.Document.get(socket.assigns.work.id))
 
   defp reload_work(socket) do
     w = Works.get_by_slug(socket.assigns.work.slug)
@@ -480,6 +485,36 @@ defmodule MarginaliaWeb.WorkLive.Show do
          |> start_async(:rewrite, fn ->
            Marginalia.Rewrite.propose(work, span, provider: provider, steer: steer)
          end)}
+    end
+  end
+
+  # The whole document: the section summaries fanned out, then two prongs
+  # concurrently. Its own commit, because "summarise the document" is a point
+  # a writer will want to come back to.
+  def handle_event("summarise_document", _params, socket) do
+    a = socket.assigns
+
+    cond do
+      not a.mine? ->
+        {:noreply, put_flash(socket, :error, "This draft is someone else's.")}
+
+      a.demo ->
+        {:noreply, put_flash(socket, :info, "The walkthrough does not call the model.")}
+
+      not Chat.allowed?(a.current_scope.user) ->
+        {:noreply, assign(socket, quota: 0)}
+
+      a.doc_running ->
+        {:noreply, socket}
+
+      true ->
+        work = a.work
+        provider = a.provider
+
+        {:noreply,
+         socket
+         |> assign(doc_running: true)
+         |> start_async(:document, fn -> Marginalia.Document.run(work, provider: provider) end)}
     end
   end
 
@@ -812,6 +847,24 @@ defmodule MarginaliaWeb.WorkLive.Show do
   end
 
   @impl true
+  def handle_async(:document, result, socket) do
+    socket = assign(socket, doc_running: false)
+
+    case result do
+      {:ok, {:ok, _doc}} ->
+        socket = socket |> reload_work() |> load_page() |> load_document()
+        commit_draft(socket, socket.assigns, "summarised")
+        {:noreply, put_flash(socket, :info, "The whole document has been read.")}
+
+      {:ok, {:error, reason}} ->
+        {:noreply,
+         put_flash(socket, :error, "Could not summarise the document: #{inspect(reason)}")}
+
+      {:exit, reason} ->
+        {:noreply, put_flash(socket, :error, "The document pass crashed: #{inspect(reason)}")}
+    end
+  end
+
   def handle_async({:summary, n}, result, socket) do
     socket = assign(socket, summarising: MapSet.delete(socket.assigns.summarising, n))
 
@@ -1226,6 +1279,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   diff_stat={@diff_stat}
                   revisions={@revisions}
                   summarising={@summarising}
+                  document={@document}
+                  doc_running={@doc_running}
                   graph_json={@graph_json}
                   graph_stats={@graph_stats}
                   passes={@passes}
@@ -1601,6 +1656,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :diff_stat, :map, default: nil
   attr :revisions, :list, default: []
   attr :summarising, :any, default: nil
+  attr :document, :any, default: nil
+  attr :doc_running, :boolean, default: false
 
   defp map_view(assigns) do
     ~H"""
@@ -1664,6 +1721,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
           <.read_pane
             page={@page}
             summarising={@summarising}
+            document={@document}
+            doc_running={@doc_running}
             words={@work.word_count}
             only={@only}
             collapsed={@collapsed}
@@ -2558,6 +2617,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :editing, :string, default: nil
   attr :edit_text, :string, default: nil
   attr :summarising, :any, default: nil
+  attr :document, :any, default: nil
+  attr :doc_running, :boolean, default: false
 
   # The draft with its notes in the margin. This is the only view that shows
   # the writer their own prose, and the notes sit beside the paragraph that
@@ -2598,6 +2659,60 @@ defmodule MarginaliaWeb.WorkLive.Show do
           id="read-rail"
           phx-hook=".MarginNotes"
         >
+          <div :if={@mine?} class="mg-doc">
+            <div class="mg-doc-head">
+              <span class="mg-label">The whole document</span>
+              <button
+                class="mg-btn sm ghost ml-auto"
+                phx-click="summarise_document"
+                disabled={@doc_running}
+              >
+                {cond do
+                  @doc_running -> "Reading it all…"
+                  @document -> "Read it again"
+                  true -> "Summarise the document"
+                end}
+              </button>
+            </div>
+
+            <div :if={@document} class="mg-doc-body">
+              <p class="mg-doc-summary">{@document.summary}</p>
+              <p :if={@document.throughline} class="mg-doc-through">{@document.throughline}</p>
+
+              <div :if={@document.movements != []} class="mg-doc-moves">
+                <span class="mg-label">how it moves</span>
+                <div :for={m <- @document.movements} class="mg-doc-move">
+                  <strong>{m["heading"]}</strong>
+                  <span class="mg-meta">
+                    §{Enum.join(m["sections"] || [], ", §")}
+                  </span>
+                  <p>{m["does"]}</p>
+                </div>
+              </div>
+
+              <div :if={@document.guidelines != []} class="mg-doc-rules">
+                <span class="mg-label">what it is working under</span>
+                <div :for={g <- @document.guidelines} class="mg-doc-rule">
+                  <strong>{g["guideline"]}</strong>
+                  <p>{g["because"]}</p>
+                  <span class="mg-meta">§{Enum.join(g["sections"] || [], ", §")}</span>
+                </div>
+              </div>
+
+              <div :if={@document.tensions != []} class="mg-doc-rules tensions">
+                <span class="mg-label">where those pull against each other</span>
+                <div :for={t <- @document.tensions} class="mg-doc-rule">
+                  <p>{t["tension"]}</p>
+                  <span class="mg-meta">§{Enum.join(t["sections"] || [], ", §")}</span>
+                </div>
+              </div>
+
+              <p :if={@document.dropped != []} class="mg-sum-stale">
+                {length(@document.dropped)} claim(s) dropped: {Enum.join(@document.dropped, "; ")}
+              </p>
+            </div>
+          </div>
+
           <div class="mg-read-body" data-editable={to_string(@mine?)}>
             <%= for sec <- @page do %>
               <div class="mg-read-head" id={"sec-#{sec.section.ordinal}"}>
