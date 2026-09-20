@@ -274,4 +274,38 @@ defmodule MarginaliaWeb.LandingFeaturesTest do
       end
     end
   end
+
+  describe "the example documents" do
+    test "the feature sections point at something a stranger can open", %{html: html} do
+      seeits = Regex.scan(~r/class="seeit"><a[^>]*href="([^"]+)"/, html) |> Enum.map(&List.last/1)
+
+      assert length(seeits) >= 6, "a feature described and never shown is a claim"
+
+      for path <- seeits do
+        assert Phoenix.Router.route_info(MarginaliaWeb.Router, "GET", path, "example.com") !=
+                 :error,
+               "#{path} is offered as an example and is not a route"
+      end
+    end
+
+    test "they are public routes, not ones behind a login", %{html: html} do
+      seeits = Regex.scan(~r/class="seeit"><a[^>]*href="([^"]+)"/, html) |> Enum.map(&List.last/1)
+
+      # /works and /stacks mint a guest or need an account; /drafts, /cases and
+      # /reading are the public faces. An example nobody can open is worse than
+      # no example.
+      for path <- seeits do
+        assert String.starts_with?(path, "/drafts") or String.starts_with?(path, "/cases") or
+                 String.starts_with?(path, "/reading"),
+               "#{path} is not on a public page"
+      end
+    end
+
+    test "each one is a different thing to look at", %{html: html} do
+      seeits = Regex.scan(~r/class="seeit"><a[^>]*href="([^"]+)"/, html) |> Enum.map(&List.last/1)
+
+      assert length(Enum.uniq(seeits)) >= 3,
+             "six links to one document is one example wearing six hats"
+    end
+  end
 end

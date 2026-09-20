@@ -41,6 +41,18 @@ defmodule MarginaliaWeb.LandingLive do
      )}
   end
 
+  attr :to, :string, required: true
+  attr :label, :string, required: true
+
+  # Every section describing a feature points at a document where it already
+  # happened. A claim a stranger can check beats one they have to believe, and
+  # these are public records or this project's own work.
+  defp seeit(assigns) do
+    ~H"""
+    <p class="seeit"><.link navigate={@to}>{@label} →</.link></p>
+    """
+  end
+
   # Where "upload a draft" should actually go. Logged out, that is
   # registration; logged in, registration redirects home, so sending them
   # there makes the button a no-op.
@@ -190,6 +202,11 @@ defmodule MarginaliaWeb.LandingLive do
       .cta:hover{background:var(--mg-accent)}
       .cta.ghost{background:none; color:var(--mg-ink); border:1px solid var(--mg-rule)}
       .cta.ghost:hover{border-color:var(--mg-accent); color:var(--mg-accent)}
+      .seeit{margin:1rem 0 0; font-family:var(--mg-sans); font-size:.8rem}
+      .seeit a{color:var(--mg-accent); text-decoration:none;
+        border-bottom:1px solid var(--mg-rule); padding-bottom:1px}
+      .seeit a:hover{border-bottom-color:var(--mg-accent)}
+
       .ctas{display:flex; gap:.6rem; flex-wrap:wrap; margin:1.4rem 0 .5rem}
 
       .demo{border:1px solid var(--mg-rule); background:#fff; padding:1.1rem 1.3rem; margin:1.3rem 0}
@@ -496,6 +513,11 @@ defmodule MarginaliaWeb.LandingLive do
             more to draw the lines between sections — what develops what, what pays off what, what
             contradicts what.
           </p>
+
+          <.seeit
+            to={~p"/drafts/TGokc15wZbB6WGUJuE0Dcg"}
+            label="A dissent it read end to end, 165 notes"
+          />
         </div>
         <aside class="sec-aside">
           <div class="note" data-reveal style="--i:0">
@@ -529,6 +551,11 @@ defmodule MarginaliaWeb.LandingLive do
               brother said, from the doorway. He did not come in.</span>
             </p>
           </div>
+
+          <.seeit
+            to={~p"/drafts/TGokc15wZbB6WGUJuE0Dcg"}
+            label="Every note here is anchored to a sentence"
+          />
         </div>
         <aside class="sec-aside">
           <div class="note" data-reveal style="--i:0">
@@ -573,6 +600,8 @@ defmodule MarginaliaWeb.LandingLive do
             word section is five times the block a three-hundred word one gets — so the shape of
             the thing is visible before you have read a line of it. Click any block to land there.
           </p>
+
+          <.seeit to={~p"/drafts/TGokc15wZbB6WGUJuE0Dcg"} label="See the page it produces" />
         </div>
         <aside class="sec-aside">
           <div class="note" data-reveal style="--i:0">
@@ -911,6 +940,8 @@ defmodule MarginaliaWeb.LandingLive do
             were made in. Repeating a note you have already overruled is the fastest way for this
             to stop feeling like a reader.
           </p>
+
+          <.seeit to={~p"/drafts/Eba9cP98i1LVY5fA8QZtdA"} label="A draft it has read, to ask about" />
         </div>
         <aside class="sec-aside">
           <div class="note" data-reveal style="--i:0">
@@ -980,6 +1011,8 @@ defmodule MarginaliaWeb.LandingLive do
             the first concluded, because agreement is worth nothing if one of them was handed the
             answer.
           </p>
+
+          <.seeit to={~p"/drafts/Eba9cP98i1LVY5fA8QZtdA"} label="Twelve sections, each summarised" />
         </div>
         <aside class="sec-aside">
           <div class="note" data-reveal style="--i:0">
@@ -1116,6 +1149,8 @@ defmodule MarginaliaWeb.LandingLive do
             other show up as a cluster, which is generally the moment you find out that four essays
             you thought were separate are one argument with three introductions.
           </p>
+
+          <.seeit to={~p"/cases/chatrie-v-united-states"} label="A case, with its documents related" />
         </div>
         <aside class="sec-aside">
           <div class="note" data-reveal style="--i:0">
