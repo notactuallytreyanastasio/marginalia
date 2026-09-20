@@ -1,0 +1,113 @@
+defmodule MarginaliaWeb.ReadingLive.Step do
+  @moduledoc """
+  One step of a published stack: what to do at this point, and what not to.
+
+  The story is the argument and these are the evidence. A reader who doubts
+  a paragraph of the telling comes here, where the claim is attached to the
+  document it was read out of and the quotes are ones that were located in
+  that document before they were kept.
+  """
+  use MarginaliaWeb, :live_view
+
+  alias Marginalia.{Folders, Stacks}
+
+  @impl true
+  def mount(%{"slug" => slug, "ordinal" => ordinal}, _session, socket) do
+    with %{} = folder <- Folders.get_published(slug),
+         {n, ""} <- Integer.parse(ordinal),
+         guide <- Stacks.guide(folder.id),
+         %{} = entry <- Enum.find(guide, &(&1.step.ordinal == n)) do
+      {:ok,
+       assign(socket,
+         page_title: entry.step.capability,
+         folder: folder,
+         entry: entry,
+         count: length(guide),
+         story: Stacks.get_story(folder.id)
+       )}
+    else
+      _ ->
+        {:ok,
+         socket
+         |> put_flash(:error, "No such step.")
+         |> push_navigate(to: ~p"/reading")}
+    end
+  end
+
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <Layouts.app flash={@flash} current_scope={@current_scope}>
+      <article class="st-step">
+        <div class="mg-meta">
+          <.link navigate={~p"/reading/#{@folder.slug}"}>← {(@story && @story.title) || @folder.name}</.link>
+        </div>
+
+        <span class="n">Step {@entry.step.ordinal} of {@count}</span>
+        <h1>{@entry.step.capability}</h1>
+
+        <section :if={@entry.step.lesson}>
+          <h2 class="mg-label">What to do</h2>
+          <p>{@entry.step.lesson}</p>
+        </section>
+
+        <section :if={@entry.step.mechanism}>
+          <h2 class="mg-label">How it works</h2>
+          <p>{@entry.step.mechanism}</p>
+        </section>
+
+        <section :if={@entry.step.pitfall not in [nil, ""]} class="st-pitfall">
+          <h2 class="mg-label">The obvious version is wrong</h2>
+          <p>{@entry.step.pitfall}</p>
+          <blockquote :if={@entry.step.pitfall_quote not in [nil, ""]}>
+            {@entry.step.pitfall_quote}
+          </blockquote>
+        </section>
+
+        <section :if={@entry.step.watch_for}>
+          <h2 class="mg-label">Get right now</h2>
+          <p>{@entry.step.watch_for}</p>
+        </section>
+
+        <section :if={@entry.step.revised_by} class="st-revision">
+          <h2 class="mg-label">Walked back by step {@entry.step.revised_by}</h2>
+          <p>{@entry.step.revision}</p>
+          <blockquote :if={@entry.step.revision_quote not in [nil, ""]}>
+            {@entry.step.revision_quote}
+          </blockquote>
+        </section>
+
+        <section :if={@entry.step.excerpts != []}>
+          <h2 class="mg-label">From the document</h2>
+          <%!-- "text" is the passage the quote was located in, not the model's
+                quote: validate/3 stores the surrounding block so a reader sees
+                the claim in its context rather than the sentence alone. --%>
+          <figure :for={e <- @entry.step.excerpts} class="st-excerpt">
+            <pre><code>{e["text"]}</code></pre>
+            <figcaption :if={e["caption"] not in [nil, ""]}>{e["caption"]}</figcaption>
+          </figure>
+        </section>
+
+        <nav :if={@entry.requires != []} class="st-move-steps">
+          <span class="mg-label">stands on</span>
+          <.link :for={r <- @entry.requires} navigate={~p"/reading/#{@folder.slug}/#{r.ordinal}"}>
+            {r.ordinal}
+          </.link>
+        </nav>
+
+        <nav class="st-nav">
+          <.link
+            :if={@entry.previous}
+            navigate={~p"/reading/#{@folder.slug}/#{@entry.previous.ordinal}"}
+          >
+            ← {@entry.previous.ordinal}. {@entry.previous.capability}
+          </.link>
+          <.link :if={@entry.next} navigate={~p"/reading/#{@folder.slug}/#{@entry.next.ordinal}"}>
+            {@entry.next.ordinal}. {@entry.next.capability} →
+          </.link>
+        </nav>
+      </article>
+    </Layouts.app>
+    """
+  end
+end

@@ -45,6 +45,41 @@ defmodule MarginaliaWeb.StackLive.Show do
 
   # ==========================================================================
 
+  # Publishing is an explicit act and the folder has to belong to the account
+  # this deploy belongs to — see Folders.publish/2. The same writer's
+  # contracts sit in folders beside this one.
+  def handle_event("publish", _params, socket) do
+    user_id = socket.assigns.current_scope.user.id
+
+    case Marginalia.Folders.publish(user_id, socket.assigns.folder.id) do
+      {:ok, folder} ->
+        {:noreply,
+         socket
+         |> assign(folder: folder)
+         |> put_flash(:info, "Published at /reading/#{folder.slug}")}
+
+      {:error, :not_owner} ->
+        {:noreply,
+         put_flash(socket, :error, "Only the account this deploy belongs to can publish.")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, "Could not publish: #{inspect(reason)}")}
+    end
+  end
+
+  def handle_event("unpublish", _params, socket) do
+    user_id = socket.assigns.current_scope.user.id
+
+    case Marginalia.Folders.unpublish(user_id, socket.assigns.folder.id) do
+      {:ok, folder} ->
+        {:noreply,
+         socket |> assign(folder: folder) |> put_flash(:info, "Taken off the public site.")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, "Could not unpublish: #{inspect(reason)}")}
+    end
+  end
+
   @impl true
   def handle_event("compose", _params, socket) do
     folder = socket.assigns.folder
@@ -292,6 +327,21 @@ defmodule MarginaliaWeb.StackLive.Show do
                 · {length(@story.uncovered)} steps left out
               </span>
               <span :if={not Stacks.story_current?(@story, @folder.id)} class="cut-err">· stale</span>
+            </div>
+
+            <div class="mg-meta st-publish">
+              <%= if @folder.published_at do %>
+                public at
+                <.link navigate={~p"/reading/#{@folder.slug}"}>/reading/{@folder.slug}</.link>
+                <button phx-click="unpublish" class="mg-btn sm ml-2">Make private</button>
+              <% else %>
+                <button
+                  phx-click="publish"
+                  data-confirm="Publish this stack? Anyone with the link will be able to read the telling and every step of it."
+                  class="mg-btn sm"
+                >Publish</button>
+                <span class="ml-2">private — only you can read it</span>
+              <% end %>
             </div>
           </div>
 

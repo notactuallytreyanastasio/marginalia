@@ -6,6 +6,10 @@ defmodule Marginalia.Folders.Folder do
   schema "folders" do
     field :name, :string
 
+    # nil means private, which is every folder until somebody says otherwise
+    field :published_at, :utc_datetime
+    field :slug, :string
+
     belongs_to :user, Marginalia.Accounts.User
     belongs_to :parent, __MODULE__
     has_many :children, __MODULE__, foreign_key: :parent_id

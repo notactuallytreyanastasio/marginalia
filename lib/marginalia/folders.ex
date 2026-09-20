@@ -282,4 +282,83 @@ defmodule Marginalia.Folders do
   end
 
   defp cast_id(_), do: nil
+
+  # ==========================================================================
+  # Publishing
+  # ==========================================================================
+
+  @doc """
+  Make a folder readable by somebody with no account, and mint its slug.
+
+  Two conditions, both required, for the same reason `Cases.published/0` has
+  them: this writer's contracts and employment agreements live in folders
+  beside the one being published, so publishing by accident has to be
+  impossible. The folder must belong to the account this deploy belongs to,
+  and somebody must ask for it by name.
+
+  The slug is derived from the folder name rather than random, because this
+  is the one URL here meant to be sent to people, and it is minted once so
+  that renaming the folder afterwards does not break a link already sent.
+  """
+  def publish(user_id, id) do
+    owner = Marginalia.Accounts.owner()
+
+    cond do
+      is_nil(owner) or owner.id != user_id ->
+        {:error, :not_owner}
+
+      folder = get_folder(user_id, id) ->
+        folder
+        |> Ecto.Changeset.change(
+          published_at: DateTime.utc_now() |> DateTime.truncate(:second),
+          slug: folder.slug || mint_slug(folder.name)
+        )
+        |> Repo.update()
+
+      true ->
+        {:error, :not_found}
+    end
+  end
+
+  @doc "Take it back off the public site. The slug is kept, so re-publishing restores the same URL."
+  def unpublish(user_id, id) do
+    case get_folder(user_id, id) do
+      nil -> {:error, :not_found}
+      folder -> folder |> Ecto.Changeset.change(published_at: nil) |> Repo.update()
+    end
+  end
+
+  @doc "A published folder by its slug, for anybody, or nil."
+  def get_published(slug) when is_binary(slug) do
+    Repo.one(from f in Folder, where: f.slug == ^slug and not is_nil(f.published_at))
+  end
+
+  def get_published(_), do: nil
+
+  @doc "Every published folder, newest first."
+  def published do
+    Folder
+    |> where([f], not is_nil(f.published_at))
+    |> order_by([f], desc: f.published_at)
+    |> Repo.all()
+  end
+
+  defp mint_slug(name) do
+    base =
+      name
+      |> String.downcase()
+      |> String.replace(~r/[^a-z0-9]+/u, "-")
+      |> String.trim("-")
+      |> String.slice(0, 60)
+
+    base = if base == "", do: "stack", else: base
+
+    # A second folder that slugs to the same thing gets a suffix rather than
+    # a constraint violation the caller cannot do anything about.
+    if Repo.exists?(from f in Folder, where: f.slug == ^base) do
+      base <> "-" <> (:crypto.strong_rand_bytes(3) |> Base.url_encode64(padding: false))
+    else
+      base
+    end
+  end
 end

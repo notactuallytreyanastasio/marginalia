@@ -74,6 +74,13 @@ defmodule MarginaliaWeb.Router do
       live "/cases/:slug", CaseLive.Show, :show
       live "/cases/:slug/read", CaseLive.Read, :read
       live "/cases/:slug/read/:lead", CaseLive.Read, :read
+
+      # A published stack, read by anybody. Addressed by slug, and served
+      # only when the folder carries a published_at — the private pages at
+      # /stacks stay owner-scoped and keep the buttons that spend money.
+      live "/reading", ReadingLive.Index, :index
+      live "/reading/:slug", ReadingLive.Story, :story
+      live "/reading/:slug/:ordinal", ReadingLive.Step, :step
     end
   end
 
