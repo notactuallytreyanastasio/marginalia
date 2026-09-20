@@ -175,11 +175,16 @@ defmodule Marginalia.Links do
 
   @doc """
   The links on the public face of this deploy: the owner's, and only the ones
-  that found something.
+  that found something, strongest first.
 
   A link with no edges is a pass that ran and reported nothing. That is a
-  real answer and it is on the writer's own page, but a public index of
-  empty comparisons is an index of nothing.
+  real answer and it is on the writer's own page, but a public index of empty
+  comparisons is an index of nothing.
+
+  Counts come back in two grouped queries rather than one per link. The first
+  version asked `edge_count/1` inside a filter, which is 393 queries to draw
+  one page — invisible on the six pairs it was written against and the whole
+  cost of the page at the size it actually reached.
   """
   def public_links do
     case Marginalia.Accounts.owner() do
@@ -187,13 +192,42 @@ defmodule Marginalia.Links do
         []
 
       owner ->
-        owner.id
-        |> for_user()
-        |> Enum.filter(&(edge_count(&1.id) > 0))
+        links = for_user(owner.id)
+        ids = Enum.map(links, & &1.id)
+
+        totals = counts_by_link(ids)
+        tensions = counts_by_link(ids, "tension")
+
+        links
+        |> Enum.map(fn l ->
+          %{link: l, edges: Map.get(totals, l.id, 0), tensions: Map.get(tensions, l.id, 0)}
+        end)
+        |> Enum.filter(&(&1.edges > 0))
+        |> Enum.sort_by(&{-&1.tensions, -&1.edges})
     end
   end
 
-  @doc "A link anybody may read: the owner's, and only if it found something."
+  defp counts_by_link(ids, type \\ nil)
+
+  defp counts_by_link([], _type), do: %{}
+
+  defp counts_by_link(ids, type) do
+    LinkEdge
+    |> where([e], e.link_id in ^ids)
+    |> then(fn q -> if type, do: where(q, [e], e.edge_type == ^type), else: q end)
+    |> group_by([e], e.link_id)
+    |> select([e], {e.link_id, count(e.id)})
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  @doc """
+  A link anybody may read: the owner's, and only if it found something.
+
+  BOTH works must belong to the owner. This page reads two drafts at once, so
+  a check that passes on one of them exposes somebody else's work alongside
+  the owner's.
+  """
   def public_link(id) do
     with owner when not is_nil(owner) <- Marginalia.Accounts.owner(),
          %Link{} = link <- Repo.get(Link, id) |> Repo.preload([:a_work, :b_work]),

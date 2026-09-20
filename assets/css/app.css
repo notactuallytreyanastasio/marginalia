@@ -4639,3 +4639,15 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
   margin: 0.35rem 0 0; padding-left: 0.7rem; border-left: 1px solid var(--mg-rule);
   font-family: var(--mg-serif); font-size: 0.82rem; color: var(--mg-dim);
 }
+
+/* 392 pairs is more list than anyone scrolls: the ones with a tension come
+   first and say so, and a filter narrows without a round trip. */
+.lk-filter { margin: 1rem 0 0.5rem; }
+.lk-filter input {
+  width: 100%; padding: 0.45rem 0.6rem; font-family: var(--mg-sans); font-size: 0.85rem;
+  border: 1px solid var(--mg-rule); border-radius: 3px; background: var(--mg-paper);
+}
+.lx .mg-rows li.has-tension { border-left: 2px solid var(--mg-accent); padding-left: 0.6rem; }
+.tension-count { color: var(--mg-accent); }
+.lk-more { margin-top: 1.2rem; }
+.lk-more .mg-meta { margin-left: 0.4rem; }
