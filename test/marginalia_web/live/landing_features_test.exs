@@ -130,4 +130,49 @@ defmodule MarginaliaWeb.LandingFeaturesTest do
       end
     end
   end
+
+  describe "the chat" do
+    test "the page says the chat fetches rather than recalls", %{html: html} do
+      assert html =~ "It goes and looks"
+      assert html =~ "the quote was fetched from your book"
+    end
+
+    test "it names the tools the chat really has", %{html: html} do
+      # these are the actual function names in Marginalia.Chat.Editor
+      for tool <- ["search_manuscript", "read_passage", "find_exact"] do
+        assert html =~ tool, "#{tool} is shown on the page and must exist in the editor"
+      end
+    end
+
+    test "every tool the page shows is one the editor defines", %{html: html} do
+      source = File.read!("lib/marginalia/chat/editor.ex")
+
+      shown =
+        Regex.scan(~r/<span class="tool">([a-z_]+)<\/span>/, html)
+        |> Enum.map(fn [_, name] -> name end)
+        |> Enum.uniq()
+
+      refute shown == []
+
+      for name <- shown do
+        assert source =~ ~s("name" => "#{name}"),
+               "the homepage shows #{name} as a tool the chat calls, and it is not one"
+      end
+    end
+
+    test "the three modes are the three that exist", %{html: html} do
+      ids = Enum.map(Marginalia.Chat.Editor.modes(), & &1.label)
+
+      for label <- ids do
+        assert html =~ label, "mode #{label} exists and the page does not mention it"
+      end
+
+      assert length(ids) == 3
+    end
+
+    test "overruling it is described, in both kinds", %{html: html} do
+      assert html =~ "misreading"
+      assert html =~ "records a ruling"
+    end
+  end
 end

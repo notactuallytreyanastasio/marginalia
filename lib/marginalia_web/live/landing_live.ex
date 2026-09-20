@@ -272,6 +272,15 @@ defmodule MarginaliaWeb.LandingLive do
       .demo .d-log{margin-top:0.4rem; font-family:var(--mg-sans); font-size:0.7rem; color:var(--mg-dim)}
       .demo .d-log .sha{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--mg-ink)}
 
+      .demo .d-call{display:flex; align-items:baseline; gap:0.45rem; flex-wrap:wrap;
+        margin-top:0.3rem; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:0.72rem}
+      .demo .d-call .tool{color:var(--mg-accent)}
+      .demo .d-call .arg{color:var(--mg-ink)}
+      .demo .d-call .hit{margin-left:auto; color:var(--mg-dim); font-family:var(--mg-sans);
+        font-size:0.68rem}
+      .demo .d-reply{margin:0.65rem 0 0; font-family:var(--mg-serif); font-size:0.88rem;
+        border-left:2px solid var(--mg-rule); padding-left:0.7rem}
+
       .demo.stack .d-ticks{display:flex; flex-wrap:wrap; gap:2px; margin-bottom:0.7rem}
       .demo.stack .d-ticks i{width:5px; height:12px; background:var(--mg-rule); border-radius:1px}
       .demo.stack .d-move{margin-top:0.35rem; display:flex; align-items:baseline; gap:0.5rem}
@@ -799,6 +808,78 @@ defmodule MarginaliaWeb.LandingLive do
             <span class="who">note</span>
             "It is a fossil" is the best phrase in this section and it is explaining a housekeeping
             detail. Consider whether the thing it describes deserves to be the section.
+          </div>
+        </aside>
+      </section>
+
+      <section class="sec head">
+        <div class="sec-title">
+          <h2>It goes and looks</h2>
+        </div>
+        <div class="sec-leader"></div>
+        <div class="sec-main">
+          <p>
+            Ask the chat a question and it does not answer from whatever happened to fit in its
+            context window. It searches your manuscript, pulls the passages, checks the exact
+            wording, and reads the map it built. Two or three of those before an opinion is normal,
+            and you can watch it happen. When it quotes your book at you, the quote was fetched
+            from your book.
+          </p>
+
+          <div class="demo" data-demo data-interval="620">
+            <div class="cap">"Does Marta ever actually refuse him?"</div>
+            <div class="d-call" data-step="1">
+              <span class="tool">search_manuscript</span><span class="arg">"Marta refuse"</span>
+              <span class="hit">7 passages</span>
+            </div>
+            <div class="d-call" data-step="2">
+              <span class="tool">read_passage</span><span class="arg">§9, lines 40–58</span>
+              <span class="hit">the doorway</span>
+            </div>
+            <div class="d-call" data-step="3">
+              <span class="tool">find_exact</span><span class="arg">"she said nothing at all"</span>
+              <span class="hit">§14</span>
+            </div>
+            <p class="d-reply" data-step="4">
+              Once, in section fourteen, and she does it by saying nothing at all. Every other time
+              she refuses him the narration does it for her, which is why the fourteen lands.
+            </p>
+          </div>
+
+          <p>
+            Three ways to be talked to, and you pick. <b>Read</b> reports what is on the page and
+            refuses to speculate; ask it something the draft does not answer and it says the draft
+            does not answer it. <b>Provoke</b> asks the questions that open the next draft rather
+            than tidying this one. <b>Bounce</b> takes an idea you are considering and presses it
+            against what you have already written.
+          </p>
+
+          <p>
+            And you can overrule it. Tell it that it has a fact about your manuscript wrong and it
+            writes that down as a misreading, never to be asserted again. Tell it you have simply
+            decided, and it records a ruling: your book, dropped, and raised again only somewhere
+            genuinely new and only by naming the ruling first. Both survive the conversation they
+            were made in. Repeating a note you have already overruled is the fastest way for this
+            to stop feeling like a reader.
+          </p>
+        </div>
+        <aside class="sec-aside">
+          <div class="note" data-reveal style="--i:0">
+            <span class="who">note</span>
+            "The quote was fetched from your book" is the sentence that separates this from every
+            other chat window and it is the last line of the first paragraph.
+          </div>
+          <div class="note" data-reveal style="--i:1">
+            <span class="who">tension</span>
+            Three modes described in one paragraph each is a feature list wearing prose. The
+            difference between Provoke and Bounce is real and this is not the paragraph that shows
+            it.
+          </div>
+          <div class="note act" data-reveal style="--i:2">
+            <span class="who">your turn</span>
+            Contradict it about your own book and see whether it argues, folds, or writes the
+            correction down.
+            <.link navigate={start_path(@current_scope)} class="note-cta">Try to break it →</.link>
           </div>
         </aside>
       </section>
