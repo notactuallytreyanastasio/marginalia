@@ -163,7 +163,8 @@ defmodule Marginalia.Rewrite do
              # nil context means no single block holds the span, which is also
              # exactly the condition under which a candidate cannot be dropped
              # into a paragraph
-             spans_blocks: is_nil(paragraph_around(section.body, found))
+             spans_blocks: is_nil(paragraph_around(section.body, found)),
+             covers: covered_refs(section, found)
            }}
       end
     end
@@ -184,6 +185,49 @@ defmodule Marginalia.Rewrite do
   end
 
   defp word_count(text), do: text |> String.split(~r/\s+/, trim: true) |> length()
+
+  @doc """
+  Every paragraph the span touches, by the ref the page gives it.
+
+  The page dimmed only the paragraph the panel was anchored to, so a rewrite
+  of three paragraphs greyed out one of them and left the other two looking
+  untouched. Overlap is decided on offsets in the section body rather than by
+  asking whether a paragraph is inside the span: a selection that starts
+  mid-paragraph covers that paragraph without containing it.
+
+  The ref is built the same way `Marginalia.Reading` builds it — section
+  ordinal and zero-based paragraph index — because the page has to be able to
+  match them up.
+  """
+  def covered_refs(section, span) do
+    body = section.body
+
+    case :binary.match(body, span) do
+      :nomatch ->
+        []
+
+      {span_start, span_len} ->
+        span_end = span_start + span_len
+
+        body
+        |> Marginalia.Reading.split()
+        |> Enum.with_index()
+        |> Enum.reduce([], fn {para, i}, acc ->
+          case :binary.match(body, para) do
+            :nomatch ->
+              acc
+
+            {p_start, p_len} ->
+              p_end = p_start + p_len
+
+              # touching at a boundary is not overlapping
+              if p_start < span_end and span_start < p_end,
+                do: acc ++ ["s#{section.ordinal}p#{i}"],
+                else: acc
+          end
+        end)
+    end
+  end
 
   @doc """
   The answer budget for a span: three candidates plus their two labels each.

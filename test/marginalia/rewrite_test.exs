@@ -213,4 +213,57 @@ defmodule Marginalia.RewriteTest do
              )
     end
   end
+
+  describe "which paragraphs a span covers" do
+    setup %{work: work} do
+      %{section: hd(Works.list_sections(work.id))}
+    end
+
+    test "a span inside one paragraph covers only it", %{section: section} do
+      para = section.body |> Marginalia.Reading.split() |> Enum.at(1)
+      bit = String.slice(para, 10, 40)
+
+      assert [ref] = Rewrite.covered_refs(section, bit)
+      assert ref == "s#{section.ordinal}p1"
+    end
+
+    test "a span across three paragraphs covers all three", %{section: section} do
+      [a, b, c | _] = Marginalia.Reading.split(section.body)
+      span = a <> "\n\n" <> b <> "\n\n" <> c
+
+      refs = Rewrite.covered_refs(section, span)
+
+      assert length(refs) == 3
+      assert refs == ["s#{section.ordinal}p0", "s#{section.ordinal}p1", "s#{section.ordinal}p2"]
+    end
+
+    test "a span starting mid-paragraph still covers that paragraph", %{section: section} do
+      [a, b | _] = Marginalia.Reading.split(section.body)
+      span = String.slice(a, -60, 60) <> "\n\n" <> b
+
+      refs = Rewrite.covered_refs(section, span)
+
+      assert "s#{section.ordinal}p0" in refs,
+             "the paragraph does not contain the span, but the span covers it"
+
+      assert "s#{section.ordinal}p1" in refs
+    end
+
+    test "a span that is not in the section covers nothing", %{section: section} do
+      assert Rewrite.covered_refs(section, "a sentence nobody wrote") == []
+    end
+
+    test "the refs are the ones the page builds", %{work: work, section: section} do
+      page_refs =
+        Marginalia.Reading.page(work)
+        |> Enum.flat_map(& &1.blocks)
+        |> Enum.map(& &1.ref)
+
+      [a, b | _] = Marginalia.Reading.split(section.body)
+
+      for ref <- Rewrite.covered_refs(section, a <> "\n\n" <> b) do
+        assert ref in page_refs, "a ref the page never renders dims nothing"
+      end
+    end
+  end
 end

@@ -2329,6 +2329,14 @@ defmodule MarginaliaWeb.WorkLive.Show do
     """
   end
 
+  # While the candidates are still coming back there is no located span yet,
+  # so the anchor block is all there is to go on. Once they arrive, `covers`
+  # names every paragraph the span touches.
+  defp rewriting?(%{covers: covers}, _anchor, ref) when is_list(covers) and covers != [],
+    do: ref in covers
+
+  defp rewriting?(_rewrite, anchor, ref), do: anchor == ref
+
   defp row_kind({:same, _, _}), do: "same"
   defp row_kind({:change, _, _}), do: "change"
   defp row_kind({:del, _}), do: "del"
@@ -2948,14 +2956,19 @@ defmodule MarginaliaWeb.WorkLive.Show do
               <%= for b <- sec.blocks do %>
                 <% t = @block_threads[b.ref] %>
                 <div
-                  class={[
-                    "mg-block",
-                    t && "has-thread",
-                    t && t.resolved && "resolved",
-                    @open_thread && @open_thread.block_ref == b.ref && "open",
-                    (@rewriting or @rewrite) && @rewrite_ref == b.ref && is_nil(@preview) &&
-                      "rewriting"
-                  ]}
+                  class={
+                    [
+                      "mg-block",
+                      t && "has-thread",
+                      t && t.resolved && "resolved",
+                      @open_thread && @open_thread.block_ref == b.ref && "open",
+                      # every paragraph the span covers, not only the one the
+                      # panel is anchored to: a rewrite of three paragraphs
+                      # dimmed one and left the other two looking untouched
+                      (@rewriting or @rewrite) && is_nil(@preview) &&
+                        rewriting?(@rewrite, @rewrite_ref, b.ref) && "rewriting"
+                    ]
+                  }
                   id={"block-#{b.ref}"}
                 >
                   <button
