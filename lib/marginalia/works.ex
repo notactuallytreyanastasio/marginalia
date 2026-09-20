@@ -40,6 +40,43 @@ defmodule Marginalia.Works do
   def get_by_slug(slug) when is_binary(slug), do: Repo.get_by(Work, slug: slug)
   def get_by_slug(_), do: nil
 
+  @doc """
+  Every draft on the public face of this deploy, newest first.
+
+  The drafts of the account this deploy belongs to, and nobody else's. A
+  visitor's own uploads stay private to their link, which is what
+  `get_by_slug/1` has always given them; this is only the owner choosing to
+  put their own work out.
+  """
+  def public_drafts do
+    case Marginalia.Accounts.owner() do
+      nil ->
+        []
+
+      owner ->
+        Work
+        |> where([w], w.user_id == ^owner.id)
+        |> order_by([w], desc: w.inserted_at)
+        |> Repo.all()
+    end
+  end
+
+  @doc """
+  A public draft by slug, or nil.
+
+  Scoped to the owner's account on purpose. Without that check this would
+  serve any draft anybody had ever uploaded, which is the opposite of what
+  the link-is-the-permission model promises everyone else.
+  """
+  def public_draft(slug) when is_binary(slug) do
+    case Marginalia.Accounts.owner() do
+      nil -> nil
+      owner -> Repo.one(from w in Work, where: w.slug == ^slug and w.user_id == ^owner.id)
+    end
+  end
+
+  def public_draft(_), do: nil
+
   @doc "Whether this user owns this work. `nil` user owns nothing."
   def owner?(%Work{user_id: uid}, %{id: uid}) when not is_nil(uid), do: true
   def owner?(_work, _user), do: false

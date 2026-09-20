@@ -75,6 +75,12 @@ defmodule MarginaliaWeb.Router do
       live "/cases/:slug/read", CaseLive.Read, :read
       live "/cases/:slug/read/:lead", CaseLive.Read, :read
 
+      # The owner's own drafts, listed and indexable. Outside the guest scope
+      # for the reason /cases is: a public page that mints a user row for
+      # every crawler is a public page that fills the users table.
+      live "/drafts", DraftLive.Index, :index
+      live "/drafts/:slug", DraftLive.Show, :show
+
       # A published stack, read by anybody. Addressed by slug, and served
       # only when the folder carries a published_at — the private pages at
       # /stacks stay owner-scoped and keep the buttons that spend money.
