@@ -1117,6 +1117,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   rewriting={@rewriting}
                   rewrite_ref={@rewrite_ref}
                   steer={@steer}
+                  rewrite_span={@rewrite_span}
                   preview={@preview}
                   editing={@editing}
                   edit_text={@edit_text}
@@ -1461,6 +1462,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :rewriting, :boolean, default: false
   attr :rewrite_ref, :string, default: nil
   attr :steer, :string, default: nil
+  attr :rewrite_span, :string, default: nil
   attr :preview, :map, default: nil
   attr :editing, :string, default: nil
   attr :edit_text, :string, default: nil
@@ -1537,6 +1539,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
             rewriting={@rewriting}
             rewrite_ref={@rewrite_ref}
             steer={@steer}
+            rewrite_span={@rewrite_span}
             preview={@preview}
             editing={@editing}
             edit_text={@edit_text}
@@ -2303,6 +2306,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :rewriting, :boolean, default: false
   attr :rewrite_ref, :string, default: nil
   attr :steer, :string, default: nil
+  attr :rewrite_span, :string, default: nil
   attr :preview, :map, default: nil
   attr :editing, :string, default: nil
   attr :edit_text, :string, default: nil
