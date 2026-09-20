@@ -800,6 +800,30 @@ body {
 /* measured: absolute once the hook has run, static before that so the page
    is readable even if the script never arrives */
 .mg-read-rail.measured .mg-note-slot { position: absolute; left: 0.5rem; right: 0; }
+.mg-read-rail.measured .mg-note-slot { transition: left 0.38s cubic-bezier(0.22, 1, 0.36, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .mg-read-rail.measured .mg-note-slot { transition: none; }
+}
+
+/* Pushed out past the prose because an applied diff has taken the rail.
+   `right` has to go with it: the slot is stretched between left and right,
+   so moving only the left edge squashes the bubble on the way across. */
+/* above the diff, not behind it: when the window is too narrow to clear the
+   prose the note comes to rest on the diff's left edge, and a note half
+   under a diff is the thing this is here to stop */
+.mg-read-rail.measured .mg-note-slot.shoved { right: auto; z-index: 6; }
+.mg-read-rail.measured .mg-note-slot.shoved .mg-note {
+  box-shadow: 0 2px 6px rgb(0 0 0 / 10%), 0 10px 26px rgb(0 0 0 / 12%);
+}
+/* the tail and the leader change sides, since the line is now to the right */
+.mg-read-rail.measured .mg-note-slot.shoved::before {
+  left: auto;
+  right: -30px;
+  border-right: 0;
+  border-left: 30px solid var(--mg-margin);
+}
+.mg-read-rail.measured .mg-note-slot.shoved.tension::before { border-left-color: #f7e9e5; }
+.mg-read-rail.measured .mg-note-slot.shoved::after { left: auto; right: -30px; }
 .mg-read-rail .mg-note-slot + .mg-note-slot { margin-top: 0.85rem; }
 .mg-read-rail.measured .mg-note-slot + .mg-note-slot { margin-top: 0; }
 

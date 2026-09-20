@@ -3622,6 +3622,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
                 if (this.collapsed()) {
                   rail.classList.remove("measured");
                   rail.style.height = "";
+                  this.unshove();
                   this.el.querySelectorAll(".mg-note-slot").forEach((s) => {
                     if (!s.classList.contains("peek")) s.style.top = "";
                   });
@@ -3641,6 +3642,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
                 if (getComputedStyle(this.el).gridTemplateColumns.split(" ").length < 3) {
                   rail.classList.remove("measured");
                   rail.style.height = "";
+                  this.unshove();
                   this.el.querySelectorAll(".mg-note-slot").forEach((s) => (s.style.top = ""));
                   return;
                 }
@@ -3659,6 +3661,77 @@ defmodule MarginaliaWeb.WorkLive.Show do
                 });
 
                 rail.style.height = `${y}px`;
+                this.shove(rail, railTop);
+              },
+
+              // An applied diff is as wide as all three columns and sits on
+              // top of the rail, so the notes level with it are buried — and
+              // the ones it buries are exactly the notes about the paragraph
+              // that just changed. They move out past the prose, on the other
+              // side, and come back when the diff is dismissed.
+              //
+              // There is less room out there than the note needs. The page is
+              // 66ch of prose, a 3rem gutter and a 34ch rail, centred: at
+              // 1512px that leaves 232px of margin against a 327px rail, and
+              // on the 1000px-wide window this was reported from, 115px. So
+              // the note goes as far left as the window allows and floats
+              // over the left edge of the diff for the rest. Covering the
+              // first few characters of a diff that is 100ch wide costs less
+              // than burying the note about the paragraph that just changed,
+              // which is what happens today.
+              shove(rail, railTop) {
+                const diff = this.el.querySelector(".mg-applied");
+                if (!diff) return this.unshove();
+
+                const slots = [...this.el.querySelectorAll(".mg-note-slot")];
+                const body = this.el.querySelector(".mg-read-body");
+                if (!slots.length || !body) return this.unshove();
+
+                const d = diff.getBoundingClientRect();
+                const b = body.getBoundingClientRect();
+                const r = rail.getBoundingClientRect();
+
+                const EDGE = 14;
+                const TAIL = 18;
+
+                // Clear of the contents rail, which is fixed furniture down
+                // the left of the window and would otherwise be drawn over
+                // the first few words of every shoved note.
+                const map = document.querySelector(".mg-map");
+                const edge = Math.max(EDGE, map ? map.getBoundingClientRect().right + 10 : EDGE);
+
+                const width = slots[0].offsetWidth;
+
+                // in the rail's own coordinates, since that is what `left`
+                // on an absolutely positioned slot is measured from
+                const to = Math.max(edge, b.left - TAIL - width) - r.left;
+
+                slots.forEach((slot) => {
+                  const top = parseFloat(slot.style.top) || 0;
+                  const high = slot.offsetHeight;
+
+                  // A third of the note, not a pixel of it. A card whose last
+                  // line grazes the top of the diff is still readable, and
+                  // sending it across the page for that is a worse jolt than
+                  // the overlap.
+                  const over =
+                    Math.min(top + high, d.bottom - railTop) - Math.max(top, d.top - railTop);
+                  const hits = over > high / 3;
+
+                  slot.classList.toggle("shoved", hits);
+                  // pinned in pixels rather than left to `right: auto`, or the
+                  // bubble collapses to its content width as it crosses
+                  slot.style.width = hits ? `${width}px` : "";
+                  slot.style.left = hits ? `${to}px` : "";
+                });
+              },
+
+              unshove() {
+                this.el.querySelectorAll(".mg-note-slot.shoved").forEach((s) => {
+                  s.classList.remove("shoved");
+                  s.style.left = "";
+                  s.style.width = "";
+                });
               },
             };
           </script>
