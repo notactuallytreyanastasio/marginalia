@@ -11,6 +11,10 @@ defmodule Marginalia.Works.Section do
     field :summary, :string
     field :summary_fingerprint, :string
     field :summarised_at, :utc_datetime
+    field :summary_covers, {:array, :string}, default: []
+    field :summary_follows, {:array, :integer}, default: []
+    field :summary_sets_up, :string
+    field :summary_dropped, {:array, :string}, default: []
 
     field :status, :string, default: "pending"
 

@@ -2563,8 +2563,29 @@ defmodule MarginaliaWeb.WorkLive.Show do
                     class={"mg-sum-text" <> if(Marginalia.Summary.current?(sec.section), do: "", else: " stale")}
                   >
                     {sec.section.summary}
+
+                    <div :if={sec.section.summary_covers != []} class="mg-sum-covers">
+                      <span :for={t <- sec.section.summary_covers}>{t}</span>
+                    </div>
+
+                    <div
+                      :if={sec.section.summary_follows != [] or sec.section.summary_sets_up}
+                      class="mg-sum-links"
+                    >
+                      <span :if={sec.section.summary_follows != []}>
+                        needs {Enum.map_join(sec.section.summary_follows, ", ", &"§#{&1}")}
+                      </span>
+                      <span :if={sec.section.summary_sets_up}>
+                        sets up: {sec.section.summary_sets_up}
+                      </span>
+                    </div>
+
                     <span :if={not Marginalia.Summary.current?(sec.section)} class="mg-sum-stale">
                       the section has been edited since this was written
+                    </span>
+
+                    <span :if={sec.section.summary_dropped != []} class="mg-sum-stale">
+                      {length(sec.section.summary_dropped)} term(s) dropped: not in the section
                     </span>
                   </div>
 

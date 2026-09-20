@@ -4482,3 +4482,14 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
   font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;
   color: var(--mg-accent);
 }
+
+.mg-sum-covers { margin-top: 0.4rem; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.mg-sum-covers span {
+  font-family: var(--mg-mono); font-size: 0.68rem;
+  padding: 0.1em 0.4em; border: 1px solid var(--mg-rule); border-radius: 2px;
+  background: var(--mg-margin); color: var(--mg-dim);
+}
+.mg-sum-links {
+  margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.75rem;
+  font-family: var(--mg-sans); font-size: 0.72rem; color: var(--mg-dim);
+}
