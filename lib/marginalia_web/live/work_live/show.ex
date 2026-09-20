@@ -1159,7 +1159,10 @@ defmodule MarginaliaWeb.WorkLive.Show do
         </span>
       </div>
 
-      <div :if={not (@llm_ready and @mine?)} class="mt-5 text-[0.85rem] border-l-2 border-[var(--mg-accent)] pl-3 py-1.5">
+      <div
+        :if={not (@llm_ready and @mine?)}
+        class="mt-5 text-[0.85rem] border-l-2 border-[var(--mg-accent)] pl-3 py-1.5"
+      >
         No {Marginalia.LLM.label(@provider)} key is configured on this deploy, so the read can't run.
       </div>
 
@@ -1174,7 +1177,11 @@ defmodule MarginaliaWeb.WorkLive.Show do
       </div>
 
       <%!-- and again at the end, for anyone who did read to the bottom --%>
-      <button :if={@llm_ready and @mine? and length(@sections) > 8} class="mg-btn mt-5" phx-click="start_read">
+      <button
+        :if={@llm_ready and @mine? and length(@sections) > 8}
+        class="mg-btn mt-5"
+        phx-click="start_read"
+      >
         Read it — {length(@sections)} sections
       </button>
     </div>
@@ -1340,7 +1347,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
   defp rewrite_error({:span_too_long, words, max}),
     do:
-      "That is #{words} words. Rewrites go up to #{max} — past that it is a redraft, not a rewrite."
+      "That is #{words} words. Rewrites go up to #{max} — past that, split it and take " <>
+        "the part you actually want reworked."
 
   defp rewrite_error(:no_candidates),
     do: "Nothing came back that was different from what you wrote."

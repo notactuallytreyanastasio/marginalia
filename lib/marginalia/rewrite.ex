@@ -23,10 +23,22 @@ defmodule Marginalia.Rewrite do
 
   alias Marginalia.LLM
 
-  # Generous enough for a few paragraphs dragged over by hand, which is how
-  # people actually select. Past this it is not a rewrite, it is a redraft,
-  # and three candidates for it would be ghostwriting with extra steps.
-  @max_span_words 250
+  # Was 250, on the reasoning that past a few paragraphs it is a redraft
+  # rather than a rewrite. That line held while the drafts here were prose
+  # somebody typed, and stopped holding once composed sections arrived: a
+  # movement of a telling runs about 1,700 words and a reader wanting one
+  # argument reworked selects several paragraphs of it at once.
+  #
+  # 750 is deliberately short of a whole movement. It takes the long passage
+  # without taking the section, so "rewrite" still means replacing something
+  # a reader can hold in their head against the original — past this the
+  # three candidates stop being comparable and the honest move is to split
+  # the selection.
+  #
+  # Three candidates at this length is a real amount of writing, which is why
+  # the token budget below scales with the span instead of sitting at the flat
+  # 3,000 that was ample for 250 words.
+  @max_span_words 750
 
   @prompt """
   The writer has selected one span of their own draft and asked for rewrites of it. This is
@@ -159,9 +171,42 @@ defmodule Marginalia.Rewrite do
 
   defp word_count(text), do: text |> String.split(~r/\s+/, trim: true) |> length()
 
+  @doc """
+  The answer budget for a span: three candidates plus their two labels each.
+
+  `LLM.call_tool/1` adds reasoning headroom on top of this, so what is asked
+  for here is answer only.
+
+  Public because it is the guard against a silent failure. A flat 3,000 was
+  ample at 250 words and wrong at 750: the reply comes back
+  `finish_reason: "length"`, which the pipeline treats as `{:error, :truncated}`
+  — so the symptom is not three short candidates, it is no candidates at all
+  and a writer wondering why the button did nothing. Seven tokens per word of
+  span is three candidates at ~1.4 tokens a word with room for the JSON.
+  """
+  def answer_budget(span), do: max(3_000, word_count(span) * 7)
+
+  defp context_block(body, span) do
+    case paragraph_around(body, span) do
+      nil ->
+        ""
+
+      para ->
+        "The paragraph it sits in, for context — do not rewrite this, only the span above:\n" <>
+          para
+    end
+  end
+
   defp ask(work, section, span, opts) do
     scale =
       case word_count(span) do
+        n when n > 400 ->
+          "\nThis span is #{n} words — a section, not a sentence. Do not reword it line by " <>
+            "line: at this length three lightly-reworded versions are indistinguishable and " <>
+            "useless. Each candidate should make ONE structural decision and follow it all " <>
+            "the way through — cut it to its argument, reorder so the finding leads, or " <>
+            "split the pile of claims into a sequence. Say which in `move`."
+
         n when n > 60 ->
           "\nThis span is #{n} words — several sentences. Your candidates should differ " <>
             "STRUCTURALLY: cut one of the sentences, reorder so the strongest lands first, " <>
@@ -178,8 +223,7 @@ defmodule Marginalia.Rewrite do
 
     #{span}
 
-    The paragraph it sits in, for context — do not rewrite this, only the span above:
-    #{paragraph_around(section.body, span)}
+    #{context_block(section.body, span)}
     """
 
     LLM.call_tool(
@@ -189,7 +233,7 @@ defmodule Marginalia.Rewrite do
       # the one call whose whole job is the words, so it gets to think
       effort: :high,
       temperature: 0.7,
-      max_tokens: 3_000,
+      max_tokens: answer_budget(span),
       messages: [
         %{"role" => "system", "content" => @prompt},
         %{"role" => "user", "content" => user}
@@ -197,16 +241,20 @@ defmodule Marginalia.Rewrite do
     )
   end
 
-  # enough around the span to keep the voice, not so much that the model
-  # starts rewriting the section
+  # Enough around the span to keep the voice, not so much that the model
+  # starts rewriting the section.
+  #
+  # nil when no single block contains the span, which is the ordinary case
+  # once spans can be section-sized: a selection crossing three paragraphs
+  # sits in none of them. This used to fall back to the section's first 1,200
+  # characters and label them "the paragraph it sits in" — text that is not
+  # around the span at all, and at worst is the span itself handed back as
+  # its own context. A long span carries its own voice; the honest answer is
+  # to send none.
   defp paragraph_around(body, span) do
     body
     |> Marginalia.Reading.split()
     |> Enum.find(fn para -> Marginalia.Selection.in_block(para, span) != nil end)
-    |> case do
-      nil -> String.slice(body, 0, 1_200)
-      para -> para
-    end
   end
 
   @doc """

@@ -25,10 +25,29 @@ defmodule Marginalia.RewriteTest do
     end
 
     test "a redraft is refused, and says how long it was", %{work: work} do
-      long = String.duplicate("word ", 400)
+      long = String.duplicate("word ", 900)
       assert {:error, {:span_too_long, words, max}} = Rewrite.propose(work, long)
       assert words > max
-      assert max >= 250, "a few paragraphs dragged over by hand should still work"
+      assert max == 750
+    end
+
+    test "a long passage is not a redraft any more", %{work: work} do
+      # 400 words used to be refused outright. A composed movement runs about
+      # 1,700, and somebody reworking one argument of it selects this much.
+      sel = String.duplicate("a sentence that is not in this draft. ", 60)
+
+      assert {:error, :not_in_draft} = Rewrite.propose(work, sel),
+             "it must get past the length check and go looking for the span"
+    end
+
+    test "the answer budget grows with the span, or the reply comes back truncated" do
+      short = String.duplicate("word ", 40)
+      long = String.duplicate("word ", 750)
+
+      assert Rewrite.answer_budget(short) == 3_000, "a floor for short spans"
+
+      # three candidates at ~1.4 tokens a word, and the two labels each
+      assert Rewrite.answer_budget(long) >= 750 * 3 * 1.4
     end
 
     test "several paragraphs get past the length check", %{work: work} do
