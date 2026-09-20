@@ -35,7 +35,9 @@ defmodule MarginaliaWeb.LandingFeaturesTest do
 
   test "it says what the whole-document pass actually does", %{html: html} do
     assert html =~ "working under", "the decomposing prong"
-    assert html =~ "not told what the first concluded", "the prongs are independent"
+
+    assert html =~ "never tell the second pass what the first concluded",
+           "the prongs are independent"
   end
 
   test "the git claim is specific rather than a metaphor", %{html: html} do
@@ -45,7 +47,7 @@ defmodule MarginaliaWeb.LandingFeaturesTest do
 
   test "the numbers it cites are the real ones", %{html: html} do
     assert html =~ "111 stacked pull requests"
-    assert html =~ "Sixty-five", "the count of chapters walked back by a later one"
+    assert html =~ "It found sixty-five", "the chapters walked back by a later one"
   end
 
   describe "the work it points at" do

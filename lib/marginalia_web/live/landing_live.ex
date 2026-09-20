@@ -714,12 +714,11 @@ defmodule MarginaliaWeb.LandingLive do
             line, in place, so you can see exactly what changed. It never applies anything.
           </p>
           <p>
-            A span can be up to 2,500 words — several paragraphs, a whole section of most drafts —
-            because "the part I want reworked" is rarely one sentence. Past 400 words the three
-            candidates are made to differ structurally rather than by wording: cut it to its
-            argument, reorder so the finding leads, split the claims into a sequence. If none of
-            the three is what you wanted, there is a box under them: say what you actually want and
-            all three have to do it, differing in how.
+            A span can run to 2,500 words, which is several paragraphs or a whole section of most
+            drafts, because the part you want reworked is rarely one sentence. Past 400 words the
+            three candidates have to differ structurally rather than by wording: cut it to its
+            argument, or reorder it so the finding lands first. If none of them is what you wanted,
+            the box underneath takes an instruction, and then all three have to follow it.
           </p>
 
           <div class="wont">
@@ -811,11 +810,10 @@ defmodule MarginaliaWeb.LandingLive do
         <div class="sec-leader"></div>
         <div class="sec-main">
           <p>
-            Any section can be summarised on its own, and the summary is not a review — those are
-            the notes in the margin, and they are about whether the prose works. This answers the
-            duller question you actually ask at nine in the morning: I am in section seven of
-            twelve, what is in it. It comes back with the concrete things the section deals with,
-            which earlier sections you need first, and what it leaves in place for the ones after.
+            Any section can be summarised on its own. The notes in the margin argue about whether
+            the prose works; this answers the duller question you ask at nine in the morning, which
+            is what is in section seven of twelve. You get the things the section actually deals
+            with, and which earlier ones you need before it makes sense.
           </p>
 
           <div class="demo" data-demo data-interval="700">
@@ -840,17 +838,17 @@ defmodule MarginaliaWeb.LandingLive do
           </div>
 
           <p>
-            Each of those terms is checked against the section before you are shown it. A summary
-            naming a concept the section never mentions is the one failure you cannot catch without
-            going back to the text, which is the thing the summary existed to save you.
+            Every one of those terms is checked against the section before you see it. A summary
+            that names a concept the section never mentions is the failure you cannot catch without
+            going back to the text, and going back to the text is what you were trying to avoid.
           </p>
           <p>
-            Ask for the whole document and it splits in two. One pass builds upward from the
-            section summaries — what this does, in what order, the single thread through it. The
-            other reads downward from the shape and names the rules the draft is <em>working
-            under</em>: the things it does consistently and would be noticed for breaking. The
-            second is deliberately not told what the first concluded. Two readings that agree
-            because one was handed the other's answer are one reading.
+            Ask for the whole document and two passes run at once. One builds up from the section
+            summaries: what this does, in what order, the thread through it. The other reads down
+            from the shape and names the rules the draft is <em>working under</em>, the things it
+            does consistently and would be noticed for breaking. We never tell the second pass what
+            the first concluded, because agreement is worth nothing if one of them was handed the
+            answer.
           </p>
         </div>
         <aside class="sec-aside">
@@ -875,10 +873,11 @@ defmodule MarginaliaWeb.LandingLive do
         <div class="sec-leader"></div>
         <div class="sec-main">
           <p>
-            Accept a rewrite or edit a paragraph and the change is recorded before you have moved
-            on. A Changes tab puts the draft as it arrived beside the draft as it is, paragraph by
-            paragraph, with what went struck through in red and what arrived in green — aligned, so
-            a paragraph inserted in the middle does not mark everything after it as different.
+            Accept a rewrite or edit a paragraph and we write the change down in the same
+            transaction as the edit. A Changes tab puts the draft as it arrived beside the draft as
+            it is, paragraph by paragraph, what went struck out in red against what arrived in
+            green. The alignment is the part that took the work: insert a paragraph in the middle
+            and everything after it is still recognised as untouched.
           </p>
 
           <div class="demo" data-demo data-interval="800">
@@ -905,18 +904,20 @@ defmodule MarginaliaWeb.LandingLive do
           </div>
 
           <p>
-            Underneath that it is a git repository, one per draft, and that is not a metaphor: the
-            binary, a working tree, a commit per accepted change carrying the move it made. You can
-            clone it and run <code>git log -p</code> over your own afternoon. A summary that has
-            gone stale shows the same split diff of exactly what moved under it, which is what
-            decides whether it is worth running again.
+            Underneath is a git repository, one per draft. The real binary and a working tree, with
+            a commit for every change you accepted carrying the move it made. Clone it and run
+            <code>git log -p</code>
+            over your own afternoon. When a summary goes stale, that same
+            split diff shows what moved under it, which is usually enough to decide whether to run
+            it again.
           </p>
         </div>
         <aside class="sec-aside">
           <div class="note" data-reveal style="--i:0">
             <span class="who">note</span>
-            "Before you have moved on" is vague where the rest of the section is exact. It happens
-            in the same transaction as the write; say that or cut the clause.
+            "In the same transaction as the edit" is the most reassuring clause here and the only
+            one a reader cannot check. Worth saying what happens when the commit fails, since the
+            answer is that your edit survives and the history has a hole in it.
           </div>
           <div class="note act" data-reveal style="--i:1">
             <span class="who">tension</span>
@@ -940,11 +941,11 @@ defmodule MarginaliaWeb.LandingLive do
             and that reading is in none of the documents.
           </p>
           <p>
-            It has been run on a real one: a compiler backend published as 111 stacked pull
-            requests, each chapter read knowing only its predecessors, then a second pass that can
-            see the whole chain and finds where a later chapter walks an earlier one back. Sixty-five
-            of the hundred and eleven do. The telling composed out of it runs to about nineteen
-            thousand words, and every claim in it links back to the chapter it came from.
+            We ran it on a compiler backend published as 111 stacked pull requests. Each chapter
+            was read knowing only its predecessors, and then a second pass that can see the whole
+            chain went looking for places where a later chapter walks an earlier one back. It found
+            sixty-five. The telling composed out of that runs to about nineteen thousand words, and
+            every claim in it links to the chapter it came from.
           </p>
           <div class="demo stack" data-demo data-interval="520">
             <div class="cap">111 chapters, read forwards, folded into what they add up to</div>
@@ -977,8 +978,8 @@ defmodule MarginaliaWeb.LandingLive do
         <aside class="sec-aside">
           <div class="note" data-reveal style="--i:0">
             <span class="who">note</span>
-            "Sixty-five of the hundred and eleven do" is the most convincing number on this page and
-            it is buried mid-paragraph in the second-to-last section.
+            "It found sixty-five" is the most convincing number on this page and it is buried
+            mid-paragraph in the second-to-last section.
           </div>
           <div class="note" data-reveal style="--i:1">
             <span class="who">observation</span>
@@ -995,10 +996,10 @@ defmodule MarginaliaWeb.LandingLive do
         <div class="sec-leader"></div>
         <div class="sec-main">
           <p>
-            Several dozen Supreme Court cases are on the front of this, each one an opinion, its
-            dissents and the argument that produced them, read together and related to each other
-            rather than filed as a list. They are public records and the reading of them is public
-            too, so you can see what the notes look like on documents you can check.
+            Several dozen Supreme Court cases sit on the front of this site: an opinion, its
+            dissents, and the argument that produced them, read together and related to one another
+            instead of filed as a list. They are public records, the reading of them is public too,
+            and you can hold the notes against documents you already have access to.
           </p>
           <div class="ctas">
             <.link navigate={~p"/cases"} class="cta">The cases →</.link>
