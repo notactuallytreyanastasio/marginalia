@@ -56,7 +56,7 @@ defmodule MarginaliaWeb.LandingLive do
       export default {
         mounted() {
           const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-          const targets = this.el.querySelectorAll("[data-reveal]");
+          const targets = this.el.querySelectorAll("[data-reveal], [data-demo]");
 
           if (reduce || !("IntersectionObserver" in window)) return;
 
@@ -70,6 +70,7 @@ defmodule MarginaliaWeb.LandingLive do
               entries.forEach((entry) => {
                 if (!entry.isIntersecting) return;
                 entry.target.classList.add("in");
+                if (entry.target.hasAttribute("data-demo")) this.play(entry.target);
                 this.io.unobserve(entry.target);
               });
             },
@@ -81,8 +82,28 @@ defmodule MarginaliaWeb.LandingLive do
           targets.forEach((el) => this.io.observe(el));
         },
 
+        // A demo is markup that already says what it means; the steps only
+        // control WHEN each part of it appears, so the whole thing is legible
+        // with the script dead or with motion turned down — the final frame is
+        // the default state and `reveal-ready` is what hides it.
+        play(demo) {
+          const gap = parseInt(demo.dataset.interval || "650", 10);
+          const steps = [...demo.querySelectorAll("[data-step]")].sort(
+            (a, b) => Number(a.dataset.step) - Number(b.dataset.step)
+          );
+
+          this.timers = this.timers || [];
+
+          steps.forEach((step, i) => {
+            this.timers.push(
+              setTimeout(() => step.classList.add("on"), gap * (i + 1))
+            );
+          });
+        },
+
         destroyed() {
           if (this.io) this.io.disconnect();
+          (this.timers || []).forEach(clearTimeout);
         },
       };
     </script>
@@ -210,6 +231,68 @@ defmodule MarginaliaWeb.LandingLive do
       .mg-cands .c.orig p{color:var(--mg-dim)}
       .mg-cands del{text-decoration:none; background:#f7e9e5; color:#8a3324; padding:0 .08em}
       .mg-cands ins{text-decoration:none; background:#e8f0e6; padding:0 .08em}
+      /* A demo is markup that already reads correctly. The steps only control
+         WHEN each part appears, so with the script dead or motion turned down
+         the final frame is what you get — `reveal-ready` is the only thing
+         that ever hides anything. */
+      .demo{margin:1.4rem 0 1.6rem; border:1px solid var(--mg-rule); border-radius:4px;
+        background:var(--mg-margin); padding:0.85rem 0.95rem; font-family:var(--mg-sans);
+        font-size:0.82rem; line-height:1.55}
+      .demo .cap{font-size:0.66rem; text-transform:uppercase; letter-spacing:0.07em;
+        color:var(--mg-dim); margin-bottom:0.6rem}
+
+      .demo .d-head{display:flex; align-items:baseline; gap:0.5rem; flex-wrap:wrap}
+      .demo .d-lab{font-size:0.64rem; text-transform:uppercase; letter-spacing:0.06em;
+        color:var(--mg-dim)}
+      .demo .d-title{font-family:var(--mg-serif); font-size:0.92rem}
+      .demo .d-btn{margin-left:auto; border:1px solid var(--mg-rule); border-radius:3px;
+        padding:0.1em 0.45em; background:var(--mg-paper); color:var(--mg-dim); font-size:0.7rem}
+      .demo .d-sum{font-family:var(--mg-serif); font-size:0.9rem; margin:0.6rem 0 0;
+        border-left:2px solid var(--mg-accent); padding-left:0.7rem}
+      .demo .d-chips{display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.5rem}
+      .demo .d-chips span{border:1px solid var(--mg-rule); border-radius:2px; background:var(--mg-paper);
+        padding:0.08em 0.4em; font-size:0.68rem; color:var(--mg-dim)}
+      .demo .d-links{display:flex; flex-wrap:wrap; gap:0.8rem; margin-top:0.45rem;
+        font-size:0.7rem; color:var(--mg-dim)}
+
+      .demo .d-cols{border:1px solid var(--mg-rule); border-radius:3px; overflow:hidden;
+        background:var(--mg-paper)}
+      .demo .d-colhead{display:grid; grid-template-columns:1fr 1fr; background:var(--mg-margin);
+        border-bottom:1px solid var(--mg-rule)}
+      .demo .d-colhead span{padding:0.25rem 0.5rem; font-size:0.62rem; text-transform:uppercase;
+        letter-spacing:0.06em; color:var(--mg-dim)}
+      .demo .d-colhead span+span{border-left:1px solid var(--mg-rule)}
+      .demo .d-row{display:grid; grid-template-columns:1fr 1fr}
+      .demo .d-side{padding:0.5rem 0.55rem; font-family:var(--mg-serif); font-size:0.82rem}
+      .demo .d-side+.d-side{border-left:1px solid var(--mg-rule)}
+      .demo .d-old del{background:rgba(203,36,49,0.20); color:#82071e; text-decoration:line-through;
+        border-radius:2px}
+      .demo .d-new ins{background:rgba(46,160,67,0.22); color:#116329; text-decoration:none;
+        border-radius:2px}
+      .demo .d-log{margin-top:0.4rem; font-family:var(--mg-sans); font-size:0.7rem; color:var(--mg-dim)}
+      .demo .d-log .sha{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--mg-ink)}
+
+      .demo.stack .d-ticks{display:flex; flex-wrap:wrap; gap:2px; margin-bottom:0.7rem}
+      .demo.stack .d-ticks i{width:5px; height:12px; background:var(--mg-rule); border-radius:1px}
+      .demo.stack .d-move{margin-top:0.35rem; display:flex; align-items:baseline; gap:0.5rem}
+      .demo.stack .d-move strong{font-family:var(--mg-serif); font-weight:600; font-size:0.85rem}
+      .demo.stack .d-revised{margin-top:0.6rem; color:var(--mg-accent); font-size:0.72rem}
+
+      /* Nothing above is hidden until the script says it is safe to hide it. */
+      .reveal-ready .demo [data-step]{opacity:0; transform:translateY(5px);
+        transition:opacity .45s ease, transform .45s ease}
+      .reveal-ready .demo [data-step].on{opacity:1; transform:none}
+      .reveal-ready .demo .d-old del[data-step],
+      .reveal-ready .demo .d-new ins[data-step]{transform:none}
+      .reveal-ready .demo.stack .d-ticks i{opacity:0.25;
+        transition:opacity .5s ease; transition-delay:calc(var(--n) * 6ms)}
+      .reveal-ready .demo.stack.in .d-ticks i{opacity:1}
+
+      @media (max-width:640px){
+        .demo .d-colhead,.demo .d-row{grid-template-columns:1fr}
+        .demo .d-side+.d-side{border-left:0; border-top:1px solid var(--mg-rule)}
+      }
+
       .reveal-ready .mg-cands .c.alt{opacity:0; transform:translateY(6px);
         transition:opacity .45s ease, transform .45s ease;
         transition-delay:calc(var(--i, 0) * 600ms)}
@@ -734,6 +817,28 @@ defmodule MarginaliaWeb.LandingLive do
             twelve, what is in it. It comes back with the concrete things the section deals with,
             which earlier sections you need first, and what it leaves in place for the ones after.
           </p>
+
+          <div class="demo" data-demo data-interval="700">
+            <div class="cap">Section 7 of 12, asked what is in it</div>
+            <div class="d-head">
+              <span class="d-lab">Section 7</span>
+              <span class="d-title">Date, bit vectors, coroutines and dependency inlining</span>
+              <span class="d-btn" data-step="1">Summarising…</span>
+            </div>
+            <p class="d-sum" data-step="2">
+              Adds the date library, the bit-vector type and the coroutine lowering, then inlines
+              vendored dependencies so a translated program carries its own library rather than
+              resolving one at run time.
+            </p>
+            <div class="d-chips" data-step="3">
+              <span>temper_date</span><span>bit vectors</span><span>coroutines</span><span>dependency inlining</span>
+            </div>
+            <div class="d-links" data-step="4">
+              <span>needs §4, §6</span>
+              <span>sets up: a program that runs with nothing else installed</span>
+            </div>
+          </div>
+
           <p>
             Each of those terms is checked against the section before you are shown it. A summary
             naming a concept the section never mentions is the one failure you cannot catch without
@@ -775,6 +880,30 @@ defmodule MarginaliaWeb.LandingLive do
             paragraph, with what went struck through in red and what arrived in green — aligned, so
             a paragraph inserted in the middle does not mark everything after it as different.
           </p>
+
+          <div class="demo" data-demo data-interval="800">
+            <div class="cap">The Changes tab, after one accepted rewrite</div>
+            <div class="d-cols">
+              <div class="d-colhead"><span>As it arrived</span><span>Now</span></div>
+              <div class="d-row">
+                <div class="d-side d-old">
+                  It was, in a sense, <del data-step="1">the beginning of something that would
+                  eventually change</del> everything about the way she saw her father.
+                </div>
+                <div class="d-side d-new">
+                  It was, in a sense, <ins data-step="2">where</ins> everything about the way she
+                  saw her father <ins data-step="2">began to change</ins>.
+                </div>
+              </div>
+            </div>
+            <div class="d-log" data-step="3">
+              <span class="sha">a41c9e2</span> rewrite: cuts the gloss
+            </div>
+            <div class="d-log" data-step="4">
+              <span class="sha">223f72d</span> the draft as it arrived
+            </div>
+          </div>
+
           <p>
             Underneath that it is a git repository, one per draft, and that is not a metaphor: the
             binary, a working tree, a commit per accepted change carrying the move it made. You can
@@ -817,6 +946,28 @@ defmodule MarginaliaWeb.LandingLive do
             of the hundred and eleven do. The telling composed out of it runs to about nineteen
             thousand words, and every claim in it links back to the chapter it came from.
           </p>
+          <div class="demo stack" data-demo data-interval="520">
+            <div class="cap">111 chapters, read forwards, folded into what they add up to</div>
+            <div class="d-ticks">
+              <i :for={n <- 1..111} style={"--n:#{n}"}></i>
+            </div>
+            <div class="d-move" data-step="1">
+              <strong>Get one module to emit and run before you build anything clever</strong>
+              <span class="mg-meta">§1–§5</span>
+            </div>
+            <div class="d-move" data-step="2">
+              <strong>Lowering is where the semantics live</strong>
+              <span class="mg-meta">§6–§13</span>
+            </div>
+            <div class="d-move" data-step="3">
+              <strong>A divergence is a transcript that reproduces, or it is a rumor</strong>
+              <span class="mg-meta">§70–§79</span>
+            </div>
+            <div class="d-revised" data-step="4">
+              65 of the 111 are walked back by a later chapter
+            </div>
+          </div>
+
           <div class="ctas">
             <.link navigate={~p"/reading/a-temper-backend-for-blimp-pull-request-stack"} class="cta">
               Read the one it produced →

@@ -85,4 +85,47 @@ defmodule MarginaliaWeb.LandingFeaturesTest do
       end
     end
   end
+
+  describe "the demos" do
+    test "each major feature carries one", %{html: html} do
+      assert html =~ "Section 7 of 12, asked what is in it"
+      assert html =~ "The Changes tab, after one accepted rewrite"
+      assert html =~ "111 chapters, read forwards"
+    end
+
+    test "a demo's final frame is in the markup, not assembled by the script", %{html: html} do
+      # The page has to read correctly with the script dead or motion turned
+      # down. Only `reveal-ready` — which JS adds — ever hides anything.
+      assert html =~ "temper_date"
+      assert html =~ "cuts the gloss"
+      assert html =~ "65 of the 111 are walked back by a later chapter"
+    end
+
+    test "the steps are declared in the markup for the hook to walk", %{html: html} do
+      assert html =~ ~s(data-demo)
+      assert html =~ ~s(data-step="1")
+      assert html =~ ~s(data-step="4")
+    end
+
+    test "the diff demo marks removals and additions the same way the real one does", %{
+      html: html
+    } do
+      assert html =~ "<del", "removed words"
+      assert html =~ "<ins", "added words"
+    end
+
+    test "nothing is hidden without the class the script adds" do
+      source = File.read!("lib/marginalia_web/live/landing_live.ex")
+
+      hiding =
+        Regex.scan(~r/^\s*(\.[a-z-]+[^{]*)\{[^}]*opacity:0/m, source)
+        |> Enum.map(fn [_, sel] -> String.trim(sel) end)
+
+      for sel <- hiding do
+        assert String.contains?(sel, "reveal-ready"),
+               "#{sel} hides content without waiting for the script; a landing page that " <>
+                 "needs JS to show its own copy sometimes shows nothing"
+      end
+    end
+  end
 end
