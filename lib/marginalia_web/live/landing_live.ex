@@ -22,6 +22,13 @@ defmodule MarginaliaWeb.LandingLive do
   opens it, and nothing comes through it unasked.
 
   "Just the notes" drops the prose and leaves the rail.
+
+  Every section carries an id, because the thing people actually want from
+  this page is to send somebody one feature rather than the whole scroll.
+  The ids are named for the feature — `#changes`, `#summaries`, `#links` —
+  and deliberately not derived from the headline above them: the headlines
+  are prose and get reworded, and an id that tracked them would break every
+  link already sent without anything failing to say so.
   """
   use MarginaliaWeb, :live_view
 
@@ -135,7 +142,10 @@ defmodule MarginaliaWeb.LandingLive do
 
       /* ---- the rail ---------------------------------------------------- */
       .sec{display:grid; grid-template-columns:minmax(0,58ch) 3rem minmax(0,30ch);
-        justify-content:center; align-items:start; column-gap:0}
+        justify-content:center; align-items:start; column-gap:0;
+        /* an anchored section lands with air above its heading rather than
+           flush against the top of the window */
+        scroll-margin-top:2rem}
       .sec-title{grid-column:1; padding-right:.5rem; min-width:0}
       .sec-main{grid-column:1; padding-right:.5rem; min-width:0}
       .sec-aside{grid-column:3; padding-left:.5rem; position:sticky; top:5rem; padding-bottom:2.5rem}
@@ -301,9 +311,12 @@ defmodule MarginaliaWeb.LandingLive do
       .fx .d-reply{margin:0.65rem 0 0; font-family:var(--mg-serif); font-size:0.88rem;
         border-left:2px solid var(--mg-rule); padding-left:0.7rem}
 
-      .fx.stack .d-ticks{display:flex; flex-wrap:wrap; gap:2px; margin-bottom:0.7rem}
-      .fx.stack .d-ticks i{width:5px; height:12px; background:var(--mg-rule); border-radius:1px}
-      .fx.stack .d-move{margin-top:0.35rem; display:flex; align-items:baseline; gap:0.5rem}
+      .fx.stack .d-ticks{display:block; height:12px; margin-bottom:0.8rem; border-radius:1px;
+        background-image:repeating-linear-gradient(to right,
+          var(--mg-rule) 0, var(--mg-rule) 5px, transparent 5px, transparent 7px);
+        background-repeat:repeat-x}
+      .fx.stack .d-move{display:block; margin-top:0.4rem; line-height:1.5}
+      .fx.stack .d-move .mg-meta{margin-left:0.4rem}
       .fx.stack .d-move strong{font-family:var(--mg-serif); font-weight:600; font-size:0.85rem}
       .fx.stack .d-revised{margin-top:0.6rem; color:var(--mg-accent); font-size:0.72rem}
 
@@ -313,9 +326,8 @@ defmodule MarginaliaWeb.LandingLive do
       .reveal-ready .fx [data-step].on{opacity:1; transform:none}
       .reveal-ready .fx .d-old del[data-step],
       .reveal-ready .fx .d-new ins[data-step]{transform:none}
-      .reveal-ready .fx.stack .d-ticks i{opacity:0.25;
-        transition:opacity .5s ease; transition-delay:calc(var(--n) * 6ms)}
-      .reveal-ready .fx.stack.in .d-ticks i{opacity:1}
+      .reveal-ready .fx.stack .d-ticks{opacity:0.25; transition:opacity .7s ease}
+      .reveal-ready .fx.stack.in .d-ticks{opacity:1}
 
       @media (max-width:640px){
         .fx .d-colhead,.fx .d-row{grid-template-columns:1fr}
@@ -394,7 +406,7 @@ defmodule MarginaliaWeb.LandingLive do
         </span>
       </div>
 
-      <section class="sec head">
+      <section class="sec head" id="top">
         <div class="sec-title">
           <h1>Someone who has actually read the whole thing.</h1>
         </div>
@@ -423,7 +435,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="why">
         <div class="sec-title">
           <h2>Nobody finishes your draft</h2>
         </div>
@@ -448,7 +460,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="the-read">
         <div class="sec-title">
           <h2>It reads all of it, and you watch</h2>
         </div>
@@ -482,7 +494,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="anchoring">
         <div class="sec-title">
           <h2>Pinned to your own sentences</h2>
         </div>
@@ -516,7 +528,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="margin">
         <div class="sec-title">
           <h2>The page, with its notes in the margin</h2>
         </div>
@@ -559,7 +571,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="threads">
         <div class="sec-title">
           <h2>A thread on one paragraph</h2>
         </div>
@@ -632,7 +644,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="graph">
         <div class="sec-title">
           <h2>What leads to what</h2>
         </div>
@@ -696,7 +708,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="rewrites">
         <div class="sec-title">
           <h2>The one place it writes</h2>
         </div>
@@ -804,7 +816,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="editing">
         <div class="sec-title">
           <h2>Then you change it yourself</h2>
         </div>
@@ -832,7 +844,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="retrieval">
         <div class="sec-title">
           <h2>It goes and looks</h2>
         </div>
@@ -904,7 +916,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="summaries">
         <div class="sec-title">
           <h2>Where you are in twelve sections</h2>
         </div>
@@ -967,7 +979,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="changes">
         <div class="sec-title">
           <h2>Every change, kept</h2>
         </div>
@@ -1029,7 +1041,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="links">
         <div class="sec-title">
           <h2>Two drafts, and what runs between them</h2>
         </div>
@@ -1103,7 +1115,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="stacks">
         <div class="sec-title">
           <h2>A hundred and eleven pull requests, read forwards</h2>
         </div>
@@ -1124,9 +1136,11 @@ defmodule MarginaliaWeb.LandingLive do
           </p>
           <div class="fx stack" data-demo data-interval="520">
             <div class="cap">111 chapters, read forwards, folded into what they add up to</div>
-            <div class="d-ticks">
-              <i :for={n <- 1..111} style={"--n:#{n}"}></i>
-            </div>
+            <%!-- One element, not 111 flex-wrapped children. The ticks are a
+                  repeating gradient: nothing to wrap, nothing to shrink, and
+                  no layout that can behave differently in one browser than
+                  another. It draws the same bar and costs 110 fewer nodes. --%>
+            <div class="d-ticks" aria-hidden="true"></div>
             <div class="d-move" data-step="1">
               <strong>Get one module to emit and run before you build anything clever</strong>
               <span class="mg-meta">§1–§5</span>
@@ -1164,7 +1178,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="reading">
         <div class="sec-title">
           <h2>Or read one it has already done</h2>
         </div>
@@ -1193,7 +1207,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="costs">
         <div class="sec-title">
           <h2>What it costs, and where your draft goes</h2>
         </div>
@@ -1232,7 +1246,7 @@ defmodule MarginaliaWeb.LandingLive do
         </aside>
       </section>
 
-      <section class="sec head">
+      <section class="sec head" id="start">
         <div class="sec-title">
           <h2>Bring the draft in the drawer.</h2>
         </div>

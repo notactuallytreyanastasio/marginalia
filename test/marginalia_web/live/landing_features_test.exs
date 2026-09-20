@@ -240,4 +240,38 @@ defmodule MarginaliaWeb.LandingFeaturesTest do
     assert duplicated == [],
            "two top-level rules for the same class in one stylesheet: #{inspect(duplicated)}"
   end
+
+  describe "the anchors" do
+    # A link to a feature is something somebody pastes into a message and
+    # then cannot re-send when it breaks. So the ids are named for the
+    # feature rather than the headline above it — the headline is prose and
+    # gets reworded, and an id derived from it would rot on the first pass
+    # of copy editing without anything failing.
+    test "every section is addressable and no id is used twice", %{html: html} do
+      sections = Regex.scan(~r/<section class="sec head"([^>]*)>/, html)
+
+      ids =
+        Regex.scan(~r/<section class="sec head" id="([a-z-]+)"/, html)
+        |> Enum.map(fn [_, id] -> id end)
+
+      assert length(ids) == length(sections),
+             "#{length(sections) - length(ids)} section(s) on the page cannot be linked to"
+
+      assert ids == Enum.uniq(ids),
+             "a repeated id sends two links to the same place: #{inspect(ids -- Enum.uniq(ids))}"
+    end
+
+    test "the features people will link at have the ids they were given", %{html: html} do
+      for {id, what} <- [
+            {"changes", "revisions, the split diff and git"},
+            {"summaries", "per-section and document summaries"},
+            {"links", "two drafts related"},
+            {"stacks", "a folder read forwards"},
+            {"graph", "what leads to what"},
+            {"rewrites", "the one place it writes"}
+          ] do
+        assert html =~ ~s(id="#{id}"), "/##{id} is the link for #{what}"
+      end
+    end
+  end
 end
