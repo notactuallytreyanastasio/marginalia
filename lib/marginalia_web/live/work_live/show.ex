@@ -503,6 +503,29 @@ defmodule MarginaliaWeb.WorkLive.Show do
     end
   end
 
+  # The summaries, as something to write from rather than only to read.
+  def handle_event("summaries_to_draft", _params, socket) do
+    a = socket.assigns
+
+    if a.mine? do
+      case Marginalia.Document.to_draft(a.current_scope.user.id, a.work) do
+        {:ok, draft} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, "Opened the summaries as a draft of their own.")
+           |> push_navigate(to: ~p"/works/#{draft.slug}")}
+
+        {:error, :nothing_summarised} ->
+          {:noreply, put_flash(socket, :error, "Summarise at least one section first.")}
+
+        {:error, reason} ->
+          {:noreply, put_flash(socket, :error, "Could not make a draft: #{inspect(reason)}")}
+      end
+    else
+      {:noreply, put_flash(socket, :error, "This draft is someone else's.")}
+    end
+  end
+
   # The whole document: the section summaries fanned out, then two prongs
   # concurrently. Its own commit, because "summarise the document" is a point
   # a writer will want to come back to.
@@ -2677,8 +2700,18 @@ defmodule MarginaliaWeb.WorkLive.Show do
           <div :if={@mine?} class="mg-doc">
             <div class="mg-doc-head">
               <span class="mg-label">The whole document</span>
+
+              <%!-- Only once there is something to make one out of. A draft
+                    built from no summaries is an empty draft. --%>
               <button
+                :if={Enum.any?(@page || [], &(&1.section.summary not in [nil, ""]))}
                 class="mg-btn sm ghost ml-auto"
+                phx-click="summaries_to_draft"
+                title="Make a draft out of the summaries, to edit and read like any other"
+              >Open as a draft</button>
+
+              <button
+                class="mg-btn sm ghost"
                 phx-click="summarise_document"
                 disabled={@doc_running}
               >

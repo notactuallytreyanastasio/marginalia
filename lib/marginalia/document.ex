@@ -425,6 +425,90 @@ defmodule Marginalia.Document do
   @doc "The stored document summary, or nil."
   def get(work_id), do: Repo.get_by(DocumentSummary, work_id: work_id)
 
+  @doc """
+  Turn what has been summarised into a draft of its own.
+
+  The summaries are prose somebody can work on: a condensed version of the
+  draft, in order, with what the document does at the top and the rules it
+  works under at the end. Until now they could only be read where they were
+  written, which makes them a report rather than something to write from.
+
+  Each section summary becomes a `##` heading, which is what
+  `Segmenter.split/1` divides on. Short ones merge under the segmenter's
+  minimum, and that is right: a forty-word section is not worth a note of its
+  own.
+
+  Not filed into any folder, for the reason `Stacks.to_draft/2` is not — a
+  condensation sitting in the folder it condenses becomes document N+1 of the
+  thing it summarises.
+  """
+  def to_draft(user_id, %Work{} = work) do
+    sections = Works.list_sections(work.id)
+    summarised = Enum.filter(sections, &(&1.summary not in [nil, ""]))
+
+    if summarised == [] do
+      {:error, :nothing_summarised}
+    else
+      doc = get(work.id)
+
+      Works.create_work(user_id, %{
+        "title" => "#{work.title} — in summary",
+        "intent" =>
+          "A condensation of #{work.title}: #{length(summarised)} of its " <>
+            "#{length(sections)} sections, in order. It is meant to read as an argument " <>
+            "in its own right, so the test of any part is whether it stands without the " <>
+            "section it came from.",
+        "body" => draft_body(work, doc, summarised)
+      })
+    end
+  end
+
+  defp draft_body(work, doc, summarised) do
+    opening =
+      case doc do
+        %DocumentSummary{summary: s} when is_binary(s) and s != "" ->
+          [s, doc.throughline] |> Enum.reject(&(&1 in [nil, ""])) |> Enum.join("\n\n")
+
+        _ ->
+          "A condensation of #{work.title}, section by section."
+      end
+
+    parts =
+      Enum.map(summarised, fn s ->
+        [
+          "## #{s.ordinal}. #{s.title}",
+          "",
+          s.summary,
+          covers_line(s),
+          sets_up_line(s)
+        ]
+        |> Enum.reject(&is_nil/1)
+        |> Enum.join("\n")
+      end)
+
+    ([opening] ++ parts ++ [rules_part(doc)])
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join("\n\n")
+    |> String.trim()
+  end
+
+  defp covers_line(%{summary_covers: c}) when is_list(c) and c != [],
+    do: "\nIt deals with: " <> Enum.join(c, ", ") <> "."
+
+  defp covers_line(_), do: nil
+
+  defp sets_up_line(%{summary_sets_up: s}) when is_binary(s) and s != "",
+    do: "\nIt leaves in place: " <> s
+
+  defp sets_up_line(_), do: nil
+
+  defp rules_part(%DocumentSummary{guidelines: g}) when is_list(g) and g != [] do
+    "## What it is working under\n\n" <>
+      Enum.map_join(g, "\n\n", fn rule -> "#{rule["guideline"]} #{rule["because"]}" end)
+  end
+
+  defp rules_part(_), do: nil
+
   defp store(work, sections, comp, guide) do
     {attrs, dropped} = validate(comp, guide, sections)
     upsert(work, sections, attrs, dropped)
