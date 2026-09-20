@@ -4781,3 +4781,210 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
 .tension-count { color: var(--mg-accent); }
 .lk-more { margin-top: 1.2rem; }
 .lk-more .mg-meta { margin-left: 0.4rem; }
+
+/* --- bulk import, as a flow -----------------------------------------------
+   Four steps across the top, then whichever one you are on. The trail is
+   there because the expensive step is the last one and the whole point of
+   the design is that you can see it coming. */
+.im-steps {
+  display: flex;
+  gap: 0.4rem;
+  margin: 1.4rem 0 0;
+  padding: 0;
+  list-style: none;
+  flex-wrap: wrap;
+}
+.im-step {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.6rem 0.28rem 0.32rem;
+  border: 1px solid var(--mg-rule);
+  border-radius: 999px;
+  font-family: var(--mg-sans);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mg-dim);
+  background: var(--mg-paper);
+}
+.im-step span {
+  display: grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: var(--mg-margin);
+  font-size: 0.62rem;
+}
+.im-step.on { color: var(--mg-ink); border-color: var(--mg-ink); }
+.im-step.on span { background: var(--mg-ink); color: var(--mg-paper); }
+
+/* the two doors */
+.im-pick { display: grid; gap: 0.9rem; margin-top: 1.4rem; }
+@media (min-width: 720px) { .im-pick { grid-template-columns: 1fr 1fr; } }
+.im-card {
+  display: block;
+  text-align: left;
+  padding: 1rem 1.1rem 1.1rem;
+  border: 1px solid var(--mg-rule);
+  border-radius: 4px;
+  background: var(--mg-paper);
+  font-family: var(--mg-sans);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.im-card:hover { border-color: var(--mg-ink); box-shadow: 0 2px 10px rgb(0 0 0 / 6%); }
+.im-card b {
+  display: block;
+  margin: 0.3rem 0 0.4rem;
+  font-family: var(--mg-serif);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.im-card > span:last-child {
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--mg-dim);
+}
+
+/* one repository or a search */
+.im-modes { display: grid; gap: 0.6rem; }
+@media (min-width: 720px) { .im-modes { grid-template-columns: 1fr 1fr; } }
+.im-mode {
+  display: block;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--mg-rule);
+  border-radius: 4px;
+  background: var(--mg-paper);
+  font-family: var(--mg-sans);
+  cursor: pointer;
+}
+.im-mode.on { border-color: var(--mg-ink); background: #fdf8ec; }
+.im-mode b { display: inline-block; margin-left: 0.4rem; font-size: 0.86rem; }
+.im-mode > span {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--mg-dim);
+}
+
+.im-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 1rem 0 0.5rem;
+  font-family: var(--mg-sans);
+  font-size: 0.76rem;
+  color: var(--mg-dim);
+}
+.im-bar > span:first-child { margin-right: auto; }
+.im-bar b { color: var(--mg-ink); }
+
+/* The list is the whole step, so it gets the height. Scrolling it rather
+   than the page keeps the folder field and the import button in view: the
+   thing you do after choosing is directly below, and a hundred rows of
+   pull request in the way of it made the flow feel like it had stalled. */
+.im-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 26rem;
+  overflow-y: auto;
+  border: 1px solid var(--mg-rule);
+  border-radius: 4px;
+  background: var(--mg-paper);
+}
+.im-row { border-bottom: 1px solid var(--mg-rule); }
+.im-row:last-child { border-bottom: 0; }
+.im-row.on { background: #fdf8ec; }
+.im-row > label,
+.im-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding: 0.45rem 0.7rem;
+  font-family: var(--mg-sans);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.im-row > label { width: 100%; padding: 0; }
+.im-row input[type="checkbox"] { flex: none; align-self: center; }
+.im-row .n { flex: none; color: var(--mg-dim); font-variant-numeric: tabular-nums; }
+.im-row .t {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--mg-ink);
+}
+.im-row .s {
+  flex: none;
+  padding: 0.05rem 0.35rem;
+  border-radius: 2px;
+  background: var(--mg-margin);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mg-dim);
+}
+.im-row .s.merged { color: #6b21a8; }
+.im-row .s.open { color: #166534; }
+.im-row .s.draft { color: #b45309; }
+.im-row .r { flex: none; font-size: 0.68rem; color: var(--mg-dim); }
+
+.im-check {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  font-family: var(--mg-sans);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--mg-dim);
+  cursor: pointer;
+}
+.im-check input[type="checkbox"] { margin-top: 0.25rem; flex: none; }
+.im-check b { color: var(--mg-ink); font-weight: 600; }
+
+.im-drop {
+  padding: 1.4rem;
+  border: 2px dashed var(--mg-rule);
+  border-radius: 4px;
+  background: var(--mg-paper);
+  text-align: center;
+}
+.im-drop p { margin: 0 0 0.9rem; }
+/* the native control, which otherwise renders at the page's serif body size
+   and reads as a heading that says "No file chosen" */
+.im-drop input[type="file"] {
+  font-family: var(--mg-sans);
+  font-size: 0.8rem;
+  color: var(--mg-dim);
+}
+
+.im-progress {
+  height: 6px;
+  margin-top: 0.5rem;
+  border-radius: 999px;
+  background: var(--mg-margin);
+  overflow: hidden;
+}
+.im-progress span {
+  display: block;
+  height: 100%;
+  background: var(--mg-accent);
+  transition: width 0.3s ease;
+}
+
+.im-bad {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  font-family: var(--mg-sans);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--mg-dim);
+}

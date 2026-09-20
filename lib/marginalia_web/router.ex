@@ -120,6 +120,9 @@ defmodule MarginaliaWeb.Router do
       on_mount: [{MarginaliaWeb.UserAuth, :allow_guest}] do
       live "/works", WorkLive.Index, :index
       live "/works/new", WorkLive.New, :new
+      # Many at once, in steps: the listing is fetched and looked at before
+      # anything is created. See MarginaliaWeb.ImportLive.
+      live "/import", ImportLive, :index
       live "/works/:id", WorkLive.Show, :show
       live "/stacks", StackLive.Index, :index
       # `new` before `:id`, or the import page resolves as a folder called

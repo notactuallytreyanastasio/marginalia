@@ -196,6 +196,7 @@ defmodule MarginaliaWeb.WorkLive.Index do
             />
             <button class="mg-btn sm ghost" type="submit">add folder</button>
           </form>
+          <.link navigate={~p"/import"} class="mg-btn sm ghost">Import many</.link>
           <.link navigate={~p"/works/new"} class="mg-btn">Upload a draft</.link>
         </div>
 

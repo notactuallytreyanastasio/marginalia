@@ -36,7 +36,8 @@ defmodule MarginaliaWeb.StackLive.Index do
             Methods
           </h1>
           <span class="mg-meta">{length(@rows)} readable folders</span>
-          <.link navigate={~p"/stacks/new"} class="mg-btn sm ml-auto">Import a stack</.link>
+          <.link navigate={~p"/import"} class="mg-btn sm ghost ml-auto">Import many</.link>
+          <.link navigate={~p"/stacks/new"} class="mg-btn sm">Import a stack</.link>
         </div>
 
         <p class="mg-meta mt-4 leading-relaxed">

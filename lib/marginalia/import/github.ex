@@ -129,6 +129,193 @@ defmodule Marginalia.Import.GitHub do
 
   # --- the chain ------------------------------------------------------------
 
+  # --- a pile, rather than a stack ------------------------------------------
+
+  @doc """
+  Every pull request of a repository, in no particular order.
+
+  `stack/4` refuses anything that is not a strict base-to-head chain, which
+  is right for importing a series and wrong for everything else: most
+  repositories are not stacks, and "these forty pull requests are not a
+  chain" is not a useful answer to "let me pick some of them".
+
+  So this asks nothing of the shape. What comes back is one light row per
+  pull request — enough to show a list and choose from it, and nothing
+  more. The bodies and the commit trails are a request each and are only
+  fetched for what somebody actually picks.
+  """
+  def list(owner, repo, token, opts \\ []) do
+    with :ok <- check_name(owner),
+         :ok <- check_name(repo),
+         {:ok, pulls} <- pulls(owner, repo, token, opts[:state] || "all") do
+      {:ok, Enum.map(pulls, &candidate("#{owner}/#{repo}", &1))}
+    end
+  end
+
+  @doc """
+  Pull requests matching a GitHub search query.
+
+  The query is GitHub's own, passed through: `repo:owner/name label:design`,
+  `author:me merged:>2024-01-01`, whatever the reader already knows how to
+  write. `is:pr` is appended rather than required, because a search that
+  quietly returned issues would fill a folder with documents that have no
+  diff behind them.
+
+  Search is a different endpoint with a different rate limit (30 a minute
+  against 5000 an hour), and it caps at 1000 results however many pages you
+  ask for. Both of those are GitHub's, not this module's, and both are worth
+  knowing before pointing it at an organisation.
+  """
+  def search(query, token, opts \\ []) do
+    case String.trim(query || "") do
+      "" ->
+        {:error, :empty_query}
+
+      q ->
+        q = if String.contains?(q, "is:pr"), do: q, else: q <> " is:pr"
+        pages = min(opts[:pages] || @max_pages, @max_pages)
+
+        Enum.reduce_while(1..pages, {:ok, []}, fn page, {:ok, acc} ->
+          path =
+            "/search/issues?q=#{URI.encode_www_form(q)}&per_page=#{@per_page}&page=#{page}"
+
+          case get(path, token) do
+            {:ok, %{"items" => []}} ->
+              {:halt, {:ok, acc}}
+
+            {:ok, %{"items" => items}} when length(items) < @per_page ->
+              {:halt, {:ok, acc ++ items}}
+
+            {:ok, %{"items" => items}} ->
+              {:cont, {:ok, acc ++ items}}
+
+            {:ok, _} ->
+              {:halt, {:error, :no_results_field}}
+
+            other ->
+              {:halt, other}
+          end
+        end)
+        |> case do
+          {:ok, items} -> {:ok, Enum.map(items, &candidate(repo_of(&1), &1))}
+          other -> other
+        end
+    end
+  end
+
+  # A search result does not carry owner/repo as such — it carries the API
+  # URL of the repository it came from, which is the only place to get them.
+  defp repo_of(%{"repository_url" => url}) when is_binary(url) do
+    url |> String.split("/repos/", parts: 2) |> List.last()
+  end
+
+  defp repo_of(_), do: nil
+
+  @doc """
+  One row per pull request, for choosing from.
+
+  Public because the shape is what the page is written against, and because
+  a search result and a listing are two different JSON documents that have
+  to arrive here looking the same.
+  """
+  def candidate(repo, p) do
+    %{
+      repo: repo,
+      number: p["number"],
+      title: p["title"] || "",
+      url: p["html_url"],
+      state: state_of(p),
+      draft: p["draft"] == true,
+      base: get_in(p, ["base", "ref"]),
+      head: get_in(p, ["head", "ref"]),
+      updated_at: p["updated_at"]
+    }
+  end
+
+  # `state` is "open" or "closed"; whether a closed one was merged is a
+  # different field, and the difference is the whole point of the filter.
+  defp state_of(%{"merged_at" => at}) when is_binary(at), do: "merged"
+  defp state_of(%{"pull_request" => %{"merged_at" => at}}) when is_binary(at), do: "merged"
+  defp state_of(p), do: p["state"] || "open"
+
+  @doc """
+  The document each of these pull requests becomes.
+
+  One request per pull request for the body, one more for the commits, run a
+  few at a time — a hundred of them serially is minutes of waiting at a page
+  that shows nothing. `on_item` is called as each lands, for the same reason.
+
+  A pull request that cannot be fetched is returned as an error beside the
+  ones that worked rather than failing the batch. Forty documents and a named
+  failure is worth more than nothing and a reason.
+  """
+  def documents(candidates, token, opts \\ []) do
+    commits? = Keyword.get(opts, :commits, true)
+    total = length(candidates)
+
+    candidates
+    |> Task.async_stream(
+      fn c ->
+        out =
+          case one_document(c, token, commits?) do
+            {:ok, doc} -> {:ok, doc}
+            {:error, reason} -> {:error, {c, reason}}
+          end
+
+        # From inside the task, not from a pass over the finished results:
+        # this is the only place that knows a document has landed while the
+        # rest are still in flight, which is the whole point of reporting it.
+        if is_function(opts[:on_item]), do: opts[:on_item].(c, total)
+        out
+      end,
+      max_concurrency: Keyword.get(opts, :concurrency, 6),
+      timeout: 120_000,
+      on_timeout: :kill_task,
+      ordered: true
+    )
+    |> Stream.zip(candidates)
+    |> Enum.map(fn
+      {{:ok, value}, _c} -> value
+      {{:exit, reason}, c} -> {:error, {c, {:crashed, inspect(reason)}}}
+    end)
+    |> Enum.split_with(&match?({:ok, _}, &1))
+    |> then(fn {ok, bad} ->
+      %{
+        documents: Enum.map(ok, fn {:ok, d} -> d end),
+        failed: Enum.map(bad, fn {:error, pair} -> pair end)
+      }
+    end)
+  end
+
+  defp one_document(%{repo: repo, number: number} = c, token, commits?) do
+    with [owner, name] <- String.split(repo || "", "/", parts: 2),
+         :ok <- check_name(owner),
+         :ok <- check_name(name),
+         {:ok, full} <- get("/repos/#{owner}/#{name}/pulls/#{number}", token) do
+      item =
+        %{
+          ordinal: nil,
+          number: number,
+          title: full["title"] || c.title,
+          body: full["body"] || "",
+          url: full["html_url"] || c.url
+        }
+        |> then(fn i -> if commits?, do: with_commits(i, owner, name, token), else: i end)
+
+      {:ok,
+       %{
+         number: number,
+         repo: repo,
+         title: item.title,
+         body: document(item),
+         source_url: item.url
+       }}
+    else
+      {:error, reason} -> {:error, reason}
+      _ -> {:error, :bad_name}
+    end
+  end
+
   @doc """
   Put pull requests in stack order, or say why they are not a stack.
 
@@ -326,6 +513,12 @@ defmodule Marginalia.Import.GitHub do
         "(#{Enum.join(refs, ", ")}). A stack is one pull request per branch."
 
   def explain(:no_pull_requests), do: "That repository has no open pull requests."
+  def explain(:empty_query), do: "Write a search query first."
+
+  def explain(:no_results_field),
+    do: "GitHub answered the search with something this does not recognise."
+
+  def explain({:crashed, _}), do: "That one crashed on the way in."
   def explain(:unauthorized), do: "GitHub rejected the token."
 
   def explain(:forbidden),

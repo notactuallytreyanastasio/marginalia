@@ -170,6 +170,13 @@ defmodule MarginaliaWeb.StackLive.New do
         </form>
 
         <p class="mg-meta mt-8 leading-relaxed">
+          If the repository is not a stack, or you only want some of it,
+          <.link navigate={~p"/import"}>import in bulk</.link>
+          instead: that lists the pull requests first and lets you pick, and asks nothing
+          about the shape they are in.
+        </p>
+
+        <p class="mg-meta mt-4 leading-relaxed">
           Importing saves each pull request's description as a draft, in order, in a folder.
           Nothing is read yet — that is the next three buttons on the folder's page.
         </p>
