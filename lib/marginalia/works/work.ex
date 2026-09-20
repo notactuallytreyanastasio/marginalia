@@ -14,6 +14,8 @@ defmodule Marginalia.Works.Work do
     field :collection, :string
     field :collection_role, :string
     field :body, :string
+    # the prose as it arrived, so the diff has a fixed point to measure from
+    field :baseline_body, :string
     field :word_count, :integer, default: 0
     field :status, :string, default: "pending"
     field :status_detail, :string
@@ -43,7 +45,8 @@ defmodule Marginalia.Works.Work do
       :first_impression,
       :source_url,
       :collection,
-      :collection_role
+      :collection_role,
+      :baseline_body
     ])
     |> put_slug()
     |> validate_required([:title, :body])

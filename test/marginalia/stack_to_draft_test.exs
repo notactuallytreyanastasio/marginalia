@@ -68,9 +68,12 @@ defmodule Marginalia.StackToDraftTest do
 
     # The closing gets its own heading, but a short one is merged into the
     # section before it by the segmenter's @min_words rule. That is right —
-    # a two-line section is not worth a note of its own — so what is asserted
-    # is that the text survives, not that it stands alone.
-    assert work.body =~ "## Closing"
+    # a two-line section is not worth a note of its own.
+    #
+    # The `##` itself is gone from the body: a work's body is the join of its
+    # sections, and the segmenter lifts a heading into the section title. So
+    # what is asserted is that the closing text survives.
+    assert work.body =~ "That is the method."
   end
 
   test "the opening, the turns and the closing all survive", ctx do

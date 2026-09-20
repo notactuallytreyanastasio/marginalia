@@ -7,6 +7,11 @@ defmodule Marginalia.Works.Section do
     field :title, :string
     field :body, :string
     field :word_count, :integer, default: 0
+    # what this section says, cached against the text it was made from
+    field :summary, :string
+    field :summary_fingerprint, :string
+    field :summarised_at, :utc_datetime
+
     field :status, :string, default: "pending"
 
     belongs_to :work, Marginalia.Works.Work

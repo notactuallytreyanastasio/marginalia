@@ -8,7 +8,7 @@ defmodule Marginalia.Works do
 
   import Ecto.Query
   alias Marginalia.Repo
-  alias Marginalia.Works.{Work, Section, Node, Edge, GraphEvent, Correction}
+  alias Marginalia.Works.{Work, Section, Node, Edge, GraphEvent, Correction, Revision}
 
   # ==========================================================================
   # Works
@@ -68,6 +68,22 @@ defmodule Marginalia.Works do
     Repo.transaction(fn ->
       with {:ok, work} <- Repo.insert(changeset),
            {:ok, _n} <- insert_sections(work) do
+        # The body is maintained as the join of its sections — `rebuild_work_body`
+        # does that after every edit — but on arrival it was still the raw
+        # upload, which the segmenter has since normalised. Those differ by
+        # whitespace, so a draft's body silently changed shape the first time
+        # anyone edited it, and a baseline captured from the raw text could
+        # never be replayed into the body exactly.
+        #
+        # Settling both here means baseline + patches == body from the first
+        # moment, which is the property the diff view rests on.
+        joined = work.id |> list_sections() |> Enum.map_join("\n\n", & &1.body)
+
+        {:ok, work} =
+          work
+          |> Ecto.Changeset.change(baseline_body: joined, body: joined)
+          |> Repo.update()
+
         work
       else
         {:error, reason} -> Repo.rollback(reason)
@@ -166,7 +182,14 @@ defmodule Marginalia.Works do
         {:error, :not_found}
 
       node ->
-        node |> Node.changeset(%{work_id: work_id, node_type: node.node_type, title: node.title, status: status}) |> Repo.update()
+        node
+        |> Node.changeset(%{
+          work_id: work_id,
+          node_type: node.node_type,
+          title: node.title,
+          status: status
+        })
+        |> Repo.update()
     end
   end
 
@@ -399,8 +422,72 @@ defmodule Marginalia.Works do
     end
   end
 
-
   # ==========================================================================
+  # --- revisions -------------------------------------------------------------
+
+  defp record_revision(%Section{} = section, before, aft, opts) do
+    seq =
+      Revision
+      |> where([r], r.work_id == ^section.work_id)
+      |> select([r], coalesce(max(r.seq), 0))
+      |> Repo.one()
+
+    %Revision{}
+    |> Revision.changeset(%{
+      work_id: section.work_id,
+      section_id: section.id,
+      section_ordinal: section.ordinal,
+      seq: seq + 1,
+      before: before,
+      after: aft,
+      origin: to_string(opts[:origin] || "edit"),
+      note: opts[:note]
+    })
+    |> Repo.insert()
+  end
+
+  @doc "Every change to a draft's prose, oldest first."
+  def revisions(work_id) do
+    Revision
+    |> where([r], r.work_id == ^work_id)
+    |> order_by([r], asc: r.seq)
+    |> Repo.all()
+  end
+
+  @doc "How many changes a draft has had."
+  def revision_count(work_id),
+    do: Repo.one(from r in Revision, where: r.work_id == ^work_id, select: count(r.id))
+
+  @doc """
+  The prose as it arrived.
+
+  Falls back to the current body for a draft that predates any history: it
+  has no recorded changes, so "as it arrived" and "as it is" are the same
+  thing, and that is the truth rather than a placeholder.
+  """
+  def baseline(%Work{baseline_body: b, body: body}) when is_nil(b) or b == "", do: body
+  def baseline(%Work{baseline_body: b}), do: b
+
+  @doc """
+  Replay every revision over the baseline.
+
+  The property the diff view rests on: patches applied in order reproduce the
+  body. Returns `{:ok, body}`, or `{:error, seq}` naming the first revision
+  whose `before` is no longer present — which means the history and the draft
+  have parted company, and is worth knowing rather than papering over.
+  """
+  def replay(work_id) do
+    work = Repo.get!(Work, work_id)
+
+    Enum.reduce_while(revisions(work_id), {:ok, baseline(work)}, fn rev, {:ok, body} ->
+      if String.contains?(body, rev.before) do
+        {:cont, {:ok, String.replace(body, rev.before, rev.after, global: false)}}
+      else
+        {:halt, {:error, rev.seq}}
+      end
+    end)
+  end
+
   # Corrections — what the writer has already told us
   # ==========================================================================
 
@@ -459,7 +546,6 @@ defmodule Marginalia.Works do
     |> Enum.reject(&(is_nil(&1.from) or is_nil(&1.to)))
   end
 
-
   # ==========================================================================
   # Editing the draft
   # ==========================================================================
@@ -480,7 +566,7 @@ defmodule Marginalia.Works do
 
   Returns `{:ok, %{section:, superseded:}}`.
   """
-  def replace_block(%Section{} = section, old_block, new_text) do
+  def replace_block(%Section{} = section, old_block, new_text, opts \\ []) do
     old_block = to_string(old_block)
     new_text = new_text |> to_string() |> String.trim_trailing()
 
@@ -507,9 +593,15 @@ defmodule Marginalia.Works do
             |> Repo.update()
 
           n = supersede_unanchored(section)
+
+          # Inside the same transaction as the write. A history kept beside
+          # the thing it describes drifts from it the first time one of the
+          # two fails; here they commit together or neither does.
+          {:ok, revision} = record_revision(section, old_block, new_text, opts)
+
           rebuild_work_body(section.work_id)
 
-          %{section: section, superseded: n}
+          %{section: section, superseded: n, revision: revision}
         end)
     end
   end
@@ -555,5 +647,4 @@ defmodule Marginalia.Works do
     |> where([n], n.work_id == ^work_id and n.status == "superseded")
     |> Repo.aggregate(:count)
   end
-
 end

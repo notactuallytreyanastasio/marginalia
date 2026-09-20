@@ -61,6 +61,11 @@ defmodule MarginaliaWeb.WorkLive.Show do
            open_thread: nil,
            rewrite: nil,
            rewriting: false,
+           revision_count: Works.revision_count(work.id),
+           diff_rows: [],
+           summarising: MapSet.new(),
+           diff_stat: nil,
+           revisions: [],
            # the writer's optional note on the rewrite, kept so the box still
            # holds what they typed when the candidates come back
            steer: nil,
@@ -152,12 +157,15 @@ defmodule MarginaliaWeb.WorkLive.Show do
     do: load_graph(socket)
 
   defp load_for_view(%{assigns: %{view: :trace}} = socket), do: load_trace(socket)
+
+  defp load_for_view(%{assigns: %{view: :changes}} = socket), do: load_changes(socket)
   defp load_for_view(socket), do: socket
 
   defp to_view("read"), do: :read
   defp to_view("spine"), do: :spine
   defp to_view("threads"), do: :threads
   defp to_view("graph"), do: :graph
+  defp to_view("changes"), do: :changes
   defp to_view("trace"), do: :trace
   defp to_view("prompts"), do: :prompts
   # the page itself is what anyone should land on, not a report about it
@@ -168,6 +176,19 @@ defmodule MarginaliaWeb.WorkLive.Show do
     params = %{"view" => Atom.to_string(socket.assigns.view)}
     params = if socket.assigns.chat_open, do: Map.put(params, "chat", "1"), else: params
     ~p"/works/#{w.slug}?#{params}"
+  end
+
+  # Built on the way into the tab rather than on mount: a draft with no edits
+  # has nothing to show, and one with many is an LCS over every paragraph.
+  defp load_changes(socket) do
+    work = socket.assigns.work
+    rows = Marginalia.Diff.rows(Works.baseline(work), work.body)
+
+    assign(socket,
+      diff_rows: rows,
+      diff_stat: Marginalia.Diff.stat(rows),
+      revisions: Enum.reverse(Works.revisions(work.id))
+    )
   end
 
   defp load_graph(socket) do
@@ -212,7 +233,10 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
   defp reload_work(socket) do
     w = Works.get_by_slug(socket.assigns.work.slug)
-    socket |> assign(work: w) |> load_map()
+
+    socket
+    |> assign(work: w, revision_count: Works.revision_count(w.id))
+    |> load_map()
   end
 
   # ==========================================================================
@@ -456,6 +480,40 @@ defmodule MarginaliaWeb.WorkLive.Show do
          |> start_async(:rewrite, fn ->
            Marginalia.Rewrite.propose(work, span, provider: provider, steer: steer)
          end)}
+    end
+  end
+
+  # One section, on request. A draft here can be a hundred and eleven
+  # documents; summarising all of them unasked is a bill nobody agreed to.
+  def handle_event("summarise", %{"ordinal" => ordinal}, socket) do
+    a = socket.assigns
+
+    cond do
+      not a.mine? ->
+        {:noreply, put_flash(socket, :error, "This draft is someone else's.")}
+
+      a.demo ->
+        {:noreply, put_flash(socket, :info, "The walkthrough does not call the model.")}
+
+      not Chat.allowed?(a.current_scope.user) ->
+        {:noreply, assign(socket, quota: 0)}
+
+      true ->
+        n = String.to_integer(ordinal)
+        provider = a.provider
+
+        case Works.get_section(a.work.id, n) do
+          nil ->
+            {:noreply, socket}
+
+          section ->
+            {:noreply,
+             socket
+             |> assign(summarising: MapSet.put(a.summarising, n))
+             |> start_async({:summary, n}, fn ->
+               Marginalia.Summary.run(section, provider: provider)
+             end)}
+        end
     end
   end
 
@@ -754,6 +812,22 @@ defmodule MarginaliaWeb.WorkLive.Show do
   end
 
   @impl true
+  def handle_async({:summary, n}, result, socket) do
+    socket = assign(socket, summarising: MapSet.delete(socket.assigns.summarising, n))
+
+    case result do
+      {:ok, {:ok, _section}} ->
+        {:noreply, load_page(socket)}
+
+      {:ok, {:error, reason}} ->
+        {:noreply,
+         put_flash(socket, :error, "Could not summarise section #{n}: #{inspect(reason)}")}
+
+      {:exit, reason} ->
+        {:noreply, put_flash(socket, :error, "The summary crashed: #{inspect(reason)}")}
+    end
+  end
+
   def handle_async(:rewrite, {:ok, {:ok, result}}, socket) do
     {:noreply, assign(socket, rewrite: result, rewriting: false)}
   end
@@ -1021,6 +1095,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
             <.tab view={@view} this={:graph} label="Graph" />
             <.tab view={@view} this={:spine} label="Spine" />
             <.tab view={@view} this={:threads} label="Threads" />
+            <%!-- only offered once there is something to show --%>
+            <.tab :if={@revision_count > 0} view={@view} this={:changes} label="Changes" />
             <%!-- how the thing works, not what it found: mine to look at --%>
             <.tab :if={@owner?} view={@view} this={:trace} label="Trace" />
             <.tab :if={@owner?} view={@view} this={:prompts} label="Prompts" />
@@ -1111,6 +1187,10 @@ defmodule MarginaliaWeb.WorkLive.Show do
                 <.map_view
                   view={@view}
                   work={@work}
+                  diff_rows={@diff_rows}
+                  diff_stat={@diff_stat}
+                  revisions={@revisions}
+                  summarising={@summarising}
                   graph_json={@graph_json}
                   graph_stats={@graph_stats}
                   passes={@passes}
@@ -1482,6 +1562,10 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :spine, :list, required: true
   attr :threads, :list, required: true
   attr :questions, :list, required: true
+  attr :diff_rows, :list, default: []
+  attr :diff_stat, :map, default: nil
+  attr :revisions, :list, default: []
+  attr :summarising, :any, default: nil
 
   defp map_view(assigns) do
     ~H"""
@@ -1526,6 +1610,13 @@ defmodule MarginaliaWeb.WorkLive.Show do
               <.grounded_node :for={q <- @questions} node={q} work={@work} mine?={@mine?} />
             </div>
           <% end %>
+        <% :changes -> %>
+          <.changes_pane
+            rows={@diff_rows}
+            stat={@diff_stat}
+            revisions={@revisions}
+            work={@work}
+          />
         <% :graph -> %>
           <.graph_pane
             work={@work}
@@ -1537,6 +1628,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
         <% :read -> %>
           <.read_pane
             page={@page}
+            summarising={@summarising}
             words={@work.word_count}
             only={@only}
             collapsed={@collapsed}
@@ -1947,6 +2039,89 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :steer, :string, default: nil
   attr :span, :string, default: nil
 
+  attr :rows, :list, required: true
+  attr :stat, :map, default: nil
+  attr :revisions, :list, default: []
+  attr :work, :map, required: true
+
+  @doc false
+  # The draft as it arrived beside the draft as it is. Two columns rather
+  # than one marked-up copy, because a writer comparing versions is asking
+  # "what did I have before", and an inline diff answers a different question.
+  def changes_pane(assigns) do
+    ~H"""
+    <div class="mg-diff">
+      <div class="mg-diff-head">
+        <span class="mg-label">Changes since it arrived</span>
+        <span :if={@stat} class="mg-meta ml-auto">
+          {@stat.changed} edited · {@stat.added} added · {@stat.removed} removed
+        </span>
+      </div>
+
+      <p :if={not Marginalia.Diff.any?(@rows)} class="mg-empty">
+        Nothing has changed yet. Edits and applied rewrites show up here.
+      </p>
+
+      <div :if={Marginalia.Diff.any?(@rows)} class="mg-diff-cols">
+        <div class="mg-diff-colhead"><span>As it arrived</span><span>Now</span></div>
+
+        <div :for={row <- @rows} class={"mg-diff-row " <> row_kind(row)}>
+          <%= case row do %>
+            <% {:same, l, _} -> %>
+              <div class="side old">{l}</div>
+              <div class="side new">{l}</div>
+            <% {:change, l, r} -> %>
+              <div class="side old">
+                <span :for={{op, t} <- Marginalia.Diff.words(l, r)} class={word_class(op, :old)}>{t}</span>
+              </div>
+              <div class="side new">
+                <span :for={{op, t} <- Marginalia.Diff.words(l, r)} class={word_class(op, :new)}>{t}</span>
+              </div>
+            <% {:del, l} -> %>
+              <div class="side old gone">{l}</div>
+              <div class="side new empty"></div>
+            <% {:ins, r} -> %>
+              <div class="side old empty"></div>
+              <div class="side new fresh">{r}</div>
+          <% end %>
+        </div>
+      </div>
+
+      <div :if={@revisions != []} class="mg-diff-log">
+        <div class="mg-label">Every change, newest first</div>
+        <ol class="mg-rows">
+          <li :for={rev <- @revisions}>
+            <span class="n">{rev.seq}</span>
+            <span class="mg-meta">
+              {rev.origin}{if rev.note, do: " — #{rev.note}"} · section {rev.section_ordinal}
+            </span>
+            <div class="mg-diff-patch">
+              <span
+                :for={{op, t} <- Marginalia.Diff.words(rev.before, rev.after)}
+                class={word_class(op, :new)}
+              >{t}</span>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </div>
+    """
+  end
+
+  defp row_kind({:same, _, _}), do: "same"
+  defp row_kind({:change, _, _}), do: "change"
+  defp row_kind({:del, _}), do: "del"
+  defp row_kind({:ins, _}), do: "ins"
+
+  # The old column shows what was removed and hides what replaced it; the new
+  # column does the reverse. Showing both marks in both columns is how an
+  # inline diff reads, and this is not one.
+  defp word_class(:same, _), do: "w"
+  defp word_class(:del, :old), do: "w del"
+  defp word_class(:del, :new), do: "w hide"
+  defp word_class(:ins, :old), do: "w hide"
+  defp word_class(:ins, :new), do: "w ins"
+
   # Candidates for one selected line, side by side with what is there now.
   # Three labelled options rather than one suggestion: a single rewrite reads
   # as the answer, and the point is that the writer chooses.
@@ -2330,6 +2505,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :preview, :map, default: nil
   attr :editing, :string, default: nil
   attr :edit_text, :string, default: nil
+  attr :summarising, :any, default: nil
 
   # The draft with its notes in the margin. This is the only view that shows
   # the writer their own prose, and the notes sit beside the paragraph that
@@ -2377,6 +2553,37 @@ defmodule MarginaliaWeb.WorkLive.Show do
                 <h2 style="font-family:var(--mg-serif)" class="text-[1.45rem] font-semibold mt-1">
                   {sec.section.title}
                 </h2>
+
+                <%!-- What the section says, for finding your place in twelve
+                      of them. Per section and on request: a draft here can be
+                      a hundred and eleven documents. --%>
+                <div :if={@mine?} class="mg-sum">
+                  <div
+                    :if={sec.section.summary}
+                    class={"mg-sum-text" <> if(Marginalia.Summary.current?(sec.section), do: "", else: " stale")}
+                  >
+                    {sec.section.summary}
+                    <span :if={not Marginalia.Summary.current?(sec.section)} class="mg-sum-stale">
+                      the section has been edited since this was written
+                    </span>
+                  </div>
+
+                  <button
+                    class="mg-btn sm ghost"
+                    phx-click="summarise"
+                    phx-value-ordinal={sec.section.ordinal}
+                    disabled={MapSet.member?(@summarising, sec.section.ordinal)}
+                  >
+                    <%= cond do %>
+                      <% MapSet.member?(@summarising, sec.section.ordinal) -> %>
+                        Summarising…
+                      <% sec.section.summary -> %>
+                        Summarise again
+                      <% true -> %>
+                        Summarise this section
+                    <% end %>
+                  </button>
+                </div>
               </div>
 
               <%= for b <- sec.blocks do %>
