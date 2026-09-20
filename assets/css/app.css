@@ -4587,3 +4587,24 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
 /* Two actions per candidate now: replace the passage outright, or open it in
    the editor first. The first is the one people want and is listed first. */
 .mg-rw .mine.apply { font-weight: 600; }
+
+/* The read view with the rail given over to what changed. The notes do not
+   vanish — they move under the paragraph that caused them, because a note
+   with nowhere to sit in the margin is a note nobody reads. */
+.mg-chg-toggle.on { border-color: var(--mg-accent); color: var(--mg-accent); }
+
+.mg-read-rail.changes { padding-top: 0.5rem; }
+.mg-chg { margin-bottom: 1.1rem; }
+.mg-chg .mg-label { display: block; margin-bottom: 0.25rem; }
+.mg-chg-old, .mg-chg-new {
+  font-family: var(--mg-serif); font-size: 0.82rem; line-height: 1.5;
+  padding: 0.35rem 0.5rem; border-radius: 3px;
+}
+.mg-chg-old { background: rgba(203, 36, 49, 0.06); }
+.mg-chg-new { background: rgba(46, 160, 67, 0.07); margin-top: 0.2rem; }
+.mg-chg-old .w.del { background: rgba(203,36,49,0.20); color:#82071e; text-decoration: line-through; }
+.mg-chg-new .w.ins { background: rgba(46,160,67,0.22); color:#116329; }
+.mg-chg .w.hide { display: none; }
+
+.mg-note-inline { margin: 0.4rem 0 0.9rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.mg-note-inline .mg-note { text-align: left; }

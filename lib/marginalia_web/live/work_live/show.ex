@@ -65,6 +65,9 @@ defmodule MarginaliaWeb.WorkLive.Show do
            diff_rows: [],
            summarising: MapSet.new(),
            doc_running: false,
+           # the read view, with what changed beside the prose instead of the
+           # notes. Off until there is something to show.
+           changes_on: false,
            document: Marginalia.Document.get(work.id),
            diff_stat: nil,
            revisions: [],
@@ -239,6 +242,10 @@ defmodule MarginaliaWeb.WorkLive.Show do
     w = socket.assigns.work
 
     assign(socket,
+      # loaded with the work, not only when the Changes tab is opened: the read
+      # view offers its own changes rail and needs to know whether there is
+      # anything to offer.
+      revisions: Enum.reverse(Works.revisions(w.id)),
       sections: Works.list_sections(w.id),
       beats: Works.list_nodes(w.id, type: "beat"),
       spine: Works.list_nodes(w.id, type: "spine"),
@@ -502,6 +509,9 @@ defmodule MarginaliaWeb.WorkLive.Show do
          end)}
     end
   end
+
+  def handle_event("toggle_changes", _params, socket),
+    do: {:noreply, assign(socket, changes_on: not socket.assigns.changes_on)}
 
   # The summaries, as something to write from rather than only to read.
   def handle_event("summaries_to_draft", _params, socket) do
@@ -1376,6 +1386,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   summarising={@summarising}
                   document={@document}
                   doc_running={@doc_running}
+                  changes_on={@changes_on}
                   graph_json={@graph_json}
                   graph_stats={@graph_stats}
                   passes={@passes}
@@ -1753,6 +1764,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :summarising, :any, default: nil
   attr :document, :any, default: nil
   attr :doc_running, :boolean, default: false
+  attr :changes_on, :boolean, default: false
 
   defp map_view(assigns) do
     ~H"""
@@ -1816,6 +1828,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
           <.read_pane
             page={@page}
             slug={@work.slug}
+            changes_on={@changes_on}
+            revisions={@revisions}
             summarising={@summarising}
             document={@document}
             doc_running={@doc_running}
@@ -2723,6 +2737,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :document, :any, default: nil
   attr :doc_running, :boolean, default: false
   attr :slug, :string, default: nil
+  attr :changes_on, :boolean, default: false
+  attr :revisions, :list, default: []
 
   # The draft with its notes in the margin. This is the only view that shows
   # the writer their own prose, and the notes sit beside the paragraph that
@@ -2733,6 +2749,12 @@ defmodule MarginaliaWeb.WorkLive.Show do
     <div>
       <div class="flex items-baseline gap-4 flex-wrap">
         <h2 class="mg-label">The page</h2>
+        <button
+          :if={@revisions != []}
+          class={"mg-btn sm ghost mg-chg-toggle" <> if(@changes_on, do: " on", else: "")}
+          phx-click="toggle_changes"
+        >{if @changes_on, do: "Back to the notes", else: "Show what changed"}</button>
+
         <div class="mg-tabs" id="read-filters">
           <button
             :for={
@@ -2971,6 +2993,20 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   <% end %>
                 </div>
 
+                <%!-- With the rail given over to the diff, a note has nowhere
+                      to sit in the margin, so it sits under its own paragraph. --%>
+                <div :if={@changes_on and b.notes != []} class="mg-note-inline">
+                  <button
+                    :for={n <- b.notes}
+                    class={"mg-note " <> n.kind}
+                    phx-click="discuss"
+                    phx-value-key={n.key}
+                  >
+                    <span class="who">{String.replace(n.kind, "_", " ")}</span>
+                    <span class="said">{n.title}</span>
+                  </button>
+                </div>
+
                 <.rewrite_panel
                   :if={(@rewriting or @rewrite) && @rewrite_ref == b.ref}
                   rewrite={@rewrite}
@@ -2992,7 +3028,34 @@ defmodule MarginaliaWeb.WorkLive.Show do
             <% end %>
           </div>
 
-          <div class="mg-read-rail">
+          <%!-- What changed, where the notes usually are. The notes do not
+                disappear: they move into the prose column beside the paragraph
+                that caused them, so the rail is free for the before and after. --%>
+          <div :if={@changes_on} class="mg-read-rail changes">
+            <p :if={@revisions == []} class="mg-empty">
+              Nothing has been changed yet.
+            </p>
+
+            <div :for={rev <- @revisions} class="mg-chg">
+              <span class="mg-label">
+                {rev.origin}{if rev.note, do: " — #{rev.note}"} · section {rev.section_ordinal}
+              </span>
+              <div class="mg-chg-old">
+                <span
+                  :for={{op, t} <- Marginalia.Diff.words(rev.before, rev.after)}
+                  class={word_class(op, :old)}
+                >{t}</span>
+              </div>
+              <div class="mg-chg-new">
+                <span
+                  :for={{op, t} <- Marginalia.Diff.words(rev.before, rev.after)}
+                  class={word_class(op, :new)}
+                >{t}</span>
+              </div>
+            </div>
+          </div>
+
+          <div :if={not @changes_on} class="mg-read-rail">
             <%= for sec <- @page do %>
               <div :for={n <- sec.unplaced} class="mg-note-slot">
                 <button class={"mg-note " <> n.kind} phx-click="discuss" phx-value-key={n.key}>
