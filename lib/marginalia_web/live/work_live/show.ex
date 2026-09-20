@@ -2508,7 +2508,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   e.preventDefault();
                   const text = String(window.getSelection() || "").trim();
                   const block = this.blockOf(window.getSelection());
-                  if (text.length >= 12) fn(text, block);
+                  const endBlock = this.endBlockOf(window.getSelection());
+                  if (text.length >= 12) fn(text, block, endBlock);
                   window.getSelection()?.removeAllRanges();
                   this.hide();
                 };
@@ -2517,10 +2518,15 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   this.pushEvent("add_context", {text});
                 }));
 
-                this.bar.querySelector("#sel-rewrite").addEventListener("mousedown", act((text, block) => {
-                  // the block ref rides along so the panel can open beside the
-                  // line it is about rather than at the top of the page
-                  this.pushEvent("suggest_rewrite", {text, ref: block && block.ref});
+                this.bar.querySelector("#sel-rewrite").addEventListener("mousedown", act((text, block, endBlock) => {
+                  // The END of the selection, not the start. The panel renders
+                  // inside the block it names, so anchoring it to the first
+                  // paragraph of a four-paragraph drag put it above three
+                  // paragraphs of the thing it was rewriting and nowhere near
+                  // the cursor. The bar sits at the bottom of the range, so the
+                  // last block is where the mouse actually is.
+                  const at = endBlock || block;
+                  this.pushEvent("suggest_rewrite", {text, ref: at && at.ref});
                 }));
 
                 this.bar.querySelector("#sel-discuss").addEventListener("mousedown", act((text, block) => {
@@ -2601,6 +2607,18 @@ defmodule MarginaliaWeb.WorkLive.Show do
                 return {ref: el.id.replace(/^block-/, ""), section: tick?.getAttribute("phx-value-section")};
               },
 
+              // which paragraph the selection ended in, so the rewrite panel
+              // opens where the drag finished rather than where it began
+              endBlockOf(sel) {
+                if (!sel || !sel.rangeCount) return null;
+                let node = sel.getRangeAt(0).endContainer;
+                if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+                const el = node?.closest?.(".mg-block");
+                if (!el) return null;
+                const tick = el.querySelector(".mg-tick");
+                return {ref: el.id.replace(/^block-/, ""), section: tick?.getAttribute("phx-value-section")};
+              },
+
               hide() { if (this.bar) this.bar.hidden = true; },
 
               place() {
@@ -2616,8 +2634,18 @@ defmodule MarginaliaWeb.WorkLive.Show do
                 // started: dragging out of a paragraph and into a margin note
                 // used to pass this check and then fail server-side, because the
                 // note's words are not in the draft.
+                //
+                // Both ends, not the common ancestor. A selection inside one
+                // paragraph has a text node for an ancestor and passed; a
+                // selection across several has the container above them, which
+                // is .mg-read-body itself or higher, and `contains` went false —
+                // so the rewrite button vanished exactly when the span got
+                // interesting. Testing the endpoints says what was meant.
                 const body = this.el.querySelector(".mg-read-body");
-                const inBody = body && body.contains(range.commonAncestorContainer);
+                const inBody =
+                  body &&
+                  body.contains(range.startContainer) &&
+                  body.contains(range.endContainer);
                 this.bar.querySelector("#sel-discuss").hidden = !inBody;
                 this.bar.querySelector("#sel-rewrite").hidden = !inBody;
 
