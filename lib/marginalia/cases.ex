@@ -51,14 +51,47 @@ defmodule Marginalia.Cases do
     # document meant eighty-two round trips to render one contents page.
     kin = kinships(works)
 
+    # And the same again for the links inside each collection. `assemble/3`
+    # used to call Links.for_work/1 per document and Links.edges/1 per link,
+    # which is the very thing the comment above says was fixed — it was fixed
+    # for the kinships and left alone here. Eighty-two documents and their
+    # links were most of the 700ms this page took.
+    {links, edges} = links_and_edges(works)
+
     works
     |> Enum.group_by(& &1.collection)
-    |> Enum.map(fn {name, ws} -> Map.put(assemble(name, ws), :kin, Map.get(kin, name, [])) end)
+    |> Enum.map(fn {name, ws} ->
+      Map.put(assemble(name, ws, {links, edges}), :kin, Map.get(kin, name, []))
+    end)
     |> Enum.sort_by(& &1.name)
   end
 
   # Every link that leaves a collection, grouped by the collection it
   # leaves, with its edge count — three queries for the whole page.
+  # Every link touching any of these documents, and every edge belonging to
+  # those links, in two queries rather than one per document and one per link.
+  defp links_and_edges(works) do
+    ids = Enum.map(works, & &1.id)
+
+    links =
+      Links.Link
+      |> where([l], l.a_work_id in ^ids or l.b_work_id in ^ids)
+      |> preload([:a_work, :b_work])
+      |> Repo.all()
+
+    link_ids = Enum.map(links, & &1.id)
+
+    edges =
+      Links.LinkEdge
+      |> where([e], e.link_id in ^link_ids)
+      |> order_by([e], asc: e.ordinal, asc: e.id)
+      |> preload([:from, :to])
+      |> Repo.all()
+      |> Enum.group_by(& &1.link_id)
+
+    {links, edges}
+  end
+
   defp kinships(works) do
     by_id = Map.new(works, &{&1.id, &1})
     ids = Map.keys(by_id)
@@ -171,22 +204,22 @@ defmodule Marginalia.Cases do
     if trimmed == text or trimmed == "", do: text, else: strip_marker(trimmed)
   end
 
-  defp assemble(name, works) do
+  defp assemble(name, works, {all_links, all_edges}) do
     works = Enum.sort_by(works, &rank(&1.collection_role))
     ids = MapSet.new(works, & &1.id)
 
     # only the links that live inside this collection: a document may also
     # be related to something outside it, and that is a different page
     links =
-      works
-      |> Enum.flat_map(&Links.for_work(&1.id))
-      |> Enum.uniq_by(& &1.id)
-      |> Enum.filter(&(MapSet.member?(ids, &1.a_work_id) and MapSet.member?(ids, &1.b_work_id)))
+      Enum.filter(
+        all_links,
+        &(MapSet.member?(ids, &1.a_work_id) and MapSet.member?(ids, &1.b_work_id))
+      )
 
     # loaded once and carried: the contents page asks for the counts, the
     # sharpest collisions and the pairings, and each of those used to go
     # back for the same edges
-    by_link = Map.new(links, &{&1.id, Links.edges(&1)})
+    by_link = Map.new(links, &{&1.id, Map.get(all_edges, &1.id, [])})
 
     %{
       name: name,
