@@ -4626,3 +4626,16 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
 @media (min-width: 1100px) {
   .mg-applied { width: calc(100% + 3rem + 34ch); }
 }
+
+/* One pair of drafts and what runs between them, read by anybody. */
+.lk-group { margin-top: 1.8rem; }
+.lk-edge { margin-top: 0.8rem; padding-left: 0.8rem; border-left: 2px solid var(--mg-rule); }
+.lk-edge.tension { border-left-color: var(--mg-accent); }
+.lk-ends { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: baseline; }
+.lk-ends .from, .lk-ends .to { font-family: var(--mg-serif); font-weight: 600; font-size: 0.92rem; }
+.lk-ends .arrow { font-family: var(--mg-mono); font-size: 0.68rem; color: var(--mg-dim); }
+.lk-edge .why { margin: 0.2rem 0 0; font-size: 0.86rem; color: var(--mg-dim); }
+.lk-quote {
+  margin: 0.35rem 0 0; padding-left: 0.7rem; border-left: 1px solid var(--mg-rule);
+  font-family: var(--mg-serif); font-size: 0.82rem; color: var(--mg-dim);
+}

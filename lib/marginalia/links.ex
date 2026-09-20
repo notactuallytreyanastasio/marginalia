@@ -173,6 +173,42 @@ defmodule Marginalia.Links do
     |> Repo.all()
   end
 
+  @doc """
+  The links on the public face of this deploy: the owner's, and only the ones
+  that found something.
+
+  A link with no edges is a pass that ran and reported nothing. That is a
+  real answer and it is on the writer's own page, but a public index of
+  empty comparisons is an index of nothing.
+  """
+  def public_links do
+    case Marginalia.Accounts.owner() do
+      nil ->
+        []
+
+      owner ->
+        owner.id
+        |> for_user()
+        |> Enum.filter(&(edge_count(&1.id) > 0))
+    end
+  end
+
+  @doc "A link anybody may read: the owner's, and only if it found something."
+  def public_link(id) do
+    with owner when not is_nil(owner) <- Marginalia.Accounts.owner(),
+         %Link{} = link <- Repo.get(Link, id) |> Repo.preload([:a_work, :b_work]),
+         true <- link.a_work.user_id == owner.id and link.b_work.user_id == owner.id,
+         true <- edge_count(link.id) > 0 do
+      link
+    else
+      _ -> nil
+    end
+  end
+
+  @doc "How many edges a link holds."
+  def edge_count(link_id),
+    do: Repo.one(from e in LinkEdge, where: e.link_id == ^link_id, select: count(e.id))
+
   @doc "Every link either side of this work, newest first."
   def for_work(work_id) do
     Link

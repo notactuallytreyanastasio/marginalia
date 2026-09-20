@@ -1155,7 +1155,7 @@ defmodule MarginaliaWeb.LandingLive do
             you thought were separate are one argument with three introductions.
           </p>
 
-          <.seeit to={~p"/cases/chatrie-v-united-states"} label="A case, with its documents related" />
+          <.seeit to={~p"/linked"} label="Pairs read against each other, and what they found" />
         </div>
         <aside class="sec-aside">
           <div class="note" data-reveal style="--i:0">

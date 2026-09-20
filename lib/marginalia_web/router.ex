@@ -82,6 +82,11 @@ defmodule MarginaliaWeb.Router do
       live "/drafts/:slug", DraftLive.Show, :show
       live "/drafts/:slug/changes", DraftLive.Changes, :changes
 
+      # Pairs the owner has had read against each other, and only the ones
+      # that found something.
+      live "/linked", LinkedLive.Index, :index
+      live "/linked/:id", LinkedLive.Show, :show
+
       # A published stack, read by anybody. Addressed by slug, and served
       # only when the folder carries a published_at — the private pages at
       # /stacks stay owner-scoped and keep the buttons that spend money.
