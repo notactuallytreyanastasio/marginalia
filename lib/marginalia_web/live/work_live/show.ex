@@ -68,6 +68,9 @@ defmodule MarginaliaWeb.WorkLive.Show do
            # the read view, with what changed beside the prose instead of the
            # notes. Off until there is something to show.
            changes_on: false,
+           # what the last accepted change replaced, so the paragraph it landed
+           # in can show the before against the after where it happened
+           applied: nil,
            document: Marginalia.Document.get(work.id),
            diff_stat: nil,
            revisions: [],
@@ -510,6 +513,9 @@ defmodule MarginaliaWeb.WorkLive.Show do
     end
   end
 
+  def handle_event("dismiss_applied", _params, socket),
+    do: {:noreply, assign(socket, applied: nil)}
+
   def handle_event("toggle_changes", _params, socket),
     do: {:noreply, assign(socket, changes_on: not socket.assigns.changes_on)}
 
@@ -626,7 +632,14 @@ defmodule MarginaliaWeb.WorkLive.Show do
         {:ok, %{superseded: supers}} ->
           socket =
             socket
-            |> assign(rewrite: nil, preview: nil, rewrite_ref: nil, rewrite_span: nil, steer: nil)
+            |> assign(
+              rewrite: nil,
+              preview: nil,
+              rewrite_ref: nil,
+              rewrite_span: nil,
+              steer: nil,
+              applied: %{before: original, after: chosen.text}
+            )
             |> reload_work()
             |> load_page()
 
@@ -1153,7 +1166,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
            Works.replace_block(section, block, text, origin: origin(a), note: rewrite_note(a)) do
       socket =
         socket
-        |> assign(editing: nil, edit_text: nil)
+        |> assign(editing: nil, edit_text: nil, applied: %{before: block, after: text})
         |> reload_work()
         |> load_page()
 
@@ -1387,6 +1400,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   document={@document}
                   doc_running={@doc_running}
                   changes_on={@changes_on}
+                  applied={@applied}
                   graph_json={@graph_json}
                   graph_stats={@graph_stats}
                   passes={@passes}
@@ -1765,6 +1779,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :document, :any, default: nil
   attr :doc_running, :boolean, default: false
   attr :changes_on, :boolean, default: false
+  attr :applied, :any, default: nil
 
   defp map_view(assigns) do
     ~H"""
@@ -1830,6 +1845,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
             slug={@work.slug}
             changes_on={@changes_on}
             revisions={@revisions}
+            applied={@applied}
             summarising={@summarising}
             document={@document}
             doc_running={@doc_running}
@@ -2329,6 +2345,17 @@ defmodule MarginaliaWeb.WorkLive.Show do
     """
   end
 
+  # The block that now holds what was written. A replacement collapsing three
+  # paragraphs into one means the ref that was anchored no longer names the
+  # same text, so the text is what identifies it.
+  defp landed?(nil, _block), do: false
+
+  defp landed?(%{after: written}, %{text: text}) when is_binary(written) and written != "" do
+    String.contains?(text, String.slice(written, 0, 80))
+  end
+
+  defp landed?(_applied, _block), do: false
+
   # While the candidates are still coming back there is no located span yet,
   # so the anchor block is all there is to go on. Once they arrive, `covers`
   # names every paragraph the span touches.
@@ -2747,6 +2774,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :slug, :string, default: nil
   attr :changes_on, :boolean, default: false
   attr :revisions, :list, default: []
+  attr :applied, :any, default: nil
 
   # The draft with its notes in the margin. This is the only view that shows
   # the writer their own prose, and the notes sit beside the paragraph that
@@ -3002,7 +3030,30 @@ defmodule MarginaliaWeb.WorkLive.Show do
                       </div>
                     </form>
                   <% else %>
-                    {Marginalia.Reading.render_block(b.text, b.mark, b.ref, @preview)}
+                    <%!-- The paragraph the change landed in shows what it
+                          replaced, in place, until it is dismissed. Matched on
+                          the text rather than on the ref because replacing
+                          three paragraphs with one renumbers every ref after
+                          it. --%>
+                    <%= if landed?(@applied, b) do %>
+                      <div class="mg-applied">
+                        <div class="mg-applied-head">
+                          <span class="mg-label">replaced</span>
+                          <button class="mg-btn sm ghost ml-auto" phx-click="dismiss_applied">
+                            done
+                          </button>
+                        </div>
+
+                        <.diff_table
+                          rows={[{:change, @applied.before, @applied.after}]}
+                          left="Before"
+                          right="Now"
+                          compact
+                        />
+                      </div>
+                    <% else %>
+                      {Marginalia.Reading.render_block(b.text, b.mark, b.ref, @preview)}
+                    <% end %>
                   <% end %>
                 </div>
 

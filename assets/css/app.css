@@ -4608,3 +4608,9 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
 
 .mg-note-inline { margin: 0.4rem 0 0.9rem; display: flex; flex-direction: column; gap: 0.3rem; }
 .mg-note-inline .mg-note { text-align: left; }
+
+/* The paragraph a change landed in, showing what it replaced where it
+   happened, until it is dismissed. */
+.mg-applied { margin: 0.3rem 0 1rem; }
+.mg-applied-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.35rem; }
+.mg-applied .mg-diff-cols { max-width: none; }
