@@ -99,4 +99,42 @@ defmodule Marginalia.RevisionsTest do
     stripped = %{work | baseline_body: nil}
     assert Works.baseline(stripped) == work.body
   end
+
+  describe "a draft from before the baseline column existed" do
+    test "the baseline is reconstructed from the revisions rather than the body", %{
+      work: work,
+      section: section
+    } do
+      b = block(section, "ALPHA")
+      {:ok, _} = Works.replace_block(section, b, String.replace(b, "ALPHA", "AMENDED"))
+
+      # what those drafts look like: history, no stored baseline
+      {:ok, _} = work |> Ecto.Changeset.change(baseline_body: nil) |> Repo.update()
+      work = Repo.reload!(work)
+
+      baseline = Works.baseline(work)
+
+      assert baseline =~ "ALPHA", "the text that was replaced has to come back"
+      refute baseline =~ "AMENDED"
+
+      refute baseline == work.body,
+             "falling back to the body makes the draft diff against itself and report no changes"
+    end
+
+    test "the reconstructed baseline actually diffs", %{work: work, section: section} do
+      b = block(section, "BRAVO")
+      {:ok, _} = Works.replace_block(section, b, String.replace(b, "BRAVO", "BETTER"))
+      {:ok, _} = work |> Ecto.Changeset.change(baseline_body: nil) |> Repo.update()
+      work = Repo.reload!(work)
+
+      rows = Marginalia.Diff.rows(Works.baseline(work), work.body)
+
+      assert Marginalia.Diff.any?(rows)
+      assert Marginalia.Diff.stat(rows).changed == 1
+    end
+
+    test "a stored baseline is still preferred over reconstructing one", %{work: work} do
+      assert Works.baseline(work) == work.baseline_body
+    end
+  end
 end

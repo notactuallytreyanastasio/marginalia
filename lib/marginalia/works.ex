@@ -465,8 +465,28 @@ defmodule Marginalia.Works do
   has no recorded changes, so "as it arrived" and "as it is" are the same
   thing, and that is the truth rather than a placeholder.
   """
-  def baseline(%Work{baseline_body: b, body: body}) when is_nil(b) or b == "", do: body
-  def baseline(%Work{baseline_body: b}), do: b
+  def baseline(%Work{baseline_body: b}) when is_binary(b) and b != "", do: b
+
+  # No stored baseline: the draft predates the column. Falling back to the
+  # current body was wrong in the one case that matters — a draft with
+  # revisions diffs against itself and the Changes view reports that nothing
+  # has happened, while the history plainly says otherwise.
+  #
+  # Every revision holds the text before and after it, so the baseline is
+  # recoverable: take the body and un-apply them newest first. A revision
+  # whose `after` is no longer present is skipped rather than guessed at, so
+  # the worst case is a baseline that is too recent, never one that is
+  # invented.
+  def baseline(%Work{} = work) do
+    work.id
+    |> revisions()
+    |> Enum.reverse()
+    |> Enum.reduce(work.body, fn rev, body ->
+      if String.contains?(body, rev.after),
+        do: String.replace(body, rev.after, rev.before, global: false),
+        else: body
+    end)
+  end
 
   @doc """
   Replay every revision over the baseline.
