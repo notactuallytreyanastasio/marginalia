@@ -9,7 +9,7 @@ defmodule MarginaliaWeb.ReadingLive.Step do
   """
   use MarginaliaWeb, :live_view
 
-  alias Marginalia.{Folders, Stacks}
+  alias Marginalia.{Folders, Markdown, Stacks}
 
   @impl true
   def mount(%{"slug" => slug, "ordinal" => ordinal}, _session, socket) do
@@ -48,17 +48,17 @@ defmodule MarginaliaWeb.ReadingLive.Step do
 
         <section :if={@entry.step.lesson}>
           <h2 class="mg-label">What to do</h2>
-          <p>{@entry.step.lesson}</p>
+          <div class="md st-md">{Markdown.to_html(@entry.step.lesson)}</div>
         </section>
 
         <section :if={@entry.step.mechanism}>
           <h2 class="mg-label">How it works</h2>
-          <p>{@entry.step.mechanism}</p>
+          <div class="md st-md">{Markdown.to_html(@entry.step.mechanism)}</div>
         </section>
 
         <section :if={@entry.step.pitfall not in [nil, ""]} class="st-pitfall">
           <h2 class="mg-label">The obvious version is wrong</h2>
-          <p>{@entry.step.pitfall}</p>
+          <div class="md st-md">{Markdown.to_html(@entry.step.pitfall)}</div>
           <blockquote :if={@entry.step.pitfall_quote not in [nil, ""]}>
             {@entry.step.pitfall_quote}
           </blockquote>
@@ -66,12 +66,12 @@ defmodule MarginaliaWeb.ReadingLive.Step do
 
         <section :if={@entry.step.watch_for}>
           <h2 class="mg-label">Get right now</h2>
-          <p>{@entry.step.watch_for}</p>
+          <div class="md st-md">{Markdown.to_html(@entry.step.watch_for)}</div>
         </section>
 
         <section :if={@entry.step.revised_by} class="st-revision">
           <h2 class="mg-label">Walked back by step {@entry.step.revised_by}</h2>
-          <p>{@entry.step.revision}</p>
+          <div class="md st-md">{Markdown.to_html(@entry.step.revision)}</div>
           <blockquote :if={@entry.step.revision_quote not in [nil, ""]}>
             {@entry.step.revision_quote}
           </blockquote>

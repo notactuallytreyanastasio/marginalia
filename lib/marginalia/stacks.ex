@@ -1023,4 +1023,67 @@ defmodule Marginalia.Stacks do
       deep_dropped: steps |> Enum.map(&length(&1.deep_dropped || [])) |> Enum.sum()
     }
   end
+
+  # ==========================================================================
+  # Back into the reader as a draft
+  # ==========================================================================
+
+  @doc """
+  Turn the composed telling into an ordinary draft, so it can be read.
+
+  The telling is prose somebody wrote — by machine, out of other documents,
+  but prose — and the thing this application does to prose is read it
+  closely and argue with it in the margin. Until now the one document here
+  nobody could do that to was the one this application produced.
+
+  Each movement becomes a `##` heading, which is what `Segmenter.split/1`
+  divides on, so the parts of the telling become the sections of the draft
+  and a note lands on the movement it is about.
+
+  Deliberately **not** filed into the stack's own folder. A folder is the
+  unit a stack is read from, and a draft sitting in it would become document
+  112 of 111 — re-read as a chapter of the series it is a summary of, with
+  its ordinal shifting everything after it.
+  """
+  def to_draft(user_id, folder_id) do
+    with %Story{} = story <- get_story(folder_id),
+         steps <- list_steps(folder_id) do
+      Works.create_work(user_id, %{
+        "title" => story.title || "A reading",
+        "intent" => intent_for(story, steps),
+        "body" => draft_body(story)
+      })
+    else
+      nil -> {:error, :not_composed}
+    end
+  end
+
+  defp intent_for(story, steps) do
+    "The method read out of #{length(steps)} documents, in #{length(story.movements)} parts. " <>
+      "It is meant to tell somebody building the same thing what to do and in what order, " <>
+      "so the test of any paragraph is whether it could be acted on."
+  end
+
+  defp draft_body(%Story{} = story) do
+    parts =
+      story.movements
+      |> Enum.with_index(1)
+      |> Enum.map(fn {m, i} ->
+        [
+          "## #{i}. #{m["heading"]}",
+          "",
+          m["prose"] || "",
+          turn_of(m)
+        ]
+        |> Enum.reject(&(&1 == nil))
+        |> Enum.join("\n")
+      end)
+
+    ([story.opening || ""] ++ parts ++ ["## Closing", "", story.closing || ""])
+    |> Enum.join("\n\n")
+    |> String.trim()
+  end
+
+  defp turn_of(%{"turn" => t}) when is_binary(t) and t != "", do: "\n> #{t}"
+  defp turn_of(_), do: nil
 end

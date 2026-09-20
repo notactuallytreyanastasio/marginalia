@@ -10,7 +10,7 @@ defmodule MarginaliaWeb.ReadingLive.Story do
   """
   use MarginaliaWeb, :live_view
 
-  alias Marginalia.{Folders, Stacks}
+  alias Marginalia.{Folders, Markdown, Stacks}
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) do
@@ -48,13 +48,18 @@ defmodule MarginaliaWeb.ReadingLive.Story do
           {@count} documents, read forwards. {@folder.name}
         </p>
 
-        <div class="lede">{@story.opening}</div>
+        <div class="lede md st-md">{Markdown.to_html(@story.opening)}</div>
 
         <section :for={{m, i} <- Enum.with_index(@story.movements, 1)} class="st-move">
           <h2><span class="n">{i}</span>{m["heading"]}</h2>
-          <p :for={para <- paras(m["prose"])}>{para}</p>
+          <%!-- The model writes markdown whether or not anyone asked it to, and
+                this prose is thick with identifiers in backticks. Rendered as
+                plain text they show up as literal backticks. --%>
+          <div class="md st-md">{Markdown.to_html(m["prose"])}</div>
 
-          <aside :if={m["turn"] not in [nil, ""]} class="st-turn">{m["turn"]}</aside>
+          <aside :if={m["turn"] not in [nil, ""]} class="st-turn md st-md">
+            {Markdown.to_html(m["turn"])}
+          </aside>
 
           <nav :if={m["steps"] != []} class="st-move-steps">
             <span class="mg-label">from</span>
@@ -66,14 +71,11 @@ defmodule MarginaliaWeb.ReadingLive.Story do
           </nav>
         </section>
 
-        <div class="st-closing">{@story.closing}</div>
+        <div class="st-closing md st-md">{Markdown.to_html(@story.closing)}</div>
       </article>
     </Layouts.app>
     """
   end
-
-  defp paras(nil), do: []
-  defp paras(text), do: text |> String.split(~r/\n{2,}/, trim: true) |> Enum.map(&String.trim/1)
 
   defp cap(steps, n) do
     case Map.get(steps, n) do

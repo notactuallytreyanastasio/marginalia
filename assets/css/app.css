@@ -4340,3 +4340,52 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
 }
 .lc-openers button:hover { border-color: var(--mg-dim); background: #f2efe9; }
 .lc-openers button:active { background: #eae6de; }
+
+/* A stack's prose is thick with identifiers — `getSupportCode`,
+   `temper_int32`, `translateConnectedReference` — so inline code is not an
+   occasional ornament here, it is most of the page. It gets the editor
+   treatment rather than the faint tint the rest of the site uses: a real
+   border, a surface that separates from the serif prose around it, and a
+   size that stays readable inside a line of it. */
+.st-md code {
+  font-family: var(--mg-mono);
+  font-size: 0.82em;
+  padding: 0.12em 0.36em;
+  border-radius: 3px;
+  background: var(--mg-code-bg, #f2efe9);
+  border: 1px solid var(--mg-rule);
+  color: var(--mg-code-fg, #7a3e2f);
+  white-space: nowrap;
+}
+
+.st-md pre {
+  margin: 1rem 0 1.2rem;
+  padding: 0.9rem 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  background: var(--mg-code-block-bg, #1e1f26);
+  border: 1px solid var(--mg-code-block-rule, #2e3038);
+}
+
+/* Inside a block the border and the nowrap are wrong: a block is already
+   separated, and code in one has to be allowed to keep its own line breaks. */
+.st-md pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  white-space: pre;
+  color: var(--mg-code-block-fg, #d6d3cc);
+  font-size: 0.79rem;
+  line-height: 1.65;
+}
+
+.st-md p { margin: 0 0 1em; }
+.st-md ul, .st-md ol { margin: 0 0 1em; padding-left: 1.3em; }
+.st-md li { margin: 0.2em 0; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .st-md code {
+    background: var(--mg-code-bg, #23242b);
+    color: var(--mg-code-fg, #e0a48a);
+  }
+}
