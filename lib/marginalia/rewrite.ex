@@ -23,31 +23,27 @@ defmodule Marginalia.Rewrite do
 
   alias Marginalia.LLM
 
-  # Was 250, on the reasoning that past a few paragraphs it is a redraft
-  # rather than a rewrite. That line held while the drafts here were prose
-  # somebody typed, and stopped holding once composed sections arrived: a
-  # movement of a telling runs about 1,700 words and a reader wanting one
-  # argument reworked selects several paragraphs of it at once.
+  # Set from the prose it has to cover, measured, not from a feel for how long
+  # a rewrite should be.
   #
-  # The number is set from the prose it has to cover, not from a feel for how
-  # long a rewrite should be. Measured across the 66 paragraphs of a composed
-  # telling: median 271 words, mean 276, longest 539, about 6 to a section.
-  # These are dense paragraphs, and the intuition that a few of them is "a
-  # few hundred words" is wrong by a factor of four.
+  # The draft that forced this: 12 sections of 1,560-2,290 words, built from
+  # 81 paragraphs with a median of 248, a 90th percentile of 382 and a longest
+  # of 539. Dense paragraphs. The intuition that "a few paragraphs" is a few
+  # hundred words is wrong here by roughly four times — four large ones is
+  # 1,528, which a 1,400 ceiling refused while the writer was reasonably
+  # calling it a few paragraphs.
   #
-  # So 1,400 is several paragraphs — about five — which is what selecting a
-  # nontrivial part of a section actually means here. 750 would have been
-  # 2.8 of them, and one paragraph in that sample is 539 words and would have
-  # nearly filled the budget alone.
+  # 2,500 covers a whole section of that draft with room over the largest, so
+  # "select the part you want reworked" can mean the part rather than as much
+  # of it as fits.
   #
-  # Still under a whole section (~1,650), because past that the three
-  # candidates stop being comparable against the original and the honest move
-  # is to split the selection.
-  #
-  # Three candidates at this length is a real amount of writing, which is why
-  # the token budget below scales with the span instead of sitting at the flat
-  # 3,000 that was ample for 250 words.
-  @max_span_words 1_400
+  # The ceiling that actually binds is the provider's, and it was probed
+  # rather than assumed: deepseek-flash accepts max_tokens up to at least
+  # 65,536 (27,000, 41,500 and 65,536 all return 200). A 2,500-word span asks
+  # for 17,500 answer tokens, and LLM adds 24,000 of reasoning headroom on
+  # top, so the largest request this can produce is 41,500 — inside what was
+  # measured to work.
+  @max_span_words 2_500
 
   @prompt """
   The writer has selected one span of their own draft and asked for rewrites of it. This is

@@ -25,14 +25,14 @@ defmodule Marginalia.RewriteTest do
     end
 
     test "a redraft is refused, and says how long it was", %{work: work} do
-      long = String.duplicate("word ", 1_600)
+      long = String.duplicate("word ", 3_000)
       assert {:error, {:span_too_long, words, max}} = Rewrite.propose(work, long)
       assert words > max
-      assert max == 1_400
+      assert max == 2_500
     end
 
     test "a long passage is not a redraft any more", %{work: work} do
-      # 400 words used to be refused outright. At a median paragraph of 271
+      # 400 words used to be refused outright. At a median paragraph of 248
       # words that is barely a paragraph and a half.
       sel = String.duplicate("a sentence that is not in this draft. ", 60)
 
@@ -40,14 +40,25 @@ defmodule Marginalia.RewriteTest do
              "it must get past the length check and go looking for the span"
     end
 
+    test "the largest request stays inside what the provider accepts" do
+      # deepseek-flash was probed at 27_000, 41_500 and 65_536: all 200.
+      # LLM adds reasoning headroom on top of the answer budget, so this is
+      # what actually goes out for the biggest span the check allows.
+      biggest = String.duplicate("word ", 2_500)
+      total = Rewrite.answer_budget(biggest) + Marginalia.LLM.reasoning_headroom(:deepseek)
+
+      assert total <= 65_536,
+             "a span at the ceiling must not ask the provider for more than it takes"
+    end
+
     test "the answer budget grows with the span, or the reply comes back truncated" do
       short = String.duplicate("word ", 40)
-      long = String.duplicate("word ", 1_400)
+      long = String.duplicate("word ", 2_500)
 
       assert Rewrite.answer_budget(short) == 3_000, "a floor for short spans"
 
       # three candidates at ~1.4 tokens a word, and the two labels each
-      assert Rewrite.answer_budget(long) >= 1_400 * 3 * 1.4
+      assert Rewrite.answer_budget(long) >= 2_500 * 3 * 1.4
     end
 
     test "several paragraphs get past the length check", %{work: work} do
