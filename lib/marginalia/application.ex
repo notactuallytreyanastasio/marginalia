@@ -13,6 +13,7 @@ defmodule Marginalia.Application do
       {DNSCluster, query: Application.get_env(:marginalia, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Marginalia.PubSub},
       {Task.Supervisor, name: Marginalia.TaskSupervisor},
+      Marginalia.Links.Cache,
       # Start a worker by calling: Marginalia.Worker.start_link(arg)
       # {Marginalia.Worker, arg},
       # Start to serve requests, typically the last entry
