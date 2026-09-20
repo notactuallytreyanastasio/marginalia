@@ -4610,7 +4610,19 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
 .mg-note-inline .mg-note { text-align: left; }
 
 /* The paragraph a change landed in, showing what it replaced where it
-   happened, until it is dismissed. */
-.mg-applied { margin: 0.3rem 0 1rem; }
+   happened, until it is dismissed.
+   
+   Wider than the prose it sits in. Two columns inside a 66ch measure gives
+   each side 33 characters, which wraps a sentence every few words and makes
+   a diff harder to read than the paragraph it is explaining. The read view
+   is a 66ch / 3rem / 34ch grid, so it takes the gutter and the rail as well
+   — the full width of the three columns — and sits above the notes while it
+   is open. Only where there is room for it; below that it stays in column. */
+.mg-applied { margin: 0.3rem 0 1rem; position: relative; z-index: 2; }
 .mg-applied-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.35rem; }
-.mg-applied .mg-diff-cols { max-width: none; }
+.mg-applied .mg-diff-cols { max-width: none; background: var(--mg-paper); }
+.mg-applied .mg-diff-row .side { padding: 0.6rem 0.75rem; font-size: 0.88rem; }
+
+@media (min-width: 1100px) {
+  .mg-applied { width: calc(100% + 3rem + 34ch); }
+}
