@@ -272,6 +272,26 @@ defmodule MarginaliaWeb.LandingLive do
       .demo .d-log{margin-top:0.4rem; font-family:var(--mg-sans); font-size:0.7rem; color:var(--mg-dim)}
       .demo .d-log .sha{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--mg-ink)}
 
+      .demo.link .d-link{display:grid; grid-template-columns:1fr auto 1fr; gap:0.55rem;
+        align-items:start}
+      .demo.link .d-col{display:flex; flex-direction:column; gap:0.3rem; min-width:0}
+      .demo.link .d-col-name{font-size:0.64rem; text-transform:uppercase; letter-spacing:0.06em;
+        color:var(--mg-dim); margin-bottom:0.15rem}
+      .demo.link .d-node{border:1px solid var(--mg-rule); border-radius:3px; background:var(--mg-paper);
+        padding:0.28em 0.45em; font-family:var(--mg-serif); font-size:0.78rem}
+      .demo.link .d-edges{display:flex; flex-direction:column; gap:0.3rem; padding-top:1.05rem}
+      .demo.link .d-edge{display:block; text-align:center; min-width:5.6rem}
+      .demo.link .d-edge i{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-style:normal;
+        font-size:0.64rem; color:var(--mg-dim); border-bottom:1px solid var(--mg-rule);
+        display:block; padding-bottom:0.15rem; line-height:1.9}
+      .demo.link .d-edge.tension i{color:var(--mg-accent); border-bottom-color:var(--mg-accent)}
+      .demo.link .d-edge-note{margin:0.7rem 0 0; font-family:var(--mg-serif); font-size:0.82rem;
+        border-left:2px solid var(--mg-accent); padding-left:0.7rem}
+      @media (max-width:640px){
+        .demo.link .d-link{grid-template-columns:1fr}
+        .demo.link .d-edges{flex-direction:row; flex-wrap:wrap; padding-top:0.3rem}
+      }
+
       .demo .d-call{display:flex; align-items:baseline; gap:0.45rem; flex-wrap:wrap;
         margin-top:0.3rem; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:0.72rem}
       .demo .d-call .tool{color:var(--mg-accent)}
@@ -1005,6 +1025,80 @@ defmodule MarginaliaWeb.LandingLive do
             A page that has spent nine sections promising not to touch your draft now offers you a
             version history of it being touched. Both are true — you did the touching — but the
             turn needs a sentence it does not have.
+          </div>
+        </aside>
+      </section>
+
+      <section class="sec head">
+        <div class="sec-title">
+          <h2>Two drafts, and what runs between them</h2>
+        </div>
+        <div class="sec-leader"></div>
+        <div class="sec-main">
+          <p>
+            Relate one draft to another and it reads both maps together, then draws the edges. Not
+            a similarity score: each edge has a direction and a kind, so it tells you that chapter
+            nine of the novel pays off a promise the short story made, and not merely that the two
+            are about fathers.
+          </p>
+
+          <div class="demo link" data-demo data-interval="700">
+            <div class="cap">A novel and the story it came out of</div>
+            <div class="d-link">
+              <div class="d-col">
+                <span class="d-col-name">The Quiet House</span>
+                <span class="d-node" data-step="1">§4 he stops in the doorway</span>
+                <span class="d-node" data-step="3">§9 she says nothing at all</span>
+                <span class="d-node" data-step="5">§14 the stairs, again</span>
+              </div>
+              <div class="d-edges">
+                <span class="d-edge" data-step="2"><i>pays_off</i></span>
+                <span class="d-edge" data-step="4"><i>answers</i></span>
+                <span class="d-edge tension" data-step="6"><i>tension</i></span>
+              </div>
+              <div class="d-col">
+                <span class="d-col-name">Thresholds (2019)</span>
+                <span class="d-node" data-step="1">the unanswered question</span>
+                <span class="d-node" data-step="3">"why did you not say so"</span>
+                <span class="d-node" data-step="5">he never comes back</span>
+              </div>
+            </div>
+            <p class="d-edge-note" data-step="7">
+              The tension is the useful one: the story ends on him not coming back and the novel
+              brings him up the stairs in §14.
+            </p>
+          </div>
+
+          <p>
+            Six kinds, and the direction is part of the claim. <b>develops</b>
+            and <b>pays_off</b>
+            for one carrying the other further or delivering on it, <b>requires</b>
+            when one only
+            works if the reader already has the other, <b>answers</b>
+            for a direct response, and <b>echoes</b>
+            when the two arrive at the same move independently. <b>tension</b>
+            is the
+            one worth the money: two things you wrote that sit badly together, which is exactly
+            what nobody notices across a gap of two years.
+          </p>
+
+          <p>
+            Relate enough of them and the pairs stop being pairs. Drafts that keep linking to each
+            other show up as a cluster, which is generally the moment you find out that four essays
+            you thought were separate are one argument with three introductions.
+          </p>
+        </div>
+        <aside class="sec-aside">
+          <div class="note" data-reveal style="--i:0">
+            <span class="who">note</span>
+            "Not merely that the two are about fathers" is the whole pitch and it is doing it in a
+            subordinate clause at the end of the first paragraph.
+          </div>
+          <div class="note" data-reveal style="--i:1">
+            <span class="who">connection</span>
+            "Four essays you thought were separate are one argument with three introductions" is
+            the same discovery the stacks section describes two sections down, arrived at from the
+            other end. One of them should point at the other.
           </div>
         </aside>
       </section>

@@ -175,4 +175,51 @@ defmodule MarginaliaWeb.LandingFeaturesTest do
       assert html =~ "records a ruling"
     end
   end
+
+  describe "the linkage preview" do
+    test "the section is there with its demo", %{html: html} do
+      assert html =~ "Two drafts, and what runs between them"
+      assert html =~ "A novel and the story it came out of"
+    end
+
+    test "every edge kind it shows is one the linker can emit", %{html: html} do
+      source = File.read!("lib/marginalia/analysis/linker.ex")
+
+      [_, types] = Regex.run(~r/@types ~w\(([^)]+)\)/, source)
+      real = String.split(types)
+
+      shown =
+        Regex.scan(~r/class="d-edge[^"]*"[^>]*><i>([a-z_]+)<\/i>/, html)
+        |> Enum.map(fn [_, k] -> k end)
+        |> Enum.uniq()
+
+      refute shown == []
+
+      for kind <- shown do
+        assert kind in real,
+               "the homepage draws a #{kind} edge and the linker cannot produce one"
+      end
+    end
+
+    test "it names all six kinds, since it claims there are six", %{html: html} do
+      source = File.read!("lib/marginalia/analysis/linker.ex")
+      [_, types] = Regex.run(~r/@types ~w\(([^)]+)\)/, source)
+      real = String.split(types)
+
+      assert length(real) == 6, "the copy says six kinds"
+
+      for kind <- real do
+        assert html =~ kind, "#{kind} exists and the page does not mention it"
+      end
+    end
+
+    test "the direction of an edge is part of the claim", %{html: html} do
+      assert html =~ "the direction is part of the claim"
+      assert html =~ "not merely that the two are about fathers"
+    end
+
+    test "clusters are mentioned as what pairs become", %{html: html} do
+      assert html =~ "cluster"
+    end
+  end
 end
