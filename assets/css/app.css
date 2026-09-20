@@ -4568,3 +4568,18 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
 .lx-bulk-out .mg-rows li { padding: 0.45rem 0; border-top: 1px solid var(--mg-rule); }
 .lx-bulk-out .mg-rows .n { font-family: var(--mg-mono); font-size: 0.68rem; color: var(--mg-accent); margin-right: 0.4rem; }
 .lx-bulk-out .mg-rows p { margin: 0.2rem 0 0; }
+
+/* Earlier summaries, kept in this browser. A safety net for the one thing the
+   server does not keep: running a summary again overwrites the row. */
+.mg-sum-vault { margin-top: 0.35rem; max-width: 62ch; }
+.mg-sum-vault details { font-family: var(--mg-sans); font-size: 0.72rem; color: var(--mg-dim); }
+.mg-sum-vault summary { cursor: pointer; }
+.mg-sum-vault p {
+  margin: 0.4rem 0 0; padding-left: 0.7rem;
+  border-left: 1px solid var(--mg-rule);
+  font-family: var(--mg-serif); font-size: 0.82rem; line-height: 1.55;
+}
+.mg-sum-vault .when {
+  display: block; font-family: var(--mg-mono); font-size: 0.64rem;
+  color: var(--mg-dim); margin-bottom: 0.15rem;
+}
