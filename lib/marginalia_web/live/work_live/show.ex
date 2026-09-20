@@ -991,12 +991,21 @@ defmodule MarginaliaWeb.WorkLive.Show do
     with true <- a.mine?,
          ref when is_binary(ref) <- a.editing,
          %{block: block, section: section} <- block_and_section(a.page, ref),
-         {:ok, %{superseded: n}} <- Works.replace_block(section, block, text) do
+         {:ok, %{superseded: n}} <-
+           Works.replace_block(section, block, text, origin: origin(a), note: rewrite_note(a)) do
+      socket =
+        socket
+        |> assign(editing: nil, edit_text: nil)
+        |> reload_work()
+        |> load_page()
+
+      # After the transaction, never inside it: a commit is a filesystem side
+      # effect that cannot roll back with the database, and one describing a
+      # write that never landed is worse than no history at all.
+      commit_draft(socket, a, origin(a))
+
       {:noreply,
        socket
-       |> assign(editing: nil, edit_text: nil)
-       |> reload_work()
-       |> load_page()
        |> then(fn s -> if n > 0, do: put_flash(s, :info, supersede_note(n)), else: s end)}
     else
       {:error, :empty} ->
@@ -1017,6 +1026,32 @@ defmodule MarginaliaWeb.WorkLive.Show do
       _ ->
         {:noreply, assign(socket, editing: nil, edit_text: nil)}
     end
+  end
+
+  # A saved paragraph that started from a rewrite candidate is a rewrite; one
+  # typed from scratch is an edit. The panel is closed by `edit_block` before
+  # the save, so the origin is taken from what seeded the box.
+  defp origin(%{rewrite: %{}}), do: "rewrite"
+  defp origin(_), do: "edit"
+
+  defp rewrite_note(%{rewrite: %{candidates: _}, preview: %{move: move}}) when is_binary(move),
+    do: move
+
+  defp rewrite_note(_), do: nil
+
+  defp commit_draft(socket, assigns, origin) do
+    if Marginalia.Git.enabled?() do
+      work = socket.assigns.work
+      who = assigns.current_scope.user
+
+      Task.Supervisor.start_child(Marginalia.TaskSupervisor, fn ->
+        Marginalia.Git.commit(work, "#{origin}: #{work.title}",
+          author: "#{who.email} <#{who.email}>"
+        )
+      end)
+    end
+
+    :ok
   end
 
   # A conversation struct that is never inserted. `inline_thread` only reads
