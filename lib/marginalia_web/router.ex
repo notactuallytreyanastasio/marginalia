@@ -68,6 +68,8 @@ defmodule MarginaliaWeb.Router do
   scope "/", MarginaliaWeb do
     pipe_through :browser
 
+    get "/sitemap.xml", SitemapController, :index
+
     live_session :cases,
       on_mount: [{MarginaliaWeb.UserAuth, :mount_current_scope}] do
       live "/cases", CaseLive.Index, :index

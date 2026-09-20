@@ -4,3 +4,5 @@
 User-agent: *
 Disallow: /works/
 Disallow: /users/
+
+Sitemap: https://marginalia.bobbby.online/sitemap.xml
