@@ -94,6 +94,12 @@ defmodule Marginalia.DiffTest do
     {micros, rows} = :timer.tc(fn -> Diff.rows(old, new) end)
 
     assert Diff.stat(rows).changed == 1
-    assert micros < 3_000_000, "120 paragraphs took #{div(micros, 1000)}ms"
+
+    # A wall-clock bound in a suite that runs 24 cases in parallel measures
+    # the machine's load as much as the code, and a tight one here failed
+    # once on a busy run and then passed six times. The number is loose on
+    # purpose: it is a guard against someone making this accidentally cubic,
+    # not a benchmark. The real assertion is the line above.
+    assert micros < 20_000_000, "120 paragraphs took #{div(micros, 1000)}ms"
   end
 end
