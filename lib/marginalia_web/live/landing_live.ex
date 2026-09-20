@@ -143,9 +143,10 @@ defmodule MarginaliaWeb.LandingLive do
       /* ---- the rail ---------------------------------------------------- */
       .sec{display:grid; grid-template-columns:minmax(0,58ch) 3rem minmax(0,30ch);
         justify-content:center; align-items:start; column-gap:0;
-        /* an anchored section lands with air above its heading rather than
-           flush against the top of the window */
-        scroll-margin-top:2rem}
+        /* .mg-head is sticky at top:0, so a section jumped to from /#changes
+           lands underneath it without this. Matches .sec-aside's own offset,
+           which is already clearing the same bar. */
+        scroll-margin-top:5rem}
       .sec-title{grid-column:1; padding-right:.5rem; min-width:0}
       .sec-main{grid-column:1; padding-right:.5rem; min-width:0}
       .sec-aside{grid-column:3; padding-left:.5rem; position:sticky; top:5rem; padding-bottom:2.5rem}
@@ -245,9 +246,16 @@ defmodule MarginaliaWeb.LandingLive do
          WHEN each part appears, so with the script dead or motion turned down
          the final frame is what you get — `reveal-ready` is the only thing
          that ever hides anything. */
-      .fx{margin:1.4rem 0 1.6rem; border:1px solid var(--mg-rule); border-radius:4px;
+      /* Explicit column flow. These blocks were collapsing to a couple of
+         lines with every child painting over the others, which is what a
+         container does when its children stop contributing height. A flex
+         column cannot do that: each child is its own line and the box grows
+         to fit them. */
+      .fx{display:flex; flex-direction:column; align-items:stretch;
+        margin:1.4rem 0 1.6rem; border:1px solid var(--mg-rule); border-radius:4px;
         background:var(--mg-margin); padding:0.85rem 0.95rem; font-family:var(--mg-sans);
         font-size:0.82rem; line-height:1.55}
+      .fx > *{flex:0 0 auto; min-height:1.4em}
       .fx .cap{font-size:0.66rem; text-transform:uppercase; letter-spacing:0.07em;
         color:var(--mg-dim); margin-bottom:0.6rem}
 
@@ -311,11 +319,20 @@ defmodule MarginaliaWeb.LandingLive do
       .fx .d-reply{margin:0.65rem 0 0; font-family:var(--mg-serif); font-size:0.88rem;
         border-left:2px solid var(--mg-rule); padding-left:0.7rem}
 
-      .fx.stack .d-ticks{display:block; height:12px; margin-bottom:0.8rem; border-radius:1px;
+      .fx.stack .d-ticks{display:block; flex:0 0 12px; height:12px; min-height:12px; margin-bottom:0.8rem; border-radius:1px;
         background-image:repeating-linear-gradient(to right,
           var(--mg-rule) 0, var(--mg-rule) 5px, transparent 5px, transparent 7px);
         background-repeat:repeat-x}
-      .fx.stack .d-move{display:block; margin-top:0.4rem; line-height:1.5}
+      .fx.stack .d-move{display:block; margin-top:0.4rem; line-height:1.6; min-height:1.6em}
+      .fx.stack .d-revised{min-height:1.4em}
+      /* Reported from Safari, which collapsed this box to two lines with every
+         row painting over the one above it. Chrome lays it out correctly at
+         every width and in both animation states, so the floor is explicit
+         rather than derived: caption, bar, three rows and a footnote cannot
+         occupy less than this no matter what the engine does with the
+         children's heights. */
+      .fx.stack{min-height:9.5rem}
+      .fx.link{min-height:8rem}
       .fx.stack .d-move .mg-meta{margin-left:0.4rem}
       .fx.stack .d-move strong{font-family:var(--mg-serif); font-weight:600; font-size:0.85rem}
       .fx.stack .d-revised{margin-top:0.6rem; color:var(--mg-accent); font-size:0.72rem}
