@@ -155,7 +155,16 @@ defmodule Marginalia.Rewrite do
 
         candidates ->
           {:ok,
-           %{reading: out["reading"], original: found, section: section, candidates: candidates}}
+           %{
+             reading: out["reading"],
+             original: found,
+             section: section,
+             candidates: candidates,
+             # nil context means no single block holds the span, which is also
+             # exactly the condition under which a candidate cannot be dropped
+             # into a paragraph
+             spans_blocks: is_nil(paragraph_around(section.body, found))
+           }}
       end
     end
   end
@@ -227,6 +236,24 @@ defmodule Marginalia.Rewrite do
   defp word_count_of(nil), do: 0
   defp word_count_of(text) when is_binary(text), do: word_count(text)
   defp word_count_of(_), do: 0
+
+  @doc """
+  Put a candidate back into the paragraph it came from, or refuse.
+
+  `:not_here` rather than a guess. The LiveView used to fall through to the
+  candidate when the block did not contain the span, which replaced the WHOLE
+  paragraph with a rewrite of text that was not in it: three paragraphs
+  selected, the panel anchored to a fourth, one click and the fourth was
+  gone. A rewrite that cannot be placed is a refusal, not a substitution.
+  """
+  def place(block, original, seed)
+      when is_binary(block) and is_binary(original) and is_binary(seed) do
+    if String.contains?(block, original),
+      do: {:ok, String.replace(block, original, seed, global: false)},
+      else: :not_here
+  end
+
+  def place(_block, _original, seed) when is_binary(seed), do: {:ok, seed}
 
   @doc "The longest steer taken from the writer. Past this it is a brief, not a note."
   def max_steer_chars, do: 400

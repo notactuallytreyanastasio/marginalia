@@ -480,10 +480,21 @@ defmodule MarginaliaWeb.WorkLive.Show do
       # the writer answers it in their own words rather than from a blank line
       seed = params["seed"]
 
-      text =
-        if is_binary(seed) and seed != "", do: seeded(block, socket.assigns, seed), else: block
+      case if is_binary(seed) and seed != "",
+             do: seeded(block, socket.assigns, seed),
+             else: {:ok, block} do
+        {:ok, text} ->
+          {:noreply, assign(socket, editing: ref, edit_text: text, rewrite: nil, preview: nil)}
 
-      {:noreply, assign(socket, editing: ref, edit_text: text, rewrite: nil, preview: nil)}
+        :not_here ->
+          {:noreply,
+           put_flash(
+             socket,
+             :error,
+             "That rewrite covers more than this paragraph, so it cannot be dropped into it. " <>
+               "Copy the version you want, or select inside one paragraph and rewrite again."
+           )}
+      end
     else
       {:noreply, socket}
     end
@@ -1372,15 +1383,15 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
   # the candidate, dropped into the paragraph where the original sat, so the
   # writer edits their own line rather than staring at a replacement
+  # `:not_here` rather than a guess. This used to fall through to `seed`,
+  # which replaced the WHOLE paragraph with a rewrite of text that was not in
+  # it — the panel anchored to a paragraph the span did not cover, and one
+  # click silently overwrote it. A rewrite that cannot be placed is a refusal,
+  # not a substitution.
   defp seeded(block, assigns, seed) do
     case assigns.rewrite do
-      %{original: original} ->
-        if String.contains?(block, original),
-          do: String.replace(block, original, seed, global: false),
-          else: seed
-
-      _ ->
-        seed
+      %{original: original} -> Marginalia.Rewrite.place(block, original, seed)
+      _ -> {:ok, seed}
     end
   end
 
@@ -1982,6 +1993,14 @@ defmodule MarginaliaWeb.WorkLive.Show do
       <div :if={@rewrite} class="mg-rewrite-body">
         <p :if={@rewrite.reading} class="mg-hint mt-0 mb-2.5">{@rewrite.reading}</p>
 
+        <%!-- A span crossing paragraphs has no one paragraph to be dropped
+              into, and the editor writes one paragraph at a time. Saying so
+              is better than an action that silently overwrites the wrong one. --%>
+        <p :if={@rewrite.spans_blocks} class="mg-hint mt-0 mb-2.5">
+          This covers more than one paragraph, so there is nothing to drop it into —
+          copy the version you want, or select inside one paragraph to get that back.
+        </p>
+
         <%!-- LiveView has no phx-mouseover: hovering is not one of its
               bindings, so the preview never fired and the legend in the hint
               below was the only ins/del on the page. A hook does it. --%>
@@ -1998,6 +2017,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
             </span>
             <span class="words">{c.text}</span>
             <span
+              :if={not @rewrite.spans_blocks}
               class="mine"
               phx-click="edit_block"
               phx-value-ref={@block_ref}
@@ -2607,13 +2627,30 @@ defmodule MarginaliaWeb.WorkLive.Show do
                 return {ref: el.id.replace(/^block-/, ""), section: tick?.getAttribute("phx-value-section")};
               },
 
-              // which paragraph the selection ended in, so the rewrite panel
-              // opens where the drag finished rather than where it began
+              // The last paragraph the selection actually covers, so the panel
+              // opens where the drag finished rather than where it began.
+              //
+              // NOT endContainer. A drag that stops at the end of a paragraph
+              // reports the NEXT node at offset 0 — the range ends *before* it,
+              // covering none of it — so three highlighted paragraphs anchored
+              // the panel under a fourth that was not selected at all. The
+              // boundary comparisons below exclude a block the range merely
+              // touches.
               endBlockOf(sel) {
                 if (!sel || !sel.rangeCount) return null;
-                let node = sel.getRangeAt(0).endContainer;
-                if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
-                const el = node?.closest?.(".mg-block");
+                const range = sel.getRangeAt(0);
+
+                const covered = [...this.el.querySelectorAll(".mg-block")].filter((b) => {
+                  const br = document.createRange();
+                  br.selectNodeContents(b);
+                  // range ends at or before the block starts, or starts at or
+                  // after it ends: no text of this block is in the selection
+                  if (range.compareBoundaryPoints(Range.END_TO_START, br) >= 0) return false;
+                  if (range.compareBoundaryPoints(Range.START_TO_END, br) <= 0) return false;
+                  return true;
+                });
+
+                const el = covered[covered.length - 1];
                 if (!el) return null;
                 const tick = el.querySelector(".mg-tick");
                 return {ref: el.id.replace(/^block-/, ""), section: tick?.getAttribute("phx-value-section")};

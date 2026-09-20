@@ -180,4 +180,37 @@ defmodule Marginalia.RewriteTest do
       assert extent =~ "First para."
     end
   end
+
+  describe "putting a candidate back" do
+    test "it replaces the span inside the paragraph that holds it" do
+      block = "First sentence. The span to replace. Last sentence."
+
+      assert {:ok, out} = Rewrite.place(block, "The span to replace.", "A better span.")
+      assert out == "First sentence. A better span. Last sentence."
+    end
+
+    test "only the first occurrence, so a repeated phrase is not rewritten everywhere" do
+      block = "same. same. same."
+      assert {:ok, out} = Rewrite.place(block, "same.", "CHANGED.")
+      assert out == "CHANGED. same. same."
+    end
+
+    test "a paragraph that does not hold the span is refused, not overwritten" do
+      block = "BRAVO the second paragraph, which has nothing to do with it."
+
+      assert Rewrite.place(block, "ALPHA the first paragraph.", "A rewrite of alpha.") ==
+               :not_here
+    end
+
+    test "the refusal is the whole point: it used to replace the paragraph" do
+      block = "A paragraph worth keeping."
+
+      # the old behaviour returned the candidate here, so one click destroyed
+      # a paragraph the writer had not selected
+      refute match?(
+               {:ok, "Some rewrite of other text."},
+               Rewrite.place(block, "not in here", "Some rewrite of other text.")
+             )
+    end
+  end
 end
