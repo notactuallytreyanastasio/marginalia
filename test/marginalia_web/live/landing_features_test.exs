@@ -222,4 +222,22 @@ defmodule MarginaliaWeb.LandingFeaturesTest do
       assert html =~ "cluster"
     end
   end
+
+  test "the demo blocks do not reuse a class the page already styles" do
+    source = File.read!("lib/marginalia_web/live/landing_live.ex")
+
+    # `.demo` was already in use for the worked example further up the page.
+    # Styling my blocks with the same class silently restyled that one.
+    refute source =~ ~s(class="demo" data-demo),
+           "a demo block is using the page's pre-existing .demo class"
+
+    duplicated =
+      Regex.scan(~r/^\s{6}(\.[a-z][a-z0-9-]*)\{/m, source)
+      |> Enum.map(fn [_, sel] -> sel end)
+      |> Enum.frequencies()
+      |> Enum.filter(fn {_sel, n} -> n > 1 end)
+
+    assert duplicated == [],
+           "two top-level rules for the same class in one stylesheet: #{inspect(duplicated)}"
+  end
 end

@@ -235,91 +235,91 @@ defmodule MarginaliaWeb.LandingLive do
          WHEN each part appears, so with the script dead or motion turned down
          the final frame is what you get — `reveal-ready` is the only thing
          that ever hides anything. */
-      .demo{margin:1.4rem 0 1.6rem; border:1px solid var(--mg-rule); border-radius:4px;
+      .fx{margin:1.4rem 0 1.6rem; border:1px solid var(--mg-rule); border-radius:4px;
         background:var(--mg-margin); padding:0.85rem 0.95rem; font-family:var(--mg-sans);
         font-size:0.82rem; line-height:1.55}
-      .demo .cap{font-size:0.66rem; text-transform:uppercase; letter-spacing:0.07em;
+      .fx .cap{font-size:0.66rem; text-transform:uppercase; letter-spacing:0.07em;
         color:var(--mg-dim); margin-bottom:0.6rem}
 
-      .demo .d-head{display:flex; align-items:baseline; gap:0.5rem; flex-wrap:wrap}
-      .demo .d-lab{font-size:0.64rem; text-transform:uppercase; letter-spacing:0.06em;
+      .fx .d-head{display:flex; align-items:baseline; gap:0.5rem; flex-wrap:wrap}
+      .fx .d-lab{font-size:0.64rem; text-transform:uppercase; letter-spacing:0.06em;
         color:var(--mg-dim)}
-      .demo .d-title{font-family:var(--mg-serif); font-size:0.92rem}
-      .demo .d-btn{margin-left:auto; border:1px solid var(--mg-rule); border-radius:3px;
+      .fx .d-title{font-family:var(--mg-serif); font-size:0.92rem}
+      .fx .d-btn{margin-left:auto; border:1px solid var(--mg-rule); border-radius:3px;
         padding:0.1em 0.45em; background:var(--mg-paper); color:var(--mg-dim); font-size:0.7rem}
-      .demo .d-sum{font-family:var(--mg-serif); font-size:0.9rem; margin:0.6rem 0 0;
+      .fx .d-sum{font-family:var(--mg-serif); font-size:0.9rem; margin:0.6rem 0 0;
         border-left:2px solid var(--mg-accent); padding-left:0.7rem}
-      .demo .d-chips{display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.5rem}
-      .demo .d-chips span{border:1px solid var(--mg-rule); border-radius:2px; background:var(--mg-paper);
+      .fx .d-chips{display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.5rem}
+      .fx .d-chips span{border:1px solid var(--mg-rule); border-radius:2px; background:var(--mg-paper);
         padding:0.08em 0.4em; font-size:0.68rem; color:var(--mg-dim)}
-      .demo .d-links{display:flex; flex-wrap:wrap; gap:0.8rem; margin-top:0.45rem;
+      .fx .d-links{display:flex; flex-wrap:wrap; gap:0.8rem; margin-top:0.45rem;
         font-size:0.7rem; color:var(--mg-dim)}
 
-      .demo .d-cols{border:1px solid var(--mg-rule); border-radius:3px; overflow:hidden;
+      .fx .d-cols{border:1px solid var(--mg-rule); border-radius:3px; overflow:hidden;
         background:var(--mg-paper)}
-      .demo .d-colhead{display:grid; grid-template-columns:1fr 1fr; background:var(--mg-margin);
+      .fx .d-colhead{display:grid; grid-template-columns:1fr 1fr; background:var(--mg-margin);
         border-bottom:1px solid var(--mg-rule)}
-      .demo .d-colhead span{padding:0.25rem 0.5rem; font-size:0.62rem; text-transform:uppercase;
+      .fx .d-colhead span{padding:0.25rem 0.5rem; font-size:0.62rem; text-transform:uppercase;
         letter-spacing:0.06em; color:var(--mg-dim)}
-      .demo .d-colhead span+span{border-left:1px solid var(--mg-rule)}
-      .demo .d-row{display:grid; grid-template-columns:1fr 1fr}
-      .demo .d-side{padding:0.5rem 0.55rem; font-family:var(--mg-serif); font-size:0.82rem}
-      .demo .d-side+.d-side{border-left:1px solid var(--mg-rule)}
-      .demo .d-old del{background:rgba(203,36,49,0.20); color:#82071e; text-decoration:line-through;
+      .fx .d-colhead span+span{border-left:1px solid var(--mg-rule)}
+      .fx .d-row{display:grid; grid-template-columns:1fr 1fr}
+      .fx .d-side{padding:0.5rem 0.55rem; font-family:var(--mg-serif); font-size:0.82rem}
+      .fx .d-side+.d-side{border-left:1px solid var(--mg-rule)}
+      .fx .d-old del{background:rgba(203,36,49,0.20); color:#82071e; text-decoration:line-through;
         border-radius:2px}
-      .demo .d-new ins{background:rgba(46,160,67,0.22); color:#116329; text-decoration:none;
+      .fx .d-new ins{background:rgba(46,160,67,0.22); color:#116329; text-decoration:none;
         border-radius:2px}
-      .demo .d-log{margin-top:0.4rem; font-family:var(--mg-sans); font-size:0.7rem; color:var(--mg-dim)}
-      .demo .d-log .sha{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--mg-ink)}
+      .fx .d-log{margin-top:0.4rem; font-family:var(--mg-sans); font-size:0.7rem; color:var(--mg-dim)}
+      .fx .d-log .sha{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--mg-ink)}
 
-      .demo.link .d-link{display:grid; grid-template-columns:1fr auto 1fr; gap:0.55rem;
+      .fx.link .d-link{display:grid; grid-template-columns:1fr auto 1fr; gap:0.55rem;
         align-items:start}
-      .demo.link .d-col{display:flex; flex-direction:column; gap:0.3rem; min-width:0}
-      .demo.link .d-col-name{font-size:0.64rem; text-transform:uppercase; letter-spacing:0.06em;
+      .fx.link .d-col{display:flex; flex-direction:column; gap:0.3rem; min-width:0}
+      .fx.link .d-col-name{font-size:0.64rem; text-transform:uppercase; letter-spacing:0.06em;
         color:var(--mg-dim); margin-bottom:0.15rem}
-      .demo.link .d-node{border:1px solid var(--mg-rule); border-radius:3px; background:var(--mg-paper);
+      .fx.link .d-node{border:1px solid var(--mg-rule); border-radius:3px; background:var(--mg-paper);
         padding:0.28em 0.45em; font-family:var(--mg-serif); font-size:0.78rem}
-      .demo.link .d-edges{display:flex; flex-direction:column; gap:0.3rem; padding-top:1.05rem}
-      .demo.link .d-edge{display:block; text-align:center; min-width:5.6rem}
-      .demo.link .d-edge i{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-style:normal;
+      .fx.link .d-edges{display:flex; flex-direction:column; gap:0.3rem; padding-top:1.05rem}
+      .fx.link .d-edge{display:block; text-align:center; min-width:5.6rem}
+      .fx.link .d-edge i{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-style:normal;
         font-size:0.64rem; color:var(--mg-dim); border-bottom:1px solid var(--mg-rule);
         display:block; padding-bottom:0.15rem; line-height:1.9}
-      .demo.link .d-edge.tension i{color:var(--mg-accent); border-bottom-color:var(--mg-accent)}
-      .demo.link .d-edge-note{margin:0.7rem 0 0; font-family:var(--mg-serif); font-size:0.82rem;
+      .fx.link .d-edge.tension i{color:var(--mg-accent); border-bottom-color:var(--mg-accent)}
+      .fx.link .d-edge-note{margin:0.7rem 0 0; font-family:var(--mg-serif); font-size:0.82rem;
         border-left:2px solid var(--mg-accent); padding-left:0.7rem}
       @media (max-width:640px){
-        .demo.link .d-link{grid-template-columns:1fr}
-        .demo.link .d-edges{flex-direction:row; flex-wrap:wrap; padding-top:0.3rem}
+        .fx.link .d-link{grid-template-columns:1fr}
+        .fx.link .d-edges{flex-direction:row; flex-wrap:wrap; padding-top:0.3rem}
       }
 
-      .demo .d-call{display:flex; align-items:baseline; gap:0.45rem; flex-wrap:wrap;
+      .fx .d-call{display:flex; align-items:baseline; gap:0.45rem; flex-wrap:wrap;
         margin-top:0.3rem; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:0.72rem}
-      .demo .d-call .tool{color:var(--mg-accent)}
-      .demo .d-call .arg{color:var(--mg-ink)}
-      .demo .d-call .hit{margin-left:auto; color:var(--mg-dim); font-family:var(--mg-sans);
+      .fx .d-call .tool{color:var(--mg-accent)}
+      .fx .d-call .arg{color:var(--mg-ink)}
+      .fx .d-call .hit{margin-left:auto; color:var(--mg-dim); font-family:var(--mg-sans);
         font-size:0.68rem}
-      .demo .d-reply{margin:0.65rem 0 0; font-family:var(--mg-serif); font-size:0.88rem;
+      .fx .d-reply{margin:0.65rem 0 0; font-family:var(--mg-serif); font-size:0.88rem;
         border-left:2px solid var(--mg-rule); padding-left:0.7rem}
 
-      .demo.stack .d-ticks{display:flex; flex-wrap:wrap; gap:2px; margin-bottom:0.7rem}
-      .demo.stack .d-ticks i{width:5px; height:12px; background:var(--mg-rule); border-radius:1px}
-      .demo.stack .d-move{margin-top:0.35rem; display:flex; align-items:baseline; gap:0.5rem}
-      .demo.stack .d-move strong{font-family:var(--mg-serif); font-weight:600; font-size:0.85rem}
-      .demo.stack .d-revised{margin-top:0.6rem; color:var(--mg-accent); font-size:0.72rem}
+      .fx.stack .d-ticks{display:flex; flex-wrap:wrap; gap:2px; margin-bottom:0.7rem}
+      .fx.stack .d-ticks i{width:5px; height:12px; background:var(--mg-rule); border-radius:1px}
+      .fx.stack .d-move{margin-top:0.35rem; display:flex; align-items:baseline; gap:0.5rem}
+      .fx.stack .d-move strong{font-family:var(--mg-serif); font-weight:600; font-size:0.85rem}
+      .fx.stack .d-revised{margin-top:0.6rem; color:var(--mg-accent); font-size:0.72rem}
 
       /* Nothing above is hidden until the script says it is safe to hide it. */
-      .reveal-ready .demo [data-step]{opacity:0; transform:translateY(5px);
+      .reveal-ready .fx [data-step]{opacity:0; transform:translateY(5px);
         transition:opacity .45s ease, transform .45s ease}
-      .reveal-ready .demo [data-step].on{opacity:1; transform:none}
-      .reveal-ready .demo .d-old del[data-step],
-      .reveal-ready .demo .d-new ins[data-step]{transform:none}
-      .reveal-ready .demo.stack .d-ticks i{opacity:0.25;
+      .reveal-ready .fx [data-step].on{opacity:1; transform:none}
+      .reveal-ready .fx .d-old del[data-step],
+      .reveal-ready .fx .d-new ins[data-step]{transform:none}
+      .reveal-ready .fx.stack .d-ticks i{opacity:0.25;
         transition:opacity .5s ease; transition-delay:calc(var(--n) * 6ms)}
-      .reveal-ready .demo.stack.in .d-ticks i{opacity:1}
+      .reveal-ready .fx.stack.in .d-ticks i{opacity:1}
 
       @media (max-width:640px){
-        .demo .d-colhead,.demo .d-row{grid-template-columns:1fr}
-        .demo .d-side+.d-side{border-left:0; border-top:1px solid var(--mg-rule)}
+        .fx .d-colhead,.fx .d-row{grid-template-columns:1fr}
+        .fx .d-side+.d-side{border-left:0; border-top:1px solid var(--mg-rule)}
       }
 
       .reveal-ready .mg-cands .c.alt{opacity:0; transform:translateY(6px);
@@ -846,7 +846,7 @@ defmodule MarginaliaWeb.LandingLive do
             from your book.
           </p>
 
-          <div class="demo" data-demo data-interval="620">
+          <div class="fx" data-demo data-interval="620">
             <div class="cap">"Does Marta ever actually refuse him?"</div>
             <div class="d-call" data-step="1">
               <span class="tool">search_manuscript</span><span class="arg">"Marta refuse"</span>
@@ -917,7 +917,7 @@ defmodule MarginaliaWeb.LandingLive do
             with, and which earlier ones you need before it makes sense.
           </p>
 
-          <div class="demo" data-demo data-interval="700">
+          <div class="fx" data-demo data-interval="700">
             <div class="cap">Section 7 of 12, asked what is in it</div>
             <div class="d-head">
               <span class="d-lab">Section 7</span>
@@ -981,7 +981,7 @@ defmodule MarginaliaWeb.LandingLive do
             and everything after it is still recognised as untouched.
           </p>
 
-          <div class="demo" data-demo data-interval="800">
+          <div class="fx" data-demo data-interval="800">
             <div class="cap">The Changes tab, after one accepted rewrite</div>
             <div class="d-cols">
               <div class="d-colhead"><span>As it arrived</span><span>Now</span></div>
@@ -1042,7 +1042,7 @@ defmodule MarginaliaWeb.LandingLive do
             are about fathers.
           </p>
 
-          <div class="demo link" data-demo data-interval="700">
+          <div class="fx link" data-demo data-interval="700">
             <div class="cap">A novel and the story it came out of</div>
             <div class="d-link">
               <div class="d-col">
@@ -1122,7 +1122,7 @@ defmodule MarginaliaWeb.LandingLive do
             sixty-five. The telling composed out of that runs to about nineteen thousand words, and
             every claim in it links to the chapter it came from.
           </p>
-          <div class="demo stack" data-demo data-interval="520">
+          <div class="fx stack" data-demo data-interval="520">
             <div class="cap">111 chapters, read forwards, folded into what they add up to</div>
             <div class="d-ticks">
               <i :for={n <- 1..111} style={"--n:#{n}"}></i>
