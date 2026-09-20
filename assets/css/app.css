@@ -2048,11 +2048,18 @@ body {
 }
 .fl-block.on mark { background: #f7d774; }
 
-.fl-tag {
+/* The chip sits on the paragraph's top edge; the menu hangs off it.
+   The wrapper owns the position so the two stay together, and it is the
+   only part of this that takes a cursor — the prose underneath is still
+   selectable everywhere the chip is not. */
+.fl-tagwrap {
   position: absolute;
   top: -0.55rem;
   right: 0.2rem;
-  z-index: 1;
+  z-index: 3;
+}
+.fl-tag {
+  display: block;
   padding: 0.08rem 0.4rem;
   border-radius: 2px;
   background: var(--mg-paper);
@@ -2063,11 +2070,105 @@ body {
   text-transform: uppercase;
   white-space: nowrap;
   color: var(--mg-dim);
-  pointer-events: none;
+  cursor: default;
   opacity: 0.75;
 }
 .fl-col.other .fl-tag { background: var(--mg-margin); }
 .fl-block.on .fl-tag { opacity: 1; border-color: currentColor; }
+.fl-tagwrap:hover .fl-tag { opacity: 1; border-color: currentColor; }
+
+/* The list the count was hiding. Right-aligned to the chip and no wider
+   than the column, because the column scrolls and anything that overhangs
+   it is clipped rather than shown. */
+.fl-links {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  z-index: 4;
+  display: none;
+  width: min(23rem, 78vw);
+  max-height: 22rem;
+  overflow-y: auto;
+  padding: 0.2rem;
+  border: 1px solid var(--mg-rule);
+  border-radius: 4px;
+  background: var(--mg-paper);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.13);
+}
+.fl-tagwrap:hover .fl-links,
+.fl-tagwrap:focus-within .fl-links { display: block; }
+
+/* A hover menu that closes the instant the cursor leaves the chip cannot
+   be reached. The gap is bridged by a transparent strip rather than by
+   removing the offset, which would put the menu on top of the chip. */
+.fl-tagwrap::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: min(23rem, 78vw);
+  height: 0.45rem;
+}
+
+.fl-jump {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  font-family: var(--mg-sans);
+  cursor: pointer;
+}
+.fl-jump + .fl-jump { border-top: 1px solid var(--mg-rule); }
+.fl-jump:hover:not(:disabled),
+.fl-jump:focus-visible { background: #fdf8ec; }
+.fl-jump:disabled { cursor: default; opacity: 0.6; }
+.fl-jump .rel {
+  display: inline-block;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mg-dim);
+}
+.fl-jump.k-tension .rel { color: var(--mg-accent); }
+.fl-jump.k-answers .rel { color: #1e3a8a; }
+.fl-jump.k-echoes .rel { color: #0891b2; }
+.fl-jump.k-pays_off .rel { color: #166534; }
+.fl-jump.k-requires .rel { color: #b45309; }
+.fl-jump .to {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--mg-ink);
+}
+.fl-jump .why {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--mg-dim);
+}
+.fl-jump .nowhere {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.6rem;
+  font-style: italic;
+  color: var(--mg-dim);
+}
+
+/* The far paragraph of the entry under the cursor: shown, not chosen.
+   Dashed, where the chosen pair is solid — a tint alone was invisible
+   next to the tint the whole column already has. */
+.fl-block.peek {
+  background: #fdf8ec;
+  outline: 2px dashed var(--mg-accent);
+  outline-offset: -1px;
+  border-left-color: var(--mg-accent);
+}
 .fl-tag.tension { color: var(--mg-accent); }
 .fl-tag.answers { color: #1e3a8a; }
 .fl-tag.echoes { color: #0891b2; }
@@ -2090,6 +2191,11 @@ body {
   .fl-col.lead { overflow-y: auto; padding-bottom: 4rem; }
   .fl-col.other { display: none; }
   .fl-wire { display: none; }
+
+  /* No cursor to hover with, and a tap on the paragraph already opens the
+     sheet with one card per connection — which is this menu with room. */
+  .fl-tagwrap:hover .fl-links,
+  .fl-tagwrap:focus-within .fl-links { display: none; }
 
   /* the chrome, cut to what a phone can spare */
   .fl-bar {

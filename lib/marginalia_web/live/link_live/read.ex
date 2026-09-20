@@ -492,6 +492,25 @@ defmodule MarginaliaWeb.LinkLive.Read do
               }
             };
             this.el.addEventListener("click", this.onWireClick);
+
+            // The chip's menu, in both columns. Delegated for the reason
+            // everything else here is: a server patch replaces these nodes
+            // and a listener bound to one of them stops working silently.
+            this.onJump = (e) => {
+              const item = e.target.closest(".fl-jump");
+              if (item && !item.disabled) this.jump(item);
+            };
+            this.el.addEventListener("click", this.onJump);
+
+            // Hovering an entry lights its far paragraph without committing
+            // to it, so the menu answers "which three" before you pick one.
+            this.onPeek = (e) => {
+              const item = e.target.closest(".fl-jump");
+              this.peek(item && !item.disabled ? item : null);
+            };
+            this.el.addEventListener("mouseover", this.onPeek);
+            this.el.addEventListener("mouseout", this.onPeek);
+
             this.seen = new Set();
             this.current = null;
 
@@ -527,6 +546,9 @@ defmodule MarginaliaWeb.LinkLive.Read do
             // the other column is not on screen at all, that is the only
             // way to point at something.
             this.onTap = (e) => {
+              // the chip's menu picks one edge out of several; letting the
+              // tap handler run too would immediately re-select the first
+              if (e.target.closest(".fl-jump")) return;
               const block = e.target.closest(".fl-block.linked");
               if (!block) return;
               if (window.getSelection()?.toString()) return;
@@ -610,6 +632,9 @@ defmodule MarginaliaWeb.LinkLive.Read do
             this.lead.removeEventListener("click", this.onTap);
             this.el.removeEventListener("click", this.onSheetClick);
             this.el.removeEventListener("click", this.onWireClick);
+            this.el.removeEventListener("click", this.onJump);
+            this.el.removeEventListener("mouseover", this.onPeek);
+            this.el.removeEventListener("mouseout", this.onPeek);
             this.lead.removeEventListener("scroll", this.onScroll);
             this.el.removeEventListener("wheel", this.onWheel);
             cancelAnimationFrame(this.frame);
@@ -733,6 +758,12 @@ defmodule MarginaliaWeb.LinkLive.Read do
             // the reader opens it deliberately
             if (this.phone()) return;
 
+            // A jump from the right column scrolls the left one, and that
+            // scroll fires this. Without the hold, follow() re-picks
+            // whatever paragraph the smooth scroll is currently passing
+            // and the pair you asked for is gone before it arrives.
+            if (performance.now() < (this.hold || 0)) return;
+
             const block = this.currentBlock();
             if (!block) return this.blank();
 
@@ -745,8 +776,84 @@ defmodule MarginaliaWeb.LinkLive.Read do
             if (!this.free) this.align(block);
           },
 
-          mark(block) {
-            const note = block.querySelector("[data-peer-ref]");
+          // One entry of the chip's menu. The button carries only the edge
+          // id; the note itself is the hidden span already on the paragraph,
+          // which is where every other path here reads a relation from.
+          jump(item) {
+            const edge = item.dataset.edge;
+            const block = item.closest(".fl-block");
+            const mine = block.querySelector(`[data-peer-ref][data-edge="${CSS.escape(edge)}"]`);
+            if (!mine) return;
+
+            this.peek(null);
+
+            // Clicked in the left column: this paragraph is the near end,
+            // and the right column comes to meet it.
+            if (this.lead.contains(block)) {
+              this.current = block;
+              this.free = false;
+              this.mark(block, mine);
+
+              if (this.phone()) {
+                if (this.fillStack(block)) {
+                  this.sheet.hidden = false;
+                  this.strip.hidden = true;
+                  this.stack.scrollTop = 0;
+                  this.openSheet();
+                }
+              } else {
+                this.align(block, mine);
+              }
+              return;
+            }
+
+            // Clicked in the right column, where the far end is a paragraph
+            // of the document being read. Go there rather than to it: the
+            // left column is the one with the reading position in it.
+            const ref = mine.dataset.peerRef;
+            const target = ref && this.lead.querySelector(`#blk-lead-${CSS.escape(ref)}`);
+            if (!target) return;
+
+            const note =
+              target.querySelector(`[data-peer-ref][data-edge="${CSS.escape(edge)}"]`) ||
+              target.querySelector("[data-peer-ref]");
+
+            const to =
+              target.getBoundingClientRect().top -
+              this.lead.getBoundingClientRect().top +
+              this.lead.scrollTop -
+              this.lead.clientHeight * 0.28;
+
+            this.hold = performance.now() + 1200;
+            this.lead.scrollTo({top: Math.max(0, to), behavior: "smooth"});
+
+            this.current = target;
+            this.free = false;
+            this.mark(target, note);
+            this.chase();
+          },
+
+          // The far paragraph of the entry under the cursor, lit but not
+          // chosen. A class of its own: `on` is the committed pair, and
+          // borrowing it would leave two pairs highlighted at once.
+          peek(item) {
+            this.el.querySelectorAll(".fl-block.peek").forEach((b) => b.classList.remove("peek"));
+            if (!item) return;
+
+            const here = item.closest(".fl-block");
+            const far = this.lead.contains(here) ? this.other : this.lead;
+            const side = far === this.other ? "other" : "lead";
+            const ref = item.dataset.peerRef;
+            if (!ref) return;
+
+            far.querySelector(`#blk-${side}-${CSS.escape(ref)}`)?.classList.add("peek");
+          },
+
+          // `pick` is the specific edge to show. It defaults to the first
+          // one on the paragraph, which is what scrolling past it means,
+          // but a hub paragraph has several and the chip's menu names one.
+          mark(block, pick) {
+            const note = pick || block.querySelector("[data-peer-ref]");
             if (!note) return;
 
             this.lead.querySelectorAll(".fl-block.on").forEach((b) => b.classList.remove("on"));
@@ -840,9 +947,9 @@ defmodule MarginaliaWeb.LinkLive.Read do
           },
 
           // put the cited passage at the same height as the one being read
-          align(block) {
-            const note = block.querySelector("[data-peer-ref]");
-            const peer = note && this.other.querySelector(`#blk-other-${note.dataset.peerRef}`);
+          align(block, pick) {
+            const note = pick || block.querySelector("[data-peer-ref]");
+            const peer = note && this.other.querySelector(`#blk-other-${CSS.escape(note.dataset.peerRef || "")}`);
             if (!peer) return;
 
             // offsetTop is measured from the offsetParent, which is not the
@@ -935,8 +1042,36 @@ defmodule MarginaliaWeb.LinkLive.Read do
                       in a row overflowed the column and sat behind the
                       prose. The count is the more useful fact anyway: it
                       says this passage is where the other document keeps
-                      arriving. --%>
-                <span :if={notes != []} class={["fl-tag", tag_kind(notes)]}>{tag_label(notes)}</span>
+                      arriving.
+
+                      "3 links" was a dead end, though: the strip and the
+                      wire only ever showed the *first* of them, so the
+                      other two were counted and then unreachable. Hovering
+                      the chip opens the list, and each entry goes to the
+                      paragraph at its own far end. --%>
+                <div :if={notes != []} class={["fl-tagwrap", tag_kind(notes)]}>
+                  <span class={["fl-tag", tag_kind(notes)]}>{tag_label(notes)}</span>
+
+                  <div class="fl-links">
+                    <button
+                      :for={n <- notes}
+                      type="button"
+                      class={["fl-jump", "k-#{n.kind}"]}
+                      disabled={is_nil(n.peer_ref)}
+                      data-peer-ref={n.peer_ref}
+                      data-edge={n.edge_id}
+                      data-kind={n.kind}
+                    >
+                      <span class="rel">{String.replace(n.kind, "_", " ")}</span>
+                      <span class="to">{n.title}</span>
+                      <span class="why">{n.body}</span>
+                      <%!-- An edge whose far end is a spine node has no
+                            paragraph to land on. Saying so beats a control
+                            that looks live and does nothing. --%>
+                      <span :if={is_nil(n.peer_ref)} class="nowhere">whole draft — no passage to jump to</span>
+                    </button>
+                  </div>
+                </div>
               </div>
           <% end %>
         <% end %>
