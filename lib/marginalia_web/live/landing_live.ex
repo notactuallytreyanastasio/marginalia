@@ -1074,6 +1074,11 @@ defmodule MarginaliaWeb.LandingLive do
             split diff shows what moved under it, which is usually enough to decide whether to run
             it again.
           </p>
+
+          <.seeit
+            to={~p"/drafts/DhEGqQm_go9N3wm9Y4tCWg/changes"}
+            label="Three changes to a real draft, before and after"
+          />
         </div>
         <aside class="sec-aside">
           <div class="note" data-reveal style="--i:0">

@@ -80,6 +80,7 @@ defmodule MarginaliaWeb.Router do
       # every crawler is a public page that fills the users table.
       live "/drafts", DraftLive.Index, :index
       live "/drafts/:slug", DraftLive.Show, :show
+      live "/drafts/:slug/changes", DraftLive.Changes, :changes
 
       # A published stack, read by anybody. Addressed by slug, and served
       # only when the folder carries a published_at — the private pages at

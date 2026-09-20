@@ -25,7 +25,8 @@ defmodule MarginaliaWeb.DraftLive.Show do
            page_description: String.slice(work.first_impression || work.title, 0, 300),
            page_robots: "index, follow",
            work: work,
-           page: Reading.page(work)
+           page: Reading.page(work),
+           changed: Works.revision_count(work.id)
          )}
     end
   end
@@ -42,7 +43,15 @@ defmodule MarginaliaWeb.DraftLive.Show do
         <h1 style="font-family:var(--mg-serif)" class="text-2xl font-semibold tracking-tight mt-2">
           {@work.title}
         </h1>
-        <p class="mg-meta">{@work.word_count} words</p>
+        <p class="mg-meta">
+          {@work.word_count} words
+          <span :if={@changed > 0}>
+            ·
+            <.link navigate={~p"/drafts/#{@work.slug}/changes"}>
+              {@changed} change{if @changed == 1, do: "", else: "s"} since it arrived
+            </.link>
+          </span>
+        </p>
 
         <div class="mg-read mt-6">
           <div class="mg-read-body">
