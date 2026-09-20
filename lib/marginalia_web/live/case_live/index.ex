@@ -323,9 +323,12 @@ defmodule MarginaliaWeb.CaseLive.Index do
   defp opener(cases) do
     cases
     |> Enum.map(fn c ->
+      # `by_link` already holds these. Asking Links.edges/1 again here was a
+      # query per link, at render, for every case on the page — on top of the
+      # ones assemble/3 had already paid for and carried.
       tensions =
         c.links
-        |> Enum.flat_map(&Marginalia.Links.edges/1)
+        |> Enum.flat_map(&Map.get(c.by_link, &1.id, []))
         |> Enum.filter(&(&1.edge_type == "tension"))
 
       %{case: c, count: length(tensions), edge: pick(tensions)}
