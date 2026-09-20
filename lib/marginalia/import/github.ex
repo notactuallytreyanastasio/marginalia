@@ -39,16 +39,43 @@ defmodule Marginalia.Import.GitHub do
   @doc """
   Fetch the open pull requests of a repository as an ordered stack.
 
-  Returns `{:ok, [%{ordinal:, title:, body:, url:, number:}]}`, or an error
-  naming what is wrong with the stack rather than a bare failure.
+  Returns `{:ok, [%{ordinal:, title:, body:, url:, number:, commits:}]}`, or
+  an error naming what is wrong with the stack rather than a bare failure.
   """
   def stack(owner, repo, token, opts \\ []) do
     with :ok <- check_name(owner),
          :ok <- check_name(repo),
          {:ok, default} <- default_branch(owner, repo, token),
-         {:ok, pulls} <- pulls(owner, repo, token, opts[:state] || "open") do
-      order(pulls, default)
+         {:ok, pulls} <- pulls(owner, repo, token, opts[:state] || "open"),
+         {:ok, items} <- order(pulls, default) do
+      {:ok, Enum.map(items, &with_commits(&1, owner, repo, token))}
     end
+  end
+
+  # The writeup argues; the commits are what was actually done. A stack read
+  # from descriptions alone is a stack read from the author's summary of
+  # their own work, and the sentence that turns out to matter is usually the
+  # one in a commit message explaining why the obvious version was wrong.
+  #
+  # A failure here does not lose the import. It is written into the document
+  # instead, so a step read off a chapter with no commit trail says so rather
+  # than looking like a chapter that had none.
+  defp with_commits(item, owner, repo, token) do
+    case get("/repos/#{owner}/#{repo}/pulls/#{item.number}/commits?per_page=#{@per_page}", token) do
+      {:ok, commits} when is_list(commits) ->
+        Map.put(item, :commits, Enum.map(commits, &to_commit/1))
+
+      other ->
+        Logger.warning("marginalia: commits for ##{item.number} failed: #{inspect(other)}")
+        Map.put(item, :commits, {:error, other})
+    end
+  end
+
+  defp to_commit(c) do
+    %{
+      sha: String.slice(c["sha"] || "", 0, 8),
+      message: String.trim(get_in(c, ["commit", "message"]) || "")
+    }
   end
 
   # owner/repo go into a path, so they are checked rather than escaped: a
@@ -193,7 +220,7 @@ defmodule Marginalia.Import.GitHub do
           {:ok, work} =
             Works.create_work(user_id, %{
               "title" => title_for(item),
-              "body" => body_for(item),
+              "body" => document(item),
               "source_url" => item.url
             })
 
@@ -212,14 +239,57 @@ defmodule Marginalia.Import.GitHub do
     if Regex.match?(~r/^\s*\d+\s*[.):-]/, title), do: title, else: "#{n}. #{title}"
   end
 
-  # A pull request with an empty body is a document with nothing to read, and
-  # every later pass would quietly produce nothing from it. Saying so in the
-  # draft is better than an empty section the writer cannot explain.
-  defp body_for(%{body: body, url: url, number: number}) do
-    case String.trim(body || "") do
-      "" -> "_This pull request (##{number}) has no description._\n\n#{url}\n"
-      text -> text
-    end
+  @doc """
+  The document one pull request becomes: its writeup, then its commit trail.
+
+  Public because this is the part worth testing. Everything either side of it
+  is HTTP, and what a chapter *says* is what every later pass reads — a
+  document assembled wrongly produces a plausible step nothing downstream can
+  tell is wrong.
+
+  A pull request with an empty body is a document with nothing to read, and
+  every later pass would quietly produce nothing from it. Saying so in the
+  draft is better than an empty section the writer cannot explain.
+  """
+  def document(%{body: body, url: url, number: number} = item) do
+    writeup =
+      case String.trim(body || "") do
+        "" -> "_This pull request (##{number}) has no description._\n\n#{url}\n"
+        text -> text
+      end
+
+    writeup <> commit_trail(Map.get(item, :commits, []))
+  end
+
+  # Bounded, and after the writeup, so that a chapter with a long history can
+  # never push its own argument out of the window `Stacks.text_of/1` reads.
+  @commit_cap 7_000
+
+  defp commit_trail([]), do: ""
+
+  defp commit_trail({:error, reason}) do
+    "\n\n---\n\n## Commits\n\n_The commit trail could not be fetched " <>
+      "(#{inspect(reason)}), so this chapter is its description alone._\n"
+  end
+
+  defp commit_trail(commits) do
+    trail =
+      commits
+      |> Enum.map_join("\n\n", fn %{sha: sha, message: message} ->
+        [subject | rest] = String.split(message, "\n", parts: 2)
+        detail = rest |> List.first("") |> String.trim()
+
+        "### #{subject}  (#{sha})" <> if(detail == "", do: "", else: "\n\n#{detail}")
+      end)
+      |> truncate(@commit_cap)
+
+    "\n\n---\n\n## Commits (#{length(commits)})\n\n" <> trail <> "\n"
+  end
+
+  defp truncate(text, cap) do
+    if String.length(text) <= cap,
+      do: text,
+      else: String.slice(text, 0, cap) <> "\n\n_[commit trail truncated]_"
   end
 
   defp folder_for(user_id, name) do
