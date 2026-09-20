@@ -280,6 +280,10 @@ defmodule Marginalia.Stacks do
       end)
 
     pitfall = trimmed(raw["pitfall"])
+    {capability_raw, cap_leak} = scrub(trimmed(raw["capability"]), "capability")
+    {lesson_raw, les_leak} = scrub(trimmed(raw["lesson"]), "lesson")
+    dropped = dropped ++ Enum.reject([cap_leak, les_leak], &is_nil/1)
+
     quote = trimmed(raw["pitfall_quote"])
     found = if quote != "", do: Cuts.locate(quote, body), else: nil
 
@@ -308,9 +312,9 @@ defmodule Marginalia.Stacks do
       end)
 
     {%{
-       capability: trimmed(raw["capability"]),
+       capability: capability_raw,
        requires: requires |> Enum.uniq() |> Enum.sort(),
-       lesson: trimmed(raw["lesson"]),
+       lesson: lesson_raw,
        pitfall: pitfall,
        pitfall_quote: found,
        excerpts: Enum.take(excerpts, 2)
@@ -878,6 +882,43 @@ defmodule Marginalia.Stacks do
     )
   end
 
+  # DeepSeek's own markup delimiters, leaking out of the model into the answer.
+  #
+  # The real one, from the composed telling of a 111-step stack: one part of
+  # eleven wrote 12,668 good characters and then emitted
+  #
+  #     <\uFF5C\uFF5CDSML\uFF5C\uFF5C calls>
+  #     <\uFF5C\uFF5CDSML\uFF5C\uFF5C invoke name="write_part">
+  #     <\uFF5C\uFF5CDSML\uFF5C\uFF5C parameter name="prose" string="true">placeholder
+  #
+  # and stopped. The pipes are fullwidth (U+FF5C), which is what makes this
+  # detectable: `<` immediately followed by one is not something prose does.
+  # It validated clean, stored, and went out on the public page.
+  #
+  # The good prose before the marker is kept and the rest is cut, because
+  # throwing away twelve thousand characters over a corrupt tail is a worse
+  # answer than a part that is short. What is never done is keeping it
+  # silently — the cut is reported, and `dropped` is rendered on the page.
+  @leak ~r/<\x{FF5C}/u
+
+  @doc """
+  Text up to the point the model started leaking its own scaffolding.
+
+  Returns `{text, nil}` when clean, `{cut_text, reason}` when not.
+  """
+  def scrub(text, where) when is_binary(text) do
+    case Regex.split(@leak, text, parts: 2) do
+      [_only] ->
+        {text, nil}
+
+      [before, _rest] ->
+        {String.trim(before),
+         "#{where}: the model leaked its own tool-call markup; the text was cut there"}
+    end
+  end
+
+  def scrub(text, _where), do: {text, nil}
+
   @doc """
   Keep the telling only if it accounts for the whole stack.
 
@@ -894,7 +935,8 @@ defmodule Marginalia.Stacks do
       (raw["movements"] || [])
       |> Enum.reduce({[], dropped, MapSet.new()}, fn m, {keep, bad, seen} ->
         heading = trimmed(is_map(m) && m["heading"])
-        prose = trimmed(is_map(m) && m["prose"])
+        {prose, leak} = scrub(trimmed(is_map(m) && m["prose"]), "part #{inspect(heading)}")
+        bad = if leak, do: bad ++ [leak], else: bad
 
         {mine, bad} =
           Enum.reduce(List.wrap(is_map(m) && m["steps"]), {[], bad}, fn n, {acc, b} ->
@@ -947,11 +989,15 @@ defmodule Marginalia.Stacks do
     # first step rather than by whatever order they came back in
     movements = Enum.sort_by(movements, fn m -> List.first(m["steps"]) || 9_999 end)
 
+    {opening, open_leak} = scrub(trimmed(raw["opening"]), "opening")
+    {closing, close_leak} = scrub(trimmed(raw["closing"]), "closing")
+    dropped = dropped ++ Enum.reject([open_leak, close_leak], &is_nil/1)
+
     {%{
        title: trimmed(raw["title"]),
-       opening: trimmed(raw["opening"]),
+       opening: opening,
        movements: movements,
-       closing: trimmed(raw["closing"])
+       closing: closing
      }, dropped, uncovered}
   end
 
