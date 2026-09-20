@@ -630,6 +630,14 @@ defmodule MarginaliaWeb.LandingLive do
             that claims not to has not been thought about. They are shown as a diff over your own
             line, in place, so you can see exactly what changed. It never applies anything.
           </p>
+          <p>
+            A span can be up to 2,500 words — several paragraphs, a whole section of most drafts —
+            because "the part I want reworked" is rarely one sentence. Past 400 words the three
+            candidates are made to differ structurally rather than by wording: cut it to its
+            argument, reorder so the finding leads, split the claims into a sequence. If none of
+            the three is what you wanted, there is a box under them: say what you actually want and
+            all three have to do it, differing in how.
+          </p>
 
           <div class="wont">
             <p>What it still will not do, and this part has not moved:</p>
@@ -709,6 +717,151 @@ defmodule MarginaliaWeb.LandingLive do
             <span class="who">note</span>
             "It is a fossil" is the best phrase in this section and it is explaining a housekeeping
             detail. Consider whether the thing it describes deserves to be the section.
+          </div>
+        </aside>
+      </section>
+
+      <section class="sec head">
+        <div class="sec-title">
+          <h2>Where you are in twelve sections</h2>
+        </div>
+        <div class="sec-leader"></div>
+        <div class="sec-main">
+          <p>
+            Any section can be summarised on its own, and the summary is not a review — those are
+            the notes in the margin, and they are about whether the prose works. This answers the
+            duller question you actually ask at nine in the morning: I am in section seven of
+            twelve, what is in it. It comes back with the concrete things the section deals with,
+            which earlier sections you need first, and what it leaves in place for the ones after.
+          </p>
+          <p>
+            Each of those terms is checked against the section before you are shown it. A summary
+            naming a concept the section never mentions is the one failure you cannot catch without
+            going back to the text, which is the thing the summary existed to save you.
+          </p>
+          <p>
+            Ask for the whole document and it splits in two. One pass builds upward from the
+            section summaries — what this does, in what order, the single thread through it. The
+            other reads downward from the shape and names the rules the draft is <em>working
+            under</em>: the things it does consistently and would be noticed for breaking. The
+            second is deliberately not told what the first concluded. Two readings that agree
+            because one was handed the other's answer are one reading.
+          </p>
+        </div>
+        <aside class="sec-aside">
+          <div class="note" data-reveal style="--i:0">
+            <span class="who">note</span>
+            "Duller question you actually ask at nine in the morning" is doing more work than the
+            two sentences after it. The paragraph could start there.
+          </div>
+          <div class="note" data-reveal style="--i:1">
+            <span class="who">connection</span>
+            The two-pass split is the same argument as three rewrites instead of one, four sections
+            up: more than one answer, so none of them reads as the answer. Worth saying once rather
+            than twice.
+          </div>
+        </aside>
+      </section>
+
+      <section class="sec head">
+        <div class="sec-title">
+          <h2>Every change, kept</h2>
+        </div>
+        <div class="sec-leader"></div>
+        <div class="sec-main">
+          <p>
+            Accept a rewrite or edit a paragraph and the change is recorded before you have moved
+            on. A Changes tab puts the draft as it arrived beside the draft as it is, paragraph by
+            paragraph, with what went struck through in red and what arrived in green — aligned, so
+            a paragraph inserted in the middle does not mark everything after it as different.
+          </p>
+          <p>
+            Underneath that it is a git repository, one per draft, and that is not a metaphor: the
+            binary, a working tree, a commit per accepted change carrying the move it made. You can
+            clone it and run <code>git log -p</code> over your own afternoon. A summary that has
+            gone stale shows the same split diff of exactly what moved under it, which is what
+            decides whether it is worth running again.
+          </p>
+        </div>
+        <aside class="sec-aside">
+          <div class="note" data-reveal style="--i:0">
+            <span class="who">note</span>
+            "Before you have moved on" is vague where the rest of the section is exact. It happens
+            in the same transaction as the write; say that or cut the clause.
+          </div>
+          <div class="note act" data-reveal style="--i:1">
+            <span class="who">tension</span>
+            A page that has spent nine sections promising not to touch your draft now offers you a
+            version history of it being touched. Both are true — you did the touching — but the
+            turn needs a sentence it does not have.
+          </div>
+        </aside>
+      </section>
+
+      <section class="sec head">
+        <div class="sec-title">
+          <h2>A hundred and eleven pull requests, read forwards</h2>
+        </div>
+        <div class="sec-leader"></div>
+        <div class="sec-main">
+          <p>
+            A folder of documents that build one thing can be read as a <em>method</em>. Read
+            backwards, each says what happened. Read forwards — each one told only what the ones
+            before it established — each says what somebody building the same thing must now do,
+            and that reading is in none of the documents.
+          </p>
+          <p>
+            It has been run on a real one: a compiler backend published as 111 stacked pull
+            requests, each chapter read knowing only its predecessors, then a second pass that can
+            see the whole chain and finds where a later chapter walks an earlier one back. Sixty-five
+            of the hundred and eleven do. The telling composed out of it runs to about nineteen
+            thousand words, and every claim in it links back to the chapter it came from.
+          </p>
+          <div class="ctas">
+            <.link navigate={~p"/reading/a-temper-backend-for-blimp-pull-request-stack"} class="cta">
+              Read the one it produced →
+            </.link>
+          </div>
+        </div>
+        <aside class="sec-aside">
+          <div class="note" data-reveal style="--i:0">
+            <span class="who">note</span>
+            "Sixty-five of the hundred and eleven do" is the most convincing number on this page and
+            it is buried mid-paragraph in the second-to-last section.
+          </div>
+          <div class="note" data-reveal style="--i:1">
+            <span class="who">observation</span>
+            This is the only section making a claim you can check without uploading anything. It
+            should probably be higher up than the pricing.
+          </div>
+        </aside>
+      </section>
+
+      <section class="sec head">
+        <div class="sec-title">
+          <h2>Or read one it has already done</h2>
+        </div>
+        <div class="sec-leader"></div>
+        <div class="sec-main">
+          <p>
+            Several dozen Supreme Court cases are on the front of this, each one an opinion, its
+            dissents and the argument that produced them, read together and related to each other
+            rather than filed as a list. They are public records and the reading of them is public
+            too, so you can see what the notes look like on documents you can check.
+          </p>
+          <div class="ctas">
+            <.link navigate={~p"/cases"} class="cta">The cases →</.link>
+          </div>
+          <p class="fine">
+            Drafts can also be related to each other in pairs, gathered into folders, and read along
+            a single line across a whole folder at once. Those are the parts most likely to change.
+          </p>
+        </div>
+        <aside class="sec-aside">
+          <div class="note" data-reveal style="--i:0">
+            <span class="who">note</span>
+            The last sentence admits three features exist and then declines to explain any of them.
+            Either show one or cut the sentence.
           </div>
         </aside>
       </section>
