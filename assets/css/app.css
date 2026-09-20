@@ -4583,3 +4583,7 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
   display: block; font-family: var(--mg-mono); font-size: 0.64rem;
   color: var(--mg-dim); margin-bottom: 0.15rem;
 }
+
+/* Two actions per candidate now: replace the passage outright, or open it in
+   the editor first. The first is the one people want and is listed first. */
+.mg-rw .mine.apply { font-weight: 600; }

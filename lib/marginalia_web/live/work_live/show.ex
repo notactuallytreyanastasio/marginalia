@@ -590,6 +590,63 @@ defmodule MarginaliaWeb.WorkLive.Show do
     end
   end
 
+  # Replace the selection with a candidate, whatever it spans.
+  #
+  # This was refused for a multi-paragraph span on the grounds that the editor
+  # writes one paragraph at a time. That was the wrong constraint: the editor
+  # does, but `Works.replace_block/4` works on the section body and replaces
+  # any substring of it, so a span crossing four paragraphs was always
+  # replaceable. It refuses on :moved if the text has changed underneath,
+  # which is the check that matters, and it records a revision either way — so
+  # this is undoable in the Changes tab and in git.
+  def handle_event("apply_rewrite", %{"i" => i}, socket) do
+    a = socket.assigns
+
+    with true <- a.mine?,
+         false <- a.demo,
+         %{original: original, section: section, candidates: candidates} <- a.rewrite,
+         {n, _} <- Integer.parse(to_string(i)),
+         %{} = chosen <- Enum.at(candidates, n) do
+      section = Works.get_section(a.work.id, section.ordinal) || section
+
+      case Works.replace_block(section, original, chosen.text,
+             origin: "rewrite",
+             note: chosen.move
+           ) do
+        {:ok, %{superseded: supers}} ->
+          socket =
+            socket
+            |> assign(rewrite: nil, preview: nil, rewrite_ref: nil, rewrite_span: nil, steer: nil)
+            |> reload_work()
+            |> load_page()
+
+          commit_draft(socket, a, "rewrite")
+
+          {:noreply,
+           socket
+           |> put_flash(
+             :info,
+             "Replaced. #{if supers > 0, do: supersede_note(supers), else: "It is in the Changes tab if you want it back."}"
+           )}
+
+        {:error, :moved} ->
+          {:noreply,
+           socket
+           |> assign(rewrite: nil, preview: nil)
+           |> load_page()
+           |> put_flash(
+             :error,
+             "That passage changed underneath the rewrite. Nothing was replaced."
+           )}
+
+        {:error, reason} ->
+          {:noreply, put_flash(socket, :error, "Could not replace it: #{inspect(reason)}")}
+      end
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
   def handle_event("preview_rewrite", %{"i" => i}, socket) do
     with %{} = r <- socket.assigns.rewrite,
          %{} = c <- Enum.at(r.candidates, arg_int(i) || -1) do
@@ -2322,8 +2379,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
               into, and the editor writes one paragraph at a time. Saying so
               is better than an action that silently overwrites the wrong one. --%>
         <p :if={@rewrite.spans_blocks} class="mg-hint mt-0 mb-2.5">
-          This covers more than one paragraph, so there is nothing to drop it into —
-          copy the version you want, or select inside one paragraph to get that back.
+          This covers more than one paragraph. Replacing works on the whole passage;
+          editing one first needs a selection inside a single paragraph.
         </p>
 
         <%!-- LiveView has no phx-mouseover: hovering is not one of its
@@ -2342,12 +2399,19 @@ defmodule MarginaliaWeb.WorkLive.Show do
             </span>
             <span class="words">{c.text}</span>
             <span
+              class="mine apply"
+              phx-click="apply_rewrite"
+              phx-value-i={i}
+              data-confirm="Replace the selected passage with this version? It goes in the Changes tab and the draft's git history, so it can be got back."
+            >replace the passage with this →</span>
+
+            <span
               :if={not @rewrite.spans_blocks}
               class="mine"
               phx-click="edit_block"
               phx-value-ref={@block_ref}
               phx-value-seed={c.text}
-            >start from this and make it yours →</span>
+            >or edit it first →</span>
           </button>
         </div>
 
