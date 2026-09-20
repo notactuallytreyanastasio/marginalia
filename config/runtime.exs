@@ -44,6 +44,15 @@ end
 # editorial chat. DeepSeek by default for this first version; set
 # LLM_PROVIDER=openai to switch. Read in every environment so dev can talk to
 # the real API with a local .env.
+# Where a draft's git history lives. No default: the repositories have to
+# survive a deploy, and a path chosen by this file rather than by the deploy
+# is a path inside an ephemeral container — history that looks kept and is
+# destroyed by the next rebuild. Unset means Marginalia.Git is off and says
+# so, which is the honest state for a deploy with nowhere to put it.
+if root = System.get_env("DRAFT_REPO_ROOT") do
+  config :marginalia, :draft_repo_root, root
+end
+
 config :marginalia, :llm_provider, System.get_env("LLM_PROVIDER", "deepseek")
 
 # Only this account may switch backends. Admin is about the app; this is about
