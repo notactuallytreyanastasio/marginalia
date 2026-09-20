@@ -29,16 +29,25 @@ defmodule Marginalia.Rewrite do
   # movement of a telling runs about 1,700 words and a reader wanting one
   # argument reworked selects several paragraphs of it at once.
   #
-  # 750 is deliberately short of a whole movement. It takes the long passage
-  # without taking the section, so "rewrite" still means replacing something
-  # a reader can hold in their head against the original — past this the
-  # three candidates stop being comparable and the honest move is to split
-  # the selection.
+  # The number is set from the prose it has to cover, not from a feel for how
+  # long a rewrite should be. Measured across the 66 paragraphs of a composed
+  # telling: median 271 words, mean 276, longest 539, about 6 to a section.
+  # These are dense paragraphs, and the intuition that a few of them is "a
+  # few hundred words" is wrong by a factor of four.
+  #
+  # So 1,400 is several paragraphs — about five — which is what selecting a
+  # nontrivial part of a section actually means here. 750 would have been
+  # 2.8 of them, and one paragraph in that sample is 539 words and would have
+  # nearly filled the budget alone.
+  #
+  # Still under a whole section (~1,650), because past that the three
+  # candidates stop being comparable against the original and the honest move
+  # is to split the selection.
   #
   # Three candidates at this length is a real amount of writing, which is why
   # the token budget below scales with the span instead of sitting at the flat
   # 3,000 that was ample for 250 words.
-  @max_span_words 750
+  @max_span_words 1_400
 
   @prompt """
   The writer has selected one span of their own draft and asked for rewrites of it. This is
@@ -186,6 +195,42 @@ defmodule Marginalia.Rewrite do
   """
   def answer_budget(span), do: max(3_000, word_count(span) * 7)
 
+  @doc "The longest steer taken from the writer. Past this it is a brief, not a note."
+  def max_steer_chars, do: 400
+
+  @doc """
+  The writer's own instruction, as it goes into the prompt.
+
+  It outranks the standing "differ in kind" rule, because three candidates
+  that ignore what was asked for are three wasted candidates — but they still
+  have to differ, or the panel is one suggestion printed three times.
+
+  Public because it is pure and because it is the one place writer-supplied
+  text enters the prompt: it is bounded here and nowhere else.
+  """
+  def steer_block(nil), do: ""
+  def steer_block(""), do: ""
+
+  def steer_block(steer) when is_binary(steer) do
+    case String.trim(steer) do
+      "" -> ""
+      trimmed -> asked_for(String.slice(trimmed, 0, max_steer_chars()))
+    end
+  end
+
+  def steer_block(_), do: ""
+
+  defp asked_for(steer) do
+    """
+
+    WHAT THE WRITER ASKED FOR, in their words:
+    #{steer}
+
+    Every candidate must do this. They still differ from each other, but now
+    in HOW they do it, not in whether they do it.
+    """
+  end
+
   defp context_block(body, span) do
     case paragraph_around(body, span) do
       nil ->
@@ -218,7 +263,7 @@ defmodule Marginalia.Rewrite do
 
     user = """
     Manuscript: #{work.title}
-    #{if work.intent && work.intent != "", do: "What it is meant to do to a reader: #{work.intent}\n", else: ""}
+    #{if work.intent && work.intent != "", do: "What it is meant to do to a reader: #{work.intent}\n", else: ""}#{steer_block(opts[:steer])}
     THE SELECTED SPAN, to be replaced:#{scale}
 
     #{span}

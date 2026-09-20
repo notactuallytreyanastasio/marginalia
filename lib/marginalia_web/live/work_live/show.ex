@@ -61,6 +61,9 @@ defmodule MarginaliaWeb.WorkLive.Show do
            open_thread: nil,
            rewrite: nil,
            rewriting: false,
+           # the writer's optional note on the rewrite, kept so the box still
+           # holds what they typed when the candidates come back
+           steer: nil,
            rewrite_span: nil,
            rewrite_ref: nil,
            editing: nil,
@@ -390,6 +393,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
            rewriting: true,
            rewrite: nil,
            preview: nil,
+           steer: nil,
            rewrite_span: text,
            rewrite_ref: params["ref"]
          )}
@@ -410,11 +414,47 @@ defmodule MarginaliaWeb.WorkLive.Show do
            rewriting: true,
            rewrite: nil,
            preview: nil,
+           steer: nil,
            rewrite_span: text,
            rewrite_ref: params["ref"]
          )
          |> start_async(:rewrite, fn ->
            Marginalia.Rewrite.propose(work, text, provider: provider)
+         end)}
+    end
+  end
+
+  # The same span again, with the writer saying what they actually want. Kept
+  # separate from "suggest_rewrite" because the first pass is one click off a
+  # selection and asking for a brief up front would put a form in the way of it.
+  def handle_event("steer_rewrite", %{"steer" => steer}, socket) do
+    a = socket.assigns
+    steer = String.trim(steer || "")
+
+    cond do
+      not a.mine? ->
+        {:noreply, put_flash(socket, :error, "This draft is someone else's.")}
+
+      a.rewriting or is_nil(a.rewrite_span) or steer == "" ->
+        {:noreply, socket}
+
+      a.demo ->
+        Process.send_after(self(), :demo_rewrite, 1_200)
+        {:noreply, assign(socket, rewriting: true, rewrite: nil, preview: nil)}
+
+      not Chat.allowed?(a.current_scope.user) ->
+        {:noreply, assign(socket, quota: 0)}
+
+      true ->
+        work = a.work
+        provider = a.provider
+        span = a.rewrite_span
+
+        {:noreply,
+         socket
+         |> assign(rewriting: true, rewrite: nil, preview: nil, steer: steer)
+         |> start_async(:rewrite, fn ->
+           Marginalia.Rewrite.propose(work, span, provider: provider, steer: steer)
          end)}
     end
   end
@@ -1076,6 +1116,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   rewrite={@rewrite}
                   rewriting={@rewriting}
                   rewrite_ref={@rewrite_ref}
+                  steer={@steer}
                   preview={@preview}
                   editing={@editing}
                   edit_text={@edit_text}
@@ -1419,6 +1460,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :rewrite, :map, default: nil
   attr :rewriting, :boolean, default: false
   attr :rewrite_ref, :string, default: nil
+  attr :steer, :string, default: nil
   attr :preview, :map, default: nil
   attr :editing, :string, default: nil
   attr :edit_text, :string, default: nil
@@ -1494,6 +1536,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
             rewrite={@rewrite}
             rewriting={@rewriting}
             rewrite_ref={@rewrite_ref}
+            steer={@steer}
             preview={@preview}
             editing={@editing}
             edit_text={@edit_text}
@@ -1887,6 +1930,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :rewrite, :map, default: nil
   attr :working, :boolean, default: false
   attr :block_ref, :string, default: nil
+  attr :steer, :string, default: nil
 
   # Candidates for one selected line, side by side with what is there now.
   # Three labelled options rather than one suggestion: a single rewrite reads
@@ -1898,6 +1942,20 @@ defmodule MarginaliaWeb.WorkLive.Show do
         <span class="mg-label">Rewrites of one line</span>
         <button class="mg-btn sm ghost ml-auto" phx-click="close_rewrite">close</button>
       </div>
+
+      <%!-- Optional, and after the fact: the first three come back off one
+            click, and this is for when none of them is what was wanted. --%>
+      <form class="mg-rw-steer" phx-submit="steer_rewrite">
+        <input
+          type="text"
+          name="steer"
+          value={@steer}
+          maxlength="400"
+          placeholder="ask for something specific — shorter, lead with the finding, drop the hedging"
+          disabled={@working}
+        />
+        <button type="submit" class="mg-btn sm" disabled={@working}>Again</button>
+      </form>
 
       <%!-- an empty box that fills in, rather than a spinner standing where
             the answer will be: the shape of the thing arrives first --%>
@@ -2235,6 +2293,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :rewrite, :map, default: nil
   attr :rewriting, :boolean, default: false
   attr :rewrite_ref, :string, default: nil
+  attr :steer, :string, default: nil
   attr :preview, :map, default: nil
   attr :editing, :string, default: nil
   attr :edit_text, :string, default: nil
@@ -2340,6 +2399,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   rewrite={@rewrite}
                   working={@rewriting}
                   block_ref={b.ref}
+                  steer={@steer}
                 />
 
                 <.inline_thread

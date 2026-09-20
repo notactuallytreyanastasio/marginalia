@@ -25,15 +25,15 @@ defmodule Marginalia.RewriteTest do
     end
 
     test "a redraft is refused, and says how long it was", %{work: work} do
-      long = String.duplicate("word ", 900)
+      long = String.duplicate("word ", 1_600)
       assert {:error, {:span_too_long, words, max}} = Rewrite.propose(work, long)
       assert words > max
-      assert max == 750
+      assert max == 1_400
     end
 
     test "a long passage is not a redraft any more", %{work: work} do
-      # 400 words used to be refused outright. A composed movement runs about
-      # 1,700, and somebody reworking one argument of it selects this much.
+      # 400 words used to be refused outright. At a median paragraph of 271
+      # words that is barely a paragraph and a half.
       sel = String.duplicate("a sentence that is not in this draft. ", 60)
 
       assert {:error, :not_in_draft} = Rewrite.propose(work, sel),
@@ -42,12 +42,12 @@ defmodule Marginalia.RewriteTest do
 
     test "the answer budget grows with the span, or the reply comes back truncated" do
       short = String.duplicate("word ", 40)
-      long = String.duplicate("word ", 750)
+      long = String.duplicate("word ", 1_400)
 
       assert Rewrite.answer_budget(short) == 3_000, "a floor for short spans"
 
       # three candidates at ~1.4 tokens a word, and the two labels each
-      assert Rewrite.answer_budget(long) >= 750 * 3 * 1.4
+      assert Rewrite.answer_budget(long) >= 1_400 * 3 * 1.4
     end
 
     test "several paragraphs get past the length check", %{work: work} do
@@ -90,6 +90,40 @@ defmodule Marginalia.RewriteTest do
 
     test "an empty original is all insertion" do
       assert [{:ins, "new text"}] = Rewrite.diff("", "new text")
+    end
+  end
+
+  describe "the writer's optional steer" do
+    test "no steer adds nothing to the prompt" do
+      assert Rewrite.steer_block(nil) == ""
+      assert Rewrite.steer_block("") == ""
+
+      assert Rewrite.steer_block("   ") == "",
+             "whitespace is not an instruction"
+    end
+
+    test "what they typed goes in, in their words" do
+      block = Rewrite.steer_block("lead with the finding, drop the hedging")
+
+      assert block =~ "lead with the finding, drop the hedging"
+      assert block =~ "WHAT THE WRITER ASKED FOR"
+    end
+
+    test "every candidate must obey it, but they still have to differ" do
+      block = Rewrite.steer_block("make it shorter")
+
+      assert block =~ "Every candidate must do this"
+
+      assert block =~ "differ",
+             "three candidates that all obey identically is one suggestion printed three times"
+    end
+
+    test "a brief is cut to a note" do
+      long = String.duplicate("please do the thing. ", 200)
+      block = Rewrite.steer_block(long)
+
+      assert String.length(block) < Rewrite.max_steer_chars() + 300
+      assert Rewrite.max_steer_chars() == 400
     end
   end
 end

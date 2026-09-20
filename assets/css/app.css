@@ -4389,3 +4389,24 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
     color: var(--mg-code-fg, #e0a48a);
   }
 }
+
+/* The optional note on a rewrite. Under the head rather than above the
+   candidates, because the first three arrive off one click and this is for
+   when none of them was what was wanted. */
+.mg-rw-steer {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0 0.75rem 0.6rem;
+}
+.mg-rw-steer input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mg-sans);
+  font-size: 0.8rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--mg-rule);
+  border-radius: 3px;
+  background: var(--mg-paper);
+}
+.mg-rw-steer input::placeholder { color: var(--mg-dim); opacity: 0.75; }
+.mg-rw-steer input:disabled { opacity: 0.55; }
