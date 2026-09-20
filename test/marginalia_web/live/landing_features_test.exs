@@ -291,12 +291,12 @@ defmodule MarginaliaWeb.LandingFeaturesTest do
     test "they are public routes, not ones behind a login", %{html: html} do
       seeits = Regex.scan(~r/class="seeit"><a[^>]*href="([^"]+)"/, html) |> Enum.map(&List.last/1)
 
-      # /works and /stacks mint a guest or need an account; /drafts, /cases and
-      # /reading are the public faces. An example nobody can open is worse than
-      # no example.
+      # /works, /stacks and /links mint a guest or need an account. These four
+      # are the public faces. An example nobody can open is worse than none.
+      public = ~w(/drafts /cases /reading /linked)
+
       for path <- seeits do
-        assert String.starts_with?(path, "/drafts") or String.starts_with?(path, "/cases") or
-                 String.starts_with?(path, "/reading"),
+        assert Enum.any?(public, &String.starts_with?(path, &1)),
                "#{path} is not on a public page"
       end
     end
