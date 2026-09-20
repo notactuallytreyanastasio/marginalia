@@ -2062,30 +2062,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
         Nothing has changed yet. Edits and applied rewrites show up here.
       </p>
 
-      <div :if={Marginalia.Diff.any?(@rows)} class="mg-diff-cols">
-        <div class="mg-diff-colhead"><span>As it arrived</span><span>Now</span></div>
-
-        <div :for={row <- @rows} class={"mg-diff-row " <> row_kind(row)}>
-          <%= case row do %>
-            <% {:same, l, _} -> %>
-              <div class="side old">{l}</div>
-              <div class="side new">{l}</div>
-            <% {:change, l, r} -> %>
-              <div class="side old">
-                <span :for={{op, t} <- Marginalia.Diff.words(l, r)} class={word_class(op, :old)}>{t}</span>
-              </div>
-              <div class="side new">
-                <span :for={{op, t} <- Marginalia.Diff.words(l, r)} class={word_class(op, :new)}>{t}</span>
-              </div>
-            <% {:del, l} -> %>
-              <div class="side old gone">{l}</div>
-              <div class="side new empty"></div>
-            <% {:ins, r} -> %>
-              <div class="side old empty"></div>
-              <div class="side new fresh">{r}</div>
-          <% end %>
-        </div>
-      </div>
+      <.diff_table :if={Marginalia.Diff.any?(@rows)} rows={@rows} left="As it arrived" right="Now" />
 
       <div :if={@revisions != []} class="mg-diff-log">
         <div class="mg-label">Every change, newest first</div>
@@ -2103,6 +2080,46 @@ defmodule MarginaliaWeb.WorkLive.Show do
             </div>
           </li>
         </ol>
+      </div>
+    </div>
+    """
+  end
+
+  attr :rows, :list, required: true
+  attr :left, :string, default: "Before"
+  attr :right, :string, default: "After"
+  attr :compact, :boolean, default: false
+
+  @doc false
+  # Two columns, GitHub's split view: what was there on the left with the
+  # removed words struck through in red, what is there now on the right with
+  # the added words in green. The counterpart's marks are hidden in each
+  # column — showing both in both is how a unified diff reads, and this is
+  # not one.
+  def diff_table(assigns) do
+    ~H"""
+    <div class={"mg-diff-cols" <> if(@compact, do: " compact", else: "")}>
+      <div class="mg-diff-colhead"><span>{@left}</span><span>{@right}</span></div>
+
+      <div :for={row <- @rows} class={"mg-diff-row " <> row_kind(row)}>
+        <%= case row do %>
+          <% {:same, l, _} -> %>
+            <div class="side old">{l}</div>
+            <div class="side new">{l}</div>
+          <% {:change, l, r} -> %>
+            <div class="side old">
+              <span :for={{op, t} <- Marginalia.Diff.words(l, r)} class={word_class(op, :old)}>{t}</span>
+            </div>
+            <div class="side new">
+              <span :for={{op, t} <- Marginalia.Diff.words(l, r)} class={word_class(op, :new)}>{t}</span>
+            </div>
+          <% {:del, l} -> %>
+            <div class="side old gone">{l}</div>
+            <div class="side new empty"></div>
+          <% {:ins, r} -> %>
+            <div class="side old empty"></div>
+            <div class="side new fresh">{r}</div>
+        <% end %>
       </div>
     </div>
     """
@@ -2583,6 +2600,17 @@ defmodule MarginaliaWeb.WorkLive.Show do
                     <span :if={not Marginalia.Summary.current?(sec.section)} class="mg-sum-stale">
                       the section has been edited since this was written
                     </span>
+
+                    <%!-- Not only that it went stale but what moved under it,
+                          which is what decides whether it is worth running
+                          again. --%>
+                    <.diff_table
+                      :if={Marginalia.Summary.drift(sec.section) != []}
+                      rows={Marginalia.Summary.drift(sec.section)}
+                      left="When it was summarised"
+                      right="Now"
+                      compact
+                    />
 
                     <span :if={sec.section.summary_dropped != []} class="mg-sum-stale">
                       {length(sec.section.summary_dropped)} term(s) dropped: not in the section

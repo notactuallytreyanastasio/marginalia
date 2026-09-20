@@ -171,4 +171,69 @@ defmodule Marginalia.SummaryTest do
       assert attrs.summary_covers == ["kcodegen", "out-grammar"]
     end
   end
+
+  describe "what moved under a stale summary" do
+    setup %{section: section} do
+      {:ok, section} =
+        section
+        |> Ecto.Changeset.change(
+          summary: "It sets up alpha.",
+          summary_fingerprint: Summary.fingerprint(section),
+          summary_body: section.body
+        )
+        |> Repo.update()
+
+      %{section: section}
+    end
+
+    test "a current summary has no drift to show", %{section: section} do
+      assert Summary.drift(section) == []
+    end
+
+    test "an edited section shows the paragraph that changed", %{section: section} do
+      block =
+        section.body
+        |> String.split(~r/\n{2,}/, trim: true)
+        |> Enum.find(&String.contains?(&1, "ALPHA"))
+
+      {:ok, _} = Works.replace_block(section, block, String.replace(block, "ALPHA", "AMENDED"))
+
+      rows = Summary.drift(Repo.reload!(section))
+
+      assert Enum.any?(rows, &match?({:change, _, _}, &1))
+
+      {:change, old, new} = Enum.find(rows, &match?({:change, _, _}, &1))
+      assert old =~ "ALPHA"
+      assert new =~ "AMENDED"
+    end
+
+    test "the word diff marks what went and what arrived", %{section: section} do
+      block =
+        section.body
+        |> String.split(~r/\n{2,}/, trim: true)
+        |> Enum.find(&String.contains?(&1, "ALPHA"))
+
+      {:ok, _} = Works.replace_block(section, block, String.replace(block, "ALPHA", "AMENDED"))
+
+      {:change, old, new} =
+        Repo.reload!(section) |> Summary.drift() |> Enum.find(&match?({:change, _, _}, &1))
+
+      parts = Marginalia.Diff.words(old, new)
+
+      assert Enum.any?(parts, fn {op, t} -> op == :del and t =~ "ALPHA" end)
+      assert Enum.any?(parts, fn {op, t} -> op == :ins and t =~ "AMENDED" end)
+    end
+
+    test "a summary written before the source was kept draws no diff", %{section: section} do
+      {:ok, section} =
+        section
+        |> Ecto.Changeset.change(summary_body: nil, summary_fingerprint: "stale")
+        |> Repo.update()
+
+      refute Summary.current?(section)
+
+      assert Summary.drift(section) == [],
+             "inventing a baseline would draw a diff that never happened"
+    end
+  end
 end

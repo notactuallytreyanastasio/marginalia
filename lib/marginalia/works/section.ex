@@ -10,6 +10,9 @@ defmodule Marginalia.Works.Section do
     # what this section says, cached against the text it was made from
     field :summary, :string
     field :summary_fingerprint, :string
+    # the section text this summary was written from, so a stale one can
+    # show what moved under it rather than only saying that something did
+    field :summary_body, :string
     field :summarised_at, :utc_datetime
     field :summary_covers, {:array, :string}, default: []
     field :summary_follows, {:array, :integer}, default: []

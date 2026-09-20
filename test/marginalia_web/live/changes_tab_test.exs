@@ -73,4 +73,54 @@ defmodule MarginaliaWeb.ChangesTabTest do
     {:ok, _view, html} = live(conn, ~p"/works/#{work.slug}?view=changes")
     assert html =~ "Nothing has changed yet"
   end
+
+  test "a stale summary shows the split diff under it, red out and green in", %{
+    conn: conn,
+    work: work
+  } do
+    section = hd(Works.list_sections(work.id))
+
+    {:ok, section} =
+      section
+      |> Ecto.Changeset.change(
+        summary: "It sets up alpha.",
+        summary_fingerprint: Marginalia.Summary.fingerprint(section),
+        summary_body: section.body
+      )
+      |> Marginalia.Repo.update()
+
+    block =
+      section.body
+      |> String.split(~r/\n{2,}/, trim: true)
+      |> Enum.find(&String.contains?(&1, "ALPHA"))
+
+    {:ok, _} = Works.replace_block(section, block, String.replace(block, "ALPHA", "AMENDED"))
+
+    {:ok, _view, html} = live(conn, ~p"/works/#{work.slug}?view=read")
+
+    assert html =~ "the section has been edited since this was written"
+    assert html =~ "When it was summarised"
+    assert html =~ "mg-diff-cols compact"
+
+    assert html =~ ~s(class="w del"), "the removed words carry the struck-red class"
+    assert html =~ ~s(class="w ins"), "the added words carry the green class"
+  end
+
+  test "a current summary shows no diff at all", %{conn: conn, work: work} do
+    section = hd(Works.list_sections(work.id))
+
+    {:ok, _} =
+      section
+      |> Ecto.Changeset.change(
+        summary: "It sets up alpha.",
+        summary_fingerprint: Marginalia.Summary.fingerprint(section),
+        summary_body: section.body
+      )
+      |> Marginalia.Repo.update()
+
+    {:ok, _view, html} = live(conn, ~p"/works/#{work.slug}?view=read")
+
+    assert html =~ "It sets up alpha."
+    refute html =~ "When it was summarised"
+  end
 end

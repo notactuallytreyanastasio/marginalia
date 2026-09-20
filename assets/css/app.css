@@ -4493,3 +4493,47 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
   margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.75rem;
   font-family: var(--mg-sans); font-size: 0.72rem; color: var(--mg-dim);
 }
+
+/* GitHub's split view, in the words rather than the lines: what went is
+   struck through in red on the left, what arrived is green on the right,
+   and the two columns sit next to each other so a changed paragraph reads
+   as one before-and-after rather than as two paragraphs. */
+.mg-diff-row.change .old .w.del,
+.mg-diff-row.del .old .w.del {
+  background: rgba(203, 36, 49, 0.20);
+  color: #82071e;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  border-radius: 2px;
+}
+.mg-diff-row.change .new .w.ins,
+.mg-diff-row.ins .new .w.ins {
+  background: rgba(46, 160, 67, 0.22);
+  color: #116329;
+  border-radius: 2px;
+}
+
+/* The compact form, for a diff sitting inside a section head rather than
+   filling its own tab. */
+.mg-diff-cols.compact { margin-top: 0.55rem; max-width: 62ch; }
+.mg-diff-cols.compact .mg-diff-colhead span { padding: 0.25rem 0.55rem; font-size: 0.62rem; }
+.mg-diff-cols.compact .mg-diff-row .side {
+  padding: 0.45rem 0.55rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+/* An unchanged paragraph in a small drift view is noise; keep it, but quiet. */
+.mg-diff-cols.compact .mg-diff-row.same .side { opacity: 0.45; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mg-diff-row.change .old .w.del,
+  :root:not([data-theme="light"]) .mg-diff-row.del .old .w.del {
+    background: rgba(248, 81, 73, 0.22);
+    color: #ffa198;
+  }
+  :root:not([data-theme="light"]) .mg-diff-row.change .new .w.ins,
+  :root:not([data-theme="light"]) .mg-diff-row.ins .new .w.ins {
+    background: rgba(63, 185, 80, 0.22);
+    color: #7ee787;
+  }
+}

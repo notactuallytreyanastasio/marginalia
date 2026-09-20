@@ -110,6 +110,21 @@ defmodule Marginalia.Summary do
   def current?(%Section{summary_fingerprint: f} = s), do: f == fingerprint(s)
 
   @doc """
+  What has moved under a stale summary, as side-by-side rows.
+
+  `[]` when the summary is current, and `[]` for one written before the
+  source was kept — there is nothing to compare it against, and inventing a
+  baseline would draw a diff that never happened.
+  """
+  def drift(%Section{} = section) do
+    cond do
+      current?(section) -> []
+      is_nil(section.summary_body) -> []
+      true -> Marginalia.Diff.rows(section.summary_body, section.body)
+    end
+  end
+
+  @doc """
   Summarise one section and store it.
 
   Owner-scoped by the caller: this spends money, so it is reached only from a
@@ -234,6 +249,7 @@ defmodule Marginalia.Summary do
     |> Ecto.Changeset.change(
       Map.merge(attrs, %{
         summary_fingerprint: fingerprint(section),
+        summary_body: section.body,
         summarised_at: DateTime.utc_now() |> DateTime.truncate(:second),
         summary_dropped: dropped
       })
