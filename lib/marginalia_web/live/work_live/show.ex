@@ -519,6 +519,36 @@ defmodule MarginaliaWeb.WorkLive.Show do
   def handle_event("toggle_changes", _params, socket),
     do: {:noreply, assign(socket, changes_on: not socket.assigns.changes_on)}
 
+  # The long version has served its purpose and the condensation is the thing
+  # to keep working on. Destructive, and the only control on this panel that
+  # is, so it asks first and says what it takes.
+  def handle_event("become_summary", _params, socket) do
+    a = socket.assigns
+
+    if not a.mine? do
+      {:noreply, put_flash(socket, :error, "This draft is someone else's.")}
+    else
+      case Marginalia.Document.become_summary(a.work) do
+        {:ok, work} ->
+          Marginalia.Analysis.start(work, a.provider)
+
+          {:noreply,
+           socket
+           |> put_flash(
+             :info,
+             "Replaced. The draft you had is in Changes; this one is being read now."
+           )
+           |> push_navigate(to: ~p"/works/#{work.slug}?view=read")}
+
+        {:error, :nothing_summarised} ->
+          {:noreply, put_flash(socket, :error, "Summarise at least one section first.")}
+
+        {:error, reason} ->
+          {:noreply, put_flash(socket, :error, "Could not replace it: #{inspect(reason)}")}
+      end
+    end
+  end
+
   # The summaries, as something to write from rather than only to read.
   def handle_event("summaries_to_draft", _params, socket) do
     a = socket.assigns
@@ -2851,6 +2881,22 @@ defmodule MarginaliaWeb.WorkLive.Show do
                 phx-click="summaries_to_draft"
                 title="Make a draft out of the summaries, to edit and read like any other"
               >Open as a draft</button>
+
+              <%!-- The other way round: keep this draft and throw the long
+                    version away. Named for what it destroys, because it is
+                    the one control here that does. --%>
+              <button
+                :if={@mine? and Enum.any?(@page || [], &(&1.section.summary not in [nil, ""]))}
+                class="mg-btn sm ghost"
+                phx-click="become_summary"
+                data-confirm={
+                  "Replace this draft with its summary, and read it again?\n\n" <>
+                    "The prose you have now stays in Changes and can be read there. " <>
+                    "Every beat, every note and every thread anchored to it goes — they " <>
+                    "point at sentences that will not exist."
+                }
+                title="Replace the draft with this summary and read it again"
+              >Replace the draft</button>
 
               <button
                 class="mg-btn sm ghost"

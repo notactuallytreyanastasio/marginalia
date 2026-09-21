@@ -463,6 +463,40 @@ defmodule Marginalia.Document do
     end
   end
 
+  @doc """
+  Replace the draft with its own summary, and leave it ready to read again.
+
+  The other way round from `to_draft/2`, which makes a second document and
+  leaves the first alone. This is for the case where the long version has
+  served its purpose — an imported pull request, a transcript — and what you
+  want to keep working on is the condensation.
+
+  It costs the map. Every beat is anchored to a sentence that is about to
+  stop existing, and every thread is pinned to a paragraph that is about to
+  stop existing; `Works.replace_body/3` clears both rather than leaving a
+  map of a document nobody can read. The prose itself survives in the
+  Changes view, because the swap is recorded as a revision.
+
+  What comes back is the work, unread, with the summary as its body.
+  Reading it again is the caller's call: it costs money, and doing it
+  without being asked would spend somebody's money on a decision they had
+  not made yet.
+  """
+  def become_summary(%Work{} = work) do
+    sections = Works.list_sections(work.id)
+    summarised = Enum.filter(sections, &(&1.summary not in [nil, ""]))
+
+    if summarised == [] do
+      {:error, :nothing_summarised}
+    else
+      Works.replace_body(work, draft_body(work, get(work.id), summarised),
+        origin: "summary",
+        note:
+          "Replaced with its own summary: #{length(summarised)} of #{length(sections)} sections."
+      )
+    end
+  end
+
   defp draft_body(work, doc, summarised) do
     opening =
       case doc do

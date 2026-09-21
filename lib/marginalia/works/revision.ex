@@ -23,7 +23,11 @@ defmodule Marginalia.Works.Revision do
     timestamps(type: :utc_datetime)
   end
 
-  @origins ~w(edit rewrite)
+  # `summary` is the whole body at once rather than a paragraph: the draft
+  # replaced by its own summary. Replay still works on it — `before` is the
+  # entire old body, which is exactly what the body is at that point in the
+  # sequence — and the Changes view has a word for it.
+  @origins ~w(edit rewrite summary)
   def origins, do: @origins
 
   def changeset(rev, attrs) do
