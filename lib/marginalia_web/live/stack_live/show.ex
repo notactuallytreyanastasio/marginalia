@@ -10,7 +10,7 @@ defmodule MarginaliaWeb.StackLive.Show do
   """
   use MarginaliaWeb, :live_view
 
-  alias Marginalia.{Folders, Stacks}
+  alias Marginalia.{Folders, Runs, Stacks}
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -21,9 +21,34 @@ defmodule MarginaliaWeb.StackLive.Show do
         {:ok, socket |> put_flash(:error, "No such folder.") |> push_navigate(to: ~p"/stacks")}
 
       folder ->
-        {:ok, socket |> assign(folder: folder, reading: nil, composing: false) |> load()}
+        # A pass takes minutes to hours and belongs to the folder, not to
+        # this socket. Whatever is running was started by some page that may
+        # be closed by now; this one picks it up where it is.
+        if connected?(socket), do: Runs.subscribe(key(folder.id))
+
+        {:ok, socket |> assign(folder: folder) |> from_run(Runs.get(key(folder.id))) |> load()}
     end
   end
+
+  defp key(folder_id), do: {:stack, folder_id}
+
+  # The two things the buttons read, derived from the run rather than set
+  # beside it, so a page that mounts into a pass in flight and a page that
+  # started one show the same thing.
+  defp from_run(socket, nil), do: assign(socket, reading: nil, composing: false, stage: nil)
+
+  defp from_run(socket, %{kind: :compose} = run),
+    do: assign(socket, reading: nil, composing: true, stage: stage_of(run))
+
+  defp from_run(socket, %{kind: kind} = run) when kind in [:read, :deepen],
+    do: assign(socket, reading: {run.done, run.total || 0}, composing: false, stage: nil)
+
+  defp stage_of(%{stage: "outlining"}), do: "outlining"
+
+  defp stage_of(%{stage: "writing", done: d, total: t}) when is_integer(t),
+    do: "part #{d} of #{t}"
+
+  defp stage_of(_), do: nil
 
   defp load(socket) do
     user_id = socket.assigns.current_scope.user.id
@@ -80,82 +105,119 @@ defmodule MarginaliaWeb.StackLive.Show do
     end
   end
 
+  # Every pass goes through Marginalia.Runs, which puts it under the
+  # application's task supervisor rather than this socket's process. The
+  # page is then a viewer of the run and not its owner: closing the tab,
+  # losing the connection or pressing reload no longer destroys two hours of
+  # sequential model calls that have already been paid for.
   @impl true
   def handle_event("compose", _params, socket) do
     folder = socket.assigns.folder
+    id = folder.id
 
-    {:noreply,
-     socket
-     |> assign(composing: true)
-     |> start_async(:compose, fn -> Stacks.compose(folder.id, building: folder.name) end)}
+    run(socket, :compose, fn ->
+      Stacks.compose(id,
+        building: folder.name,
+        on_stage: fn stage, done, total ->
+          Runs.progress(key(id), stage: stage, done: done, total: total)
+        end
+      )
+      |> then(fn
+        {:ok, _story} -> :ok
+        other -> other
+      end)
+    end)
   end
 
   def handle_event("deepen", _params, socket) do
-    folder_id = socket.assigns.folder.id
-    lv = self()
+    id = socket.assigns.folder.id
+    total = socket.assigns.stats.read
 
-    {:noreply,
-     socket
-     |> assign(reading: {0, socket.assigns.stats.read})
-     |> start_async(:read, fn ->
-       Stacks.deepen_stack(folder_id,
-         on_step: fn _s, i, total -> send(lv, {:step_done, i, total}) end
-       )
-     end)}
+    run(socket, :deepen, fn ->
+      {_steps, errors} =
+        Stacks.deepen_stack(id,
+          on_step: fn _s, i, _t -> Runs.progress(key(id), done: i, total: total) end
+        )
+
+      {:errors, length(errors)}
+    end)
   end
 
   def handle_event("read", _params, socket) do
     user_id = socket.assigns.current_scope.user.id
-    folder_id = socket.assigns.folder.id
-    lv = self()
+    id = socket.assigns.folder.id
+    total = socket.assigns.stats.documents
 
-    {:noreply,
-     socket
-     |> assign(reading: {0, socket.assigns.stats.documents})
-     |> start_async(:read, fn ->
-       Stacks.read_stack(user_id, folder_id,
-         on_step: fn _step, i, total -> send(lv, {:step_done, i, total}) end
-       )
-     end)}
+    run(socket, :read, fn ->
+      {_steps, errors} =
+        Stacks.read_stack(user_id, id,
+          on_step: fn _step, i, _t -> Runs.progress(key(id), done: i, total: total) end
+        )
+
+      {:errors, length(errors)}
+    end)
+  end
+
+  # The return value is deliberately tiny. It is broadcast to every page
+  # watching this folder, and a list of every step of a stack is the stack
+  # copied into each of them.
+  defp run(socket, kind, fun) do
+    id = socket.assigns.folder.id
+    total = if kind == :compose, do: nil, else: socket.assigns.stats.documents
+
+    case Runs.start(key(id), kind, fun) do
+      {:ok, _run} ->
+        {:noreply, from_run(socket, %{kind: kind, done: 0, total: total, stage: nil})}
+
+      {:error, {:already_running, other}} ->
+        {:noreply,
+         socket
+         |> from_run(Runs.get(key(id)))
+         |> put_flash(:error, "A #{other} pass is already running on this folder.")}
+    end
   end
 
   @impl true
-  def handle_info({:step_done, i, total}, socket),
-    do: {:noreply, assign(socket, reading: {i, total})}
+  def handle_info({:run, :started, run}, socket),
+    do: {:noreply, from_run(socket, run)}
 
-  @impl true
-  def handle_async(:read, {:ok, {_steps, errors}}, socket) do
-    socket = socket |> assign(reading: nil) |> load()
+  def handle_info({:run, :progress, run}, socket),
+    do: {:noreply, from_run(socket, run)}
 
-    {:noreply,
-     if errors == [] do
-       socket
-     else
-       put_flash(socket, :error, "#{length(errors)} document(s) did not read.")
-     end}
-  end
+  def handle_info({:run, :done, _kind, {:errors, 0}}, socket),
+    do: {:noreply, socket |> from_run(nil) |> load()}
 
-  def handle_async(:compose, {:ok, {:ok, _story}}, socket),
-    do: {:noreply, socket |> assign(composing: false) |> load()}
-
-  def handle_async(:compose, {:ok, {:error, reason}}, socket) do
+  def handle_info({:run, :done, _kind, {:errors, n}}, socket) do
     {:noreply,
      socket
-     |> assign(composing: false)
-     |> put_flash(:error, "Could not compose: #{inspect(reason)}")}
+     |> from_run(nil)
+     |> load()
+     |> put_flash(:error, "#{n} document(s) did not read.")}
   end
 
-  def handle_async(:compose, {:exit, reason}, socket) do
+  def handle_info({:run, :done, kind, {:error, reason}}, socket) do
     {:noreply,
      socket
-     |> assign(composing: false)
-     |> put_flash(:error, "Compose crashed: #{inspect(reason)}")}
+     |> from_run(nil)
+     |> load()
+     |> put_flash(:error, "The #{kind} pass failed: #{inspect(reason)}")}
   end
 
-  def handle_async(:read, {:exit, reason}, socket) do
+  def handle_info({:run, :done, _kind, _result}, socket),
+    do: {:noreply, socket |> from_run(nil) |> load()}
+
+  def handle_info({:run, :crashed, kind, _reason}, socket) do
     {:noreply,
-     socket |> assign(reading: nil) |> put_flash(:error, "The read crashed: #{inspect(reason)}")}
+     socket
+     |> from_run(nil)
+     |> load()
+     |> put_flash(:error, "The #{kind} pass crashed. What finished is saved.")}
   end
+
+  # The handle_async clauses that used to be here are gone with start_async.
+  # A pass that fails or crashes is now a {:run, :done, _, {:error, _}} or a
+  # {:run, :crashed, _, _} above, which reaches every page watching the
+  # folder rather than only the one that pressed the button.
 
   # ==========================================================================
 
@@ -273,14 +335,14 @@ defmodule MarginaliaWeb.StackLive.Show do
         </div>
 
         <div class="mt-5 flex items-center gap-3">
-          <button class="mg-btn" phx-click="read" disabled={@reading != nil}>
+          <button class="mg-btn" phx-click="read" disabled={@reading != nil or @composing}>
             {if @stats.read > 0, do: "Read forwards again", else: "Read forwards"}
           </button>
           <button
             :if={@stats.read > 0}
             class="mg-btn ghost"
             phx-click="deepen"
-            disabled={@reading != nil}
+            disabled={@reading != nil or @composing}
           >
             {cond do
               @stats.deep_failed > 0 -> "Retry #{@stats.deep_failed} failed"
@@ -294,14 +356,24 @@ defmodule MarginaliaWeb.StackLive.Show do
             phx-click="compose"
             disabled={@reading != nil or @composing}
           >
-            {if @composing,
-              do: "Composing…",
-              else: if(@story, do: "Compose again", else: "Compose the telling")}
+            {cond do
+              @composing and @stage -> "Composing — #{@stage}"
+              @composing -> "Composing…"
+              @story -> "Compose again"
+              true -> "Compose the telling"
+            end}
           </button>
           <span :if={@reading} class="mg-meta">
-            {elem(@reading, 0)} of {elem(@reading, 1)} — each document waits on the one before it
+            {elem(@reading, 0)} of {elem(@reading, 1)} — each document waits on the one before it.
+            This runs on the server: you can close the page.
           </span>
         </div>
+
+        <p :if={@composing} class="mg-meta mt-2">
+          <b :if={@stage}>Composing — {@stage}.</b>
+          Composing runs on the server too. Leave, come back, open it on your phone — the
+          page finds the pass still going. A deploy is the one thing that stops it.
+        </p>
 
         <p :if={@reading} class="st-progress" style={"--done:#{progress(@reading)}"}>
           <span></span>

@@ -14,6 +14,8 @@ defmodule Marginalia.Application do
       {Phoenix.PubSub, name: Marginalia.PubSub},
       {Task.Supervisor, name: Marginalia.TaskSupervisor},
       Marginalia.Cache,
+      # work that has to outlive the page that started it
+      Marginalia.Runs,
       # Start a worker by calling: Marginalia.Worker.start_link(arg)
       # {Marginalia.Worker, arg},
       # Start to serve requests, typically the last entry

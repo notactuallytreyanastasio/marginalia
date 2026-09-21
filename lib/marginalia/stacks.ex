@@ -763,8 +763,25 @@ defmodule Marginalia.Stacks do
     if steps == [] do
       {:error, :not_read}
     else
+      # Said out loud, because the two stages take very different amounts of
+      # time and a page showing one undifferentiated spinner through both of
+      # them looks stuck during the first.
+      if is_function(opts[:on_stage]), do: opts[:on_stage].("outlining", 0, nil)
+
       with {:ok, outline} <- outline(steps, opts) do
-        movements = Enum.map(outline["parts"] || [], &write_part(&1, steps, outline, opts))
+        parts = outline["parts"] || []
+
+        movements =
+          parts
+          |> Enum.with_index(1)
+          |> Enum.map(fn {part, i} ->
+            if is_function(opts[:on_stage]), do: opts[:on_stage].("writing", i - 1, length(parts))
+            write_part(part, steps, outline, opts)
+          end)
+
+        if is_function(opts[:on_stage]),
+          do: opts[:on_stage].("writing", length(parts), length(parts))
+
         store_story(folder_id, steps, Map.put(outline, "movements", movements))
       end
     end
