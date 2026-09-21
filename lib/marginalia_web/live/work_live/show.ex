@@ -3693,6 +3693,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
                 const EDGE = 14;
                 const TAIL = 18;
+                // how close a note may come to the diff without being moved
+                const CLEAR = 20;
 
                 // Clear of the contents rail, which is fixed furniture down
                 // the left of the window and would otherwise be drawn over
@@ -3706,16 +3708,18 @@ defmodule MarginaliaWeb.WorkLive.Show do
                 // on an absolutely positioned slot is measured from
                 const to = Math.max(edge, b.left - TAIL - width) - r.left;
 
+                const band = {top: d.top - railTop, bottom: d.bottom - railTop};
+                let floor = -Infinity;
+
                 slots.forEach((slot) => {
-                  const top = parseFloat(slot.style.top) || 0;
+                  let top = parseFloat(slot.style.top) || 0;
                   const high = slot.offsetHeight;
 
                   // A third of the note, not a pixel of it. A card whose last
                   // line grazes the top of the diff is still readable, and
                   // sending it across the page for that is a worse jolt than
                   // the overlap.
-                  const over =
-                    Math.min(top + high, d.bottom - railTop) - Math.max(top, d.top - railTop);
+                  const over = Math.min(top + high, band.bottom) - Math.max(top, band.top);
                   const hits = over > high / 3;
 
                   slot.classList.toggle("shoved", hits);
@@ -3723,6 +3727,23 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   // bubble collapses to its content width as it crosses
                   slot.style.width = hits ? `${width}px` : "";
                   slot.style.left = hits ? `${to}px` : "";
+
+                  // The near miss, which is the common one and the one that
+                  // looks like a bug: a card comes to rest with its last line
+                  // four pixels under the diff's top edge. Not worth sending
+                  // across the page, so it is moved clear the short way —
+                  // away from the diff, never into the card above it.
+                  if (!hits && top + high > band.top - CLEAR && top < band.bottom + CLEAR) {
+                    const above = top + high / 2 < (band.top + band.bottom) / 2;
+                    const want = above ? band.top - CLEAR - high : band.bottom + CLEAR;
+
+                    if (!above || want >= floor + 10) {
+                      top = want;
+                      slot.style.top = `${top}px`;
+                    }
+                  }
+
+                  floor = top + high;
                 });
               },
 

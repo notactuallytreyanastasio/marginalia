@@ -4748,13 +4748,23 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
    is a 66ch / 3rem / 34ch grid, so it takes the gutter and the rail as well
    — the full width of the three columns — and sits above the notes while it
    is open. Only where there is room for it; below that it stays in column. */
-.mg-applied { margin: 0.3rem 0 1rem; position: relative; z-index: 2; }
+/* Room above and below. It had 0.3rem, which is fine for a block inside
+   prose and wrong for this one: the margin notes are placed against the
+   paragraphs either side of it, so the card belonging to the paragraph
+   above came to rest with its last line ten pixels under the diff's top
+   edge — measured, not guessed. The margin moves the diff, and the notes
+   stay with their own paragraphs, so the clearance falls out of it. */
+.mg-applied { margin: 3.2rem 0 2.8rem; position: relative; z-index: 2; }
 .mg-applied-head { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.35rem; }
 .mg-applied .mg-diff-cols { max-width: none; background: var(--mg-paper); }
 .mg-applied .mg-diff-row .side { padding: 0.6rem 0.75rem; font-size: 0.88rem; }
 
 @media (min-width: 1100px) {
-  .mg-applied { width: calc(100% + 3rem + 34ch); }
+  /* Flush with the notes on the right, not eight pixels short of them. The
+     body column carries 0.5rem of padding the rail does not, so taking the
+     gutter and the rail alone left the diff ending just inside the cards
+     stacked beside it, which reads as a misalignment rather than a margin. */
+  .mg-applied { width: calc(100% + 3rem + 34ch + 0.5rem); }
 }
 
 /* One pair of drafts and what runs between them, read by anybody. */
