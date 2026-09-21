@@ -57,6 +57,7 @@ defmodule MarginaliaWeb.ImportLive do
        query: "",
        pattern: "",
        pattern_error: nil,
+       order: "oldest",
        candidates: [],
        shown: [],
        chosen: MapSet.new(),
@@ -199,6 +200,13 @@ defmodule MarginaliaWeb.ImportLive do
   def handle_event("none", _params, socket) do
     shown = socket.assigns.shown |> Enum.map(&key/1) |> MapSet.new()
     {:noreply, assign(socket, chosen: MapSet.difference(socket.assigns.chosen, shown))}
+  end
+
+  def handle_event("order", %{"order" => order}, socket) do
+    {:noreply,
+     socket
+     |> assign(order: order, candidates: sorted(socket.assigns.candidates, order))
+     |> refilter(socket.assigns.pattern)}
   end
 
   def handle_event("settings", params, socket) do
@@ -348,18 +356,16 @@ defmodule MarginaliaWeb.ImportLive do
   end
 
   def handle_async(:find, {:ok, {:ok, candidates}}, socket) do
-    candidates = Enum.sort_by(candidates, &{&1.repo, -(&1.number || 0)})
-
     {:noreply,
      socket
      |> assign(
        working: false,
        phase: nil,
        step: :pick,
-       candidates: candidates,
+       candidates: sorted(candidates, socket.assigns.order),
        folder: default_folder(socket.assigns)
      )
-     |> refilter("")}
+     |> refilter(socket.assigns.pattern)}
   end
 
   def handle_async(:find, {:ok, {:error, reason}}, socket) do
@@ -421,6 +427,11 @@ defmodule MarginaliaWeb.ImportLive do
         assign(socket, pattern: pattern, pattern_error: why)
     end
   end
+
+  # Oldest first unless somebody says otherwise: see GitHub.oldest_first/1 for
+  # why this is the order of the *documents* and not of a table.
+  defp sorted(candidates, "newest"), do: candidates |> GitHub.oldest_first() |> Enum.reverse()
+  defp sorted(candidates, _oldest), do: GitHub.oldest_first(candidates)
 
   defp default_folder(%{mode: "repo", repo: repo}) when repo != "", do: repo
 
@@ -584,6 +595,20 @@ defmodule MarginaliaWeb.ImportLive do
               </label>
             </form>
 
+            <form id="im-order" phx-change="order" class="im-order">
+              <span class="mg-label">Order</span>
+              <select name="order" class="mg-select sm">
+                <option value="oldest" selected={@order == "oldest"}>
+                  Oldest first, by when it landed
+                </option>
+                <option value="newest" selected={@order == "newest"}>Newest first</option>
+              </select>
+              <span class="mg-meta">
+                This is the order they are created in, and the order the folder is read
+                forwards in. For a release, oldest first.
+              </span>
+            </form>
+
             <div class="im-bar">
               <span>
                 {count(length(@shown), "pull request", "pull requests")} shown{if length(@shown) !=
@@ -609,6 +634,7 @@ defmodule MarginaliaWeb.ImportLive do
                   />
                   <span class="n">#{c.number}</span>
                   <span class="t">{c.title}</span>
+                  <span :if={c.merged_at} class="d">{String.slice(c.merged_at, 0, 10)}</span>
                   <span class={["s", c.state]}>{c.state}</span>
                   <span :if={c.draft} class="s draft">draft</span>
                   <span class="r">{c.repo}</span>

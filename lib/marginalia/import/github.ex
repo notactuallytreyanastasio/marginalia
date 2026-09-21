@@ -299,8 +299,35 @@ defmodule Marginalia.Import.GitHub do
       draft: p["draft"] == true,
       base: get_in(p, ["base", "ref"]),
       head: get_in(p, ["head", "ref"]),
-      updated_at: p["updated_at"]
+      updated_at: p["updated_at"],
+      created_at: p["created_at"],
+      merged_at: merged_at(p)
     }
+  end
+
+  # When it landed, which is the chronology a release actually has. A pull
+  # request opened in January and merged in July sorts early by number and
+  # late by merge, and for "how did this version get out of the door" the
+  # second one is the true order. Both shapes carry it in a different place.
+  defp merged_at(%{"merged_at" => at}) when is_binary(at), do: at
+  defp merged_at(%{"pull_request" => %{"merged_at" => at}}) when is_binary(at), do: at
+  defp merged_at(_), do: nil
+
+  @doc """
+  Oldest first, by when it landed.
+
+  This is not a detail of presentation. The order the rows are in is the
+  order they are created in, which is the order `Marginalia.Stacks` reads
+  them forwards in, and reading a release forwards means each document is
+  told only what the ones before it established. GitHub answers newest
+  first, so taking its order would hand every document the future.
+
+  Unmerged pull requests have no landing date and sort by when they were
+  opened, after nothing in particular; the number is the last tiebreak so
+  the sort is total and a re-listing does not shuffle.
+  """
+  def oldest_first(candidates) do
+    Enum.sort_by(candidates, &{&1.merged_at || &1.created_at || "", &1.number || 0})
   end
 
   # `state` is "open" or "closed"; whether a closed one was merged is a

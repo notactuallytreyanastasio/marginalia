@@ -23,11 +23,13 @@ defmodule MarginaliaWeb.ImportFlowTest do
   defmodule FakeHub do
     @moduledoc false
 
+    # deliberately not in merge order: GitHub answers newest first, and the
+    # page has to put them back into the order they happened in
     @rows [
-      %{number: 9, title: "Fix the parser", state: "merged", draft: false},
-      %{number: 8, title: "Revert the fix", state: "open", draft: false},
-      %{number: 7, title: "Add a test", state: "closed", draft: true},
-      %{number: 6, title: "Nothing to do with it", state: "open", draft: false}
+      %{number: 9, title: "Fix the parser", state: "merged", draft: false, at: "2025-04-01"},
+      %{number: 8, title: "Revert the fix", state: "open", draft: false, at: nil},
+      %{number: 7, title: "Add a test", state: "closed", draft: true, at: "2025-02-01"},
+      %{number: 6, title: "Nothing to do with it", state: "open", draft: false, at: "2025-03-01"}
     ]
 
     def rows, do: @rows
@@ -76,7 +78,9 @@ defmodule MarginaliaWeb.ImportFlowTest do
         draft: r.draft,
         base: "main",
         head: "b#{r.number}",
-        updated_at: "2026-01-01T00:00:00Z"
+        updated_at: "2026-01-01T00:00:00Z",
+        created_at: "2025-01-01T00:00:00Z",
+        merged_at: r.at && r.at <> "T00:00:00Z"
       }
     end
   end
@@ -263,5 +267,32 @@ defmodule MarginaliaWeb.ImportFlowTest do
 
     assert render_click(view, "back", %{}) =~ "GitHub token"
     assert render_click(view, "back", %{}) =~ "Pull requests"
+  end
+
+  test "the list is oldest first, so the folder reads forwards", %{conn: conn} do
+    {:ok, view, _} = live(conn, ~p"/import")
+    html = to_listing(view)
+
+    order =
+      Regex.scan(~r/phx-value-key="temper\/blimp#(\d+)"/, html) |> Enum.map(fn [_, n] -> n end)
+
+    # #7 merged February, #6 March, #9 April; #8 never merged, so it sorts
+    # by when it was opened, which is before all of them
+    assert order == ["8", "7", "6", "9"]
+  end
+
+  test "the order can be flipped, and numbering follows it", %{conn: conn, user: user} do
+    {:ok, view, _} = live(conn, ~p"/import")
+    to_listing(view)
+
+    render_change(view, "order", %{"order" => "newest"})
+    render_change(view, "settings", %{"folder" => "Backwards", "number" => "true"})
+    render_submit(view, "import", %{})
+    render_async(view)
+
+    titles = user.id |> Works.list_works() |> Enum.map(& &1.title) |> Enum.sort()
+
+    # #7 cannot be fetched, so the three that land are 9, 6, 8 in that order
+    assert titles == ["1. Fix the parser", "2. Nothing to do with it", "3. Revert the fix"]
   end
 end

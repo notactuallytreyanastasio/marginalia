@@ -64,4 +64,56 @@ defmodule Marginalia.GitHubAccessTest do
       assert {:ok, _} = GitHub.list("phoenixframework", "phoenix", "", state: "closed")
     end
   end
+
+  describe "the order the documents land in" do
+    defp c(number, merged, created \\ nil) do
+      %{
+        repo: "a/b",
+        number: number,
+        title: "PR #{number}",
+        merged_at: merged,
+        created_at: created || "2025-01-01T00:00:00Z"
+      }
+    end
+
+    test "oldest first, by when it landed" do
+      # GitHub answers newest first, and the order these are created in is
+      # the order Stacks reads them forwards in
+      given = [
+        c(9, "2025-08-01T00:00:00Z"),
+        c(7, "2025-04-01T00:00:00Z"),
+        c(8, "2025-06-01T00:00:00Z")
+      ]
+
+      assert Enum.map(GitHub.oldest_first(given), & &1.number) == [7, 8, 9]
+    end
+
+    test "merge order, not number order, when they disagree" do
+      # opened in January, merged in July: early by number, late by merge,
+      # and for "how did this version get out of the door" merge is the
+      # order that happened
+      january = c(1, "2025-07-01T00:00:00Z", "2025-01-01T00:00:00Z")
+      june = c(90, "2025-06-01T00:00:00Z", "2025-06-01T00:00:00Z")
+
+      assert Enum.map(GitHub.oldest_first([january, june]), & &1.number) == [90, 1]
+    end
+
+    test "an unmerged one sorts by when it was opened" do
+      open = c(5, nil, "2025-05-01T00:00:00Z")
+      merged = c(4, "2025-09-01T00:00:00Z", "2025-01-01T00:00:00Z")
+
+      assert Enum.map(GitHub.oldest_first([merged, open]), & &1.number) == [5, 4]
+    end
+
+    test "the sort is total, so a re-listing does not shuffle" do
+      same = [
+        c(3, "2025-04-01T00:00:00Z"),
+        c(1, "2025-04-01T00:00:00Z"),
+        c(2, "2025-04-01T00:00:00Z")
+      ]
+
+      assert Enum.map(GitHub.oldest_first(same), & &1.number) == [1, 2, 3]
+      assert GitHub.oldest_first(same) == GitHub.oldest_first(Enum.reverse(same))
+    end
+  end
 end
