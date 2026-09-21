@@ -62,6 +62,31 @@ defmodule MarginaliaWeb.StackRunTest do
     pid
   end
 
+  # Wait for the bookkeeping, rather than for a number of milliseconds.
+  #
+  # `Runs.progress/2` is a cast and the run's completion arrives at `Runs` as
+  # a message from the task, so in both cases the call that follows raced the
+  # broadcast: `render(view)` synchronises with the *view*, which is no help
+  # if the view has not been sent anything yet. This failed about one run in
+  # nine and took a deploy with it.
+  #
+  # A call to `Runs` is queued behind whatever it has already been sent, so
+  # when this returns the broadcast has been made and the message is in the
+  # view's mailbox — which puts it ahead of the `render` call that comes
+  # next. No sleep can promise that, and a longer one only hides it better.
+  defp settled do
+    _ = :sys.get_state(Runs)
+    :ok
+  end
+
+  # ...and for a worker that is finishing: the task sends its result to `Runs`
+  # before it exits, so once it is gone that message is already queued there.
+  defp settled(worker) do
+    ref = Process.monitor(worker)
+    assert_receive {:DOWN, ^ref, :process, ^worker, _}, 1_000
+    settled()
+  end
+
   test "a page that arrives mid-read shows the read, not the button", %{
     conn: conn,
     folder: folder,
@@ -69,6 +94,7 @@ defmodule MarginaliaWeb.StackRunTest do
   } do
     worker = hold(key, :read)
     Runs.progress(key, done: 4, total: 12)
+    settled()
 
     {:ok, _view, html} = live(conn, ~p"/stacks/#{folder.id}")
 
@@ -86,6 +112,7 @@ defmodule MarginaliaWeb.StackRunTest do
   } do
     worker = hold(key, :compose)
     Runs.progress(key, stage: "writing", done: 2, total: 5)
+    settled()
 
     {:ok, _view, html} = live(conn, ~p"/stacks/#{folder.id}")
 
@@ -101,11 +128,12 @@ defmodule MarginaliaWeb.StackRunTest do
     # something else entirely starts one — another tab, another device
     worker = hold(key, :compose)
     Runs.progress(key, stage: "outlining")
+    settled()
 
     assert render(view) =~ "Composing — outlining"
 
     send(worker, {:finish, :ok})
-    Process.sleep(80)
+    settled(worker)
     refute render(view) =~ "Composing —"
   end
 
@@ -132,9 +160,10 @@ defmodule MarginaliaWeb.StackRunTest do
     assert render(view) =~ "0 of"
 
     # what a closed tab or a dead wifi does
+    ref = Process.monitor(worker)
     GenServer.stop(view.pid)
-    Process.sleep(50)
 
+    refute_receive {:DOWN, ^ref, :process, ^worker, _}, 200
     assert Process.alive?(worker), "the pass must not be linked to the socket"
     assert %{kind: :read} = Runs.get(key)
 
@@ -163,7 +192,7 @@ defmodule MarginaliaWeb.StackRunTest do
 
     assert_receive {:running, worker}, 1_000
     send(worker, :crash)
-    Process.sleep(150)
+    settled(worker)
 
     html = render(view)
     assert html =~ "crashed"
