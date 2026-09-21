@@ -84,4 +84,32 @@ defmodule Marginalia.SummariseFolderTest do
     # pass would really touch or the progress bar lies from the first tick
     assert stats.documents - stats.summarised == 2
   end
+
+  describe "how many pairs of it are related" do
+    test "counts only pairs with both ends inside the folder", ctx do
+      assert Stacks.stats(ctx.user.id, ctx.folder.id).related == 0
+
+      {:ok, inside} = Marginalia.Links.get_or_create(ctx.a.id, ctx.b.id)
+      assert Stacks.stats(ctx.user.id, ctx.folder.id).related == 1
+
+      # a link out of the folder is a real link and not this folder's
+      # business: counting it would make the number under the button move
+      # for something the button did not do
+      {:ok, outside} =
+        Works.create_work(ctx.user.id, %{
+          "title" => "Elsewhere",
+          "body" => "# E\n\n" <> String.duplicate("word ", 90)
+        })
+
+      {:ok, _} = Marginalia.Links.get_or_create(ctx.a.id, outside.id)
+      assert Stacks.stats(ctx.user.id, ctx.folder.id).related == 1
+
+      _ = inside
+    end
+
+    test "an empty folder has none rather than raising", ctx do
+      {:ok, empty} = Folders.create_folder(ctx.user.id, %{name: "Empty"})
+      assert Stacks.stats(ctx.user.id, empty.id).related == 0
+    end
+  end
 end

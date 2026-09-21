@@ -41,7 +41,7 @@ defmodule MarginaliaWeb.StackLive.Show do
   defp from_run(socket, %{kind: :compose} = run),
     do: assign(socket, reading: nil, running: :compose, composing: true, stage: stage_of(run))
 
-  defp from_run(socket, %{kind: kind} = run) when kind in [:read, :deepen, :summarise],
+  defp from_run(socket, %{kind: kind} = run) when kind in [:read, :deepen, :summarise, :relate],
     do:
       assign(socket,
         reading: {run.done, run.total || 0},
@@ -49,6 +49,11 @@ defmodule MarginaliaWeb.StackLive.Show do
         composing: false,
         stage: nil
       )
+
+  defp pass_note(:relate),
+    do:
+      "one call per pair, three at a time, over both their graphs. " <>
+        "This runs on the server: you can close the page."
 
   defp pass_note(:summarise),
     do:
@@ -179,6 +184,32 @@ defmodule MarginaliaWeb.StackLive.Show do
     end)
   end
 
+  # The fifth pass, and the only one that reads documents against *each
+  # other* rather than in order. Triage first — nine documents is thirty-six
+  # pairs and a hundred and eleven is six thousand — then one call per pair
+  # it chose. The review step that used to sit between those two was there
+  # to stop somebody spending, and it is not worth a page of its own when
+  # the spending is the cheap part.
+  def handle_event("relate", _params, socket) do
+    user_id = socket.assigns.current_scope.user.id
+    id = socket.assigns.folder.id
+
+    run(socket, :relate, fn ->
+      case Marginalia.Links.Bulk.run(user_id, id,
+             on_stage: fn stage -> Runs.progress(key(id), stage: stage) end,
+             on_pair: fn _pair, total ->
+               Runs.progress(key(id), done: bumped(key(id)), total: total, stage: "relating")
+             end
+           ) do
+        {:ok, %{started: started, not_read: not_read}} ->
+          {:related, length(started), length(not_read)}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end)
+  end
+
   def handle_event("read", _params, socket) do
     user_id = socket.assigns.current_scope.user.id
     id = socket.assigns.folder.id
@@ -192,6 +223,16 @@ defmodule MarginaliaWeb.StackLive.Show do
 
       {:errors, length(errors)}
     end)
+  end
+
+  # The pairs finish in whatever order they finish, so the count comes from
+  # what has already been recorded rather than from an index the caller
+  # would have to carry.
+  defp bumped(key) do
+    case Runs.get(key) do
+      %{done: done} when is_integer(done) -> done + 1
+      _ -> 1
+    end
   end
 
   # The return value is deliberately tiny. It is broadcast to every page
@@ -224,6 +265,25 @@ defmodule MarginaliaWeb.StackLive.Show do
   # folder, and the ticks are one model call apart.
   def handle_info({:run, :progress, run}, socket),
     do: {:noreply, socket |> from_run(run) |> load()}
+
+  def handle_info({:run, :done, :relate, {:related, made, 0}}, socket) do
+    {:noreply,
+     socket
+     |> from_run(nil)
+     |> load()
+     |> put_flash(:info, "Related #{made} pair#{if made == 1, do: "", else: "s"}.")}
+  end
+
+  def handle_info({:run, :done, :relate, {:related, made, skipped}}, socket) do
+    {:noreply,
+     socket
+     |> from_run(nil)
+     |> load()
+     |> put_flash(
+       :info,
+       "Related #{made}. #{skipped} could not be: both documents have to have been read."
+     )}
+  end
 
   def handle_info({:run, :done, _kind, {:errors, 0}}, socket),
     do: {:noreply, socket |> from_run(nil) |> load()}
@@ -365,7 +425,7 @@ defmodule MarginaliaWeb.StackLive.Show do
           {@folder.name}
         </h1>
         <div class="mg-meta mt-1">
-          {@stats.documents} documents · {@stats.read} read · {@stats.summarised} summarised · {@stats.pitfalls} pitfalls · {@stats.links} dependencies
+          {@stats.documents} documents · {@stats.read} read · {@stats.summarised} summarised · {@stats.related} related · {@stats.pitfalls} pitfalls · {@stats.links} dependencies
           <span :if={@stats.deepened > 0}>
             · {@stats.deepened} deepened · {@stats.revisions} revised later
           </span>
@@ -391,6 +451,19 @@ defmodule MarginaliaWeb.StackLive.Show do
               true -> "Second pass"
             end}
           </button>
+          <%!-- The fifth, and the only one that reads documents against each
+                other rather than in order. --%>
+          <button
+            :if={@stats.documents > 1}
+            class="mg-btn ghost"
+            phx-click="relate"
+            disabled={@reading != nil or @composing}
+          >
+            {if @stats.related > 0,
+              do: "Relate them again",
+              else: "Relate the documents"}
+          </button>
+
           <%!-- A fourth pass, and the only one that does not care about order.
                 It is next to the others because it costs the same kind of
                 money and takes the same kind of time. --%>

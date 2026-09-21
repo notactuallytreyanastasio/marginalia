@@ -275,6 +275,7 @@ defmodule Marginalia.Links.Bulk do
   def run(user_id, folder_id, opts \\ []) do
     with %{} <- Folders.get_folder(user_id, folder_id),
          sheet when sheet != [] <- sheet(user_id, folder_id),
+         _ <- is_function(opts[:on_stage]) && opts[:on_stage].("choosing the pairs"),
          {:ok, %{pairs: pairs} = triage} <- propose(sheet, opts) do
       if opts[:propose_only] do
         {:ok, Map.put(triage, :started, [])}
@@ -301,18 +302,27 @@ defmodule Marginalia.Links.Bulk do
   defp relate(pairs, opts) do
     {eligible, ineligible_pairs} = Enum.split_with(pairs, &readable?/1)
 
+    total = length(eligible)
+
     started =
       eligible
       |> Task.async_stream(
         fn %{a: a, b: b} = pair ->
-          case Links.get_or_create(a.id, b.id) do
-            {:ok, link} ->
-              Linker.run(link, opts[:provider])
-              Map.put(pair, :link_id, link.id)
+          out =
+            case Links.get_or_create(a.id, b.id) do
+              {:ok, link} ->
+                Linker.run(link, opts[:provider])
+                Map.put(pair, :link_id, link.id)
 
-            {:error, reason} ->
-              Map.put(pair, :error, reason)
-          end
+              {:error, reason} ->
+                Map.put(pair, :error, reason)
+            end
+
+          # From inside the task: this stage is one model call per pair over
+          # two whole graphs, and it is the only part of a folder relate that
+          # takes long enough to want watching.
+          if is_function(opts[:on_pair]), do: opts[:on_pair].(pair, total)
+          out
         end,
         max_concurrency: @concurrency,
         timeout: 300_000,

@@ -65,6 +65,23 @@ defmodule Marginalia.Stacks do
     end
   end
 
+  # Pairs with both ends inside this folder. A link from one of these
+  # documents to something outside it is a real link and not this folder's
+  # business, so it is not counted here — the number under the button has to
+  # mean "of the pairs in here", or pressing it and seeing it not move looks
+  # like nothing happened.
+  defp related_count([]), do: 0
+
+  defp related_count(docs) do
+    ids = Enum.map(docs, & &1.id)
+
+    Repo.one(
+      from l in Marginalia.Links.Link,
+        where: l.a_work_id in ^ids and l.b_work_id in ^ids,
+        select: count(l.id)
+    ) || 0
+  end
+
   # One query for the folder rather than one per document: the page that
   # shows this number is the page listing a hundred and eleven of them.
   defp summarised_count([]), do: 0
@@ -1158,6 +1175,7 @@ defmodule Marginalia.Stacks do
       links: steps |> Enum.map(&length(&1.requires || [])) |> Enum.sum(),
       dropped: steps |> Enum.map(&length(&1.dropped || [])) |> Enum.sum(),
       summarised: summarised_count(docs),
+      related: related_count(docs),
       deepened: Enum.count(steps, &(&1.deepened_at != nil)),
       deep_failed:
         Enum.count(steps, fn s ->

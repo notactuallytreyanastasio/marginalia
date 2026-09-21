@@ -270,4 +270,36 @@ defmodule MarginaliaWeb.StackRunTest do
 
     send(worker, {:finish, {:errors, 0}})
   end
+
+  test "relating is a pass like the others, with its own sentence", ctx do
+    {:ok, view, html} = live(ctx.conn, ~p"/stacks/#{ctx.folder.id}")
+    refute html =~ "Relate the documents", "one document is not a pair"
+
+    # a second document, so there is something to relate it to
+    {:ok, other} =
+      Works.create_work(ctx.user.id, %{
+        "title" => "2. Another",
+        "body" => "# A\n\n" <> String.duplicate("word ", 120)
+      })
+
+    {:ok, _} = Folders.move_work(ctx.user.id, other.id, ctx.folder.id)
+
+    {:ok, view, html} = live(ctx.conn, ~p"/stacks/#{ctx.folder.id}")
+    assert html =~ "Relate the documents"
+    assert html =~ "0 related"
+
+    worker = hold(ctx.key, :relate)
+    Runs.progress(ctx.key, done: 2, total: 5, stage: "relating")
+    settled()
+
+    html = render(view)
+    assert html =~ "2 of 5"
+    assert html =~ "one call per pair"
+    refute html =~ "waits on the one before it"
+
+    send(worker, {:finish, {:related, 5, 0}})
+    settled(worker)
+
+    assert render(view) =~ "Related 5 pairs"
+  end
 end
