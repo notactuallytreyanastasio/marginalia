@@ -2963,7 +2963,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
                     document you are no longer looking at. --%>
               <.link
                 :if={@summary_link}
-                navigate={~p"/links/#{@summary_link}?lead=#{@work.slug}"}
+                navigate={~p"/links/#{@summary_link}?lead=#{@slug}"}
                 class="mg-btn sm"
               >
                 Side by side

@@ -21,7 +21,9 @@ defmodule MarginaliaWeb.SnapViewTest do
     pad = String.duplicate("word ", 80)
 
     make = fn title, first ->
-      {:ok, w} = Works.create_work(user.id, %{"title" => title, "body" => "# H\n\n#{first} #{pad}"})
+      {:ok, w} =
+        Works.create_work(user.id, %{"title" => title, "body" => "# H\n\n#{first} #{pad}"})
+
       {:ok, w} = Works.set_status(w, "read")
       w
     end
@@ -90,5 +92,27 @@ defmodule MarginaliaWeb.SnapViewTest do
 
     # the fragment is only a way back if the target exists
     assert html =~ ~s(id="block-s1p1")
+  end
+
+  describe "the draft's own page, once a comparison exists" do
+    test "renders, and offers the way into it", ctx do
+      # This is the case no test covered and production found in four
+      # minutes: `Side by side` only renders when a summary link exists, and
+      # it reached for `@work` inside a component that is handed `@slug`.
+      # A KeyError in a render is a dropped socket on the live page and a
+      # 500 on the first GET.
+      Repo.update!(Ecto.Changeset.change(ctx.short, derived_from_id: ctx.long.id))
+
+      {:ok, _view, html} = live(ctx.conn, ~p"/works/#{ctx.long.slug}?view=read")
+
+      assert html =~ "Side by side"
+      assert html =~ ~s(/links/#{ctx.link.id}?lead=#{ctx.long.slug})
+    end
+
+    test "and the draft with no comparison still renders without one", ctx do
+      {:ok, _view, html} = live(ctx.conn, ~p"/works/#{ctx.short.slug}?view=read")
+
+      refute html =~ "Side by side"
+    end
   end
 end

@@ -348,7 +348,30 @@ body {
 .mg-mark { background: var(--mg-mark); padding: 0 0.1em; }
 
 /* a plain, readable row list — sections, spine, threads all use it */
+/* One row per thing, in every list built from `.mg-rows`: the public
+   drafts, the readings, the linked pairs, the revision logs. The separation
+   was only ever written for two scoped variants of this, so every other one
+   of those lists rendered as an undivided column of text — a title, a line
+   of metadata, a title, with nothing between them.
+
+   `> li` rather than `li`, or a list nested inside a row gets it too. */
 .mg-rows { display: flex; flex-direction: column; }
+.mg-rows > li {
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--mg-rule);
+}
+.mg-rows > li:last-child { border-bottom: 0; }
+.mg-rows > li > .t {
+  display: block;
+  font-family: var(--mg-serif);
+  font-size: 1.05rem;
+  line-height: 1.4;
+  color: var(--mg-ink);
+  text-decoration: none;
+}
+.mg-rows > li > .t:hover { color: var(--mg-accent); }
+.mg-rows > li > .mg-meta { margin: 0.2rem 0 0; }
+
 .mg-row {
   display: flex;
   gap: 0.85rem;
@@ -4781,7 +4804,11 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
 .lx-bulk-pick { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
 .lx-bulk-pick select { flex: 1; min-width: 12rem; padding: 0.3rem 0.4rem; border: 1px solid var(--mg-rule); border-radius: 3px; background: var(--mg-paper); font-size: 0.85rem; }
 .lx-bulk-out { margin-top: 0.9rem; }
-.lx-bulk-out .mg-rows li { padding: 0.45rem 0; border-top: 1px solid var(--mg-rule); }
+.lx-bulk-out .mg-rows > li {
+  padding: 0.45rem 0;
+  border-top: 1px solid var(--mg-rule);
+  border-bottom: 0;
+}
 .lx-bulk-out .mg-rows .n { font-family: var(--mg-mono); font-size: 0.68rem; color: var(--mg-accent); margin-right: 0.4rem; }
 .lx-bulk-out .mg-rows p { margin: 0.2rem 0 0; }
 
