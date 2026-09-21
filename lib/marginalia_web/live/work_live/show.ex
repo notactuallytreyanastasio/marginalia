@@ -3121,30 +3121,109 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
           <div :if={not @changes_on} class="mg-read-rail">
             <%= for sec <- @page do %>
-              <div :for={n <- sec.unplaced} class="mg-note-slot">
-                <button class={"mg-note " <> n.kind} phx-click="discuss" phx-value-key={n.key}>
-                  <span class="who">{String.replace(n.kind, "_", " ")} · not located</span>
-                  <span class="said">{n.title}</span>
-                  <span :if={n.body} class="why">{n.body}</span>
-                </button>
+              <%!-- A section whose beats could not be anchored puts every one
+                    of them at the top of the rail. Seven of those is thirteen
+                    hundred pixels of margin for one section, so past four they
+                    are stacked by kind — see piles/1. --%>
+              <div
+                :for={pile <- piles(sec.unplaced)}
+                class={[
+                  "mg-note-slot",
+                  hd(pile).kind,
+                  length(pile) > 1 && "deck",
+                  length(pile) > 2 && "deep"
+                ]}
+              >
+                <.deck pile={pile} located={false} />
               </div>
 
-              <%= for b <- sec.blocks, n <- b.notes do %>
-                <div class={"mg-note-slot " <> n.kind} data-anchor={b.ref}>
-                  <button
-                    class={"mg-note " <> n.kind}
-                    phx-click="discuss"
-                    phx-value-key={n.key}
-                    title="Talk about this"
-                  >
-                    <span class="who">{String.replace(n.kind, "_", " ")}</span>
-                    <span class="said">{n.title}</span>
-                    <span :if={n.body} class="why">{n.body}</span>
-                  </button>
+              <%= for b <- sec.blocks, pile <- piles(b.notes) do %>
+                <div
+                  class={[
+                    "mg-note-slot",
+                    hd(pile).kind,
+                    length(pile) > 1 && "deck",
+                    length(pile) > 2 && "deep"
+                  ]}
+                  data-anchor={b.ref}
+                >
+                  <.deck pile={pile} located={true} />
                 </div>
               <% end %>
             <% end %>
           </div>
+
+          <script :type={Phoenix.LiveView.ColocatedHook} name=".Deck">
+            // One slot holding several notes of the same kind, one visible.
+            //
+            // Every card is in the DOM; this only moves the `on` class. No
+            // round trip to read the next note, and nothing to re-fetch when
+            // you flip back. The cards share a single grid cell, so the slot
+            // is as tall as the tallest of them and flipping never changes
+            // the height — which matters here more than it looks, because
+            // the rail is measured and a slot that grew would push every
+            // note below it off its own line.
+            export default {
+              mounted() {
+                this.at = 0;
+                this.onClick = (e) => {
+                  const step = e.target.closest("[data-step]");
+                  if (!step) return;
+                  // it is inside the slot, and the slot's other job is to
+                  // open the chat on the note it is showing
+                  e.preventDefault();
+                  e.stopPropagation();
+                  this.go(this.at + Number(step.dataset.step));
+                };
+                this.el.addEventListener("click", this.onClick);
+
+                // arrows, once the pager has been reached by keyboard
+                this.onKey = (e) => {
+                  if (e.key === "ArrowLeft") this.go(this.at - 1);
+                  if (e.key === "ArrowRight") this.go(this.at + 1);
+                };
+                this.el.addEventListener("keydown", this.onKey);
+
+                this.show();
+              },
+
+              // A patch can replace the cards — a note added, a note
+              // superseded — so the index is re-applied rather than assumed,
+              // and clamped in case the pile got shorter.
+              updated() { this.show(); },
+
+              destroyed() {
+                this.el.removeEventListener("click", this.onClick);
+                this.el.removeEventListener("keydown", this.onKey);
+              },
+
+              cards() { return [...this.el.querySelectorAll(".cards > .mg-note")]; },
+
+              go(i) {
+                const n = this.cards().length;
+                if (!n) return;
+                this.at = ((i % n) + n) % n;
+                this.show();
+              },
+
+              show() {
+                const cards = this.cards();
+                if (!cards.length) return;
+                this.at = Math.min(this.at, cards.length - 1);
+
+                cards.forEach((c, i) => {
+                  const on = i === this.at;
+                  c.classList.toggle("on", on);
+                  // a hidden card is not a tab stop and is not read out
+                  c.setAttribute("aria-hidden", on ? "false" : "true");
+                  c.tabIndex = on ? 0 : -1;
+                });
+
+                const n = this.el.querySelector(".nav .n");
+                if (n) n.textContent = `${this.at + 1} / ${cards.length}`;
+              },
+            };
+          </script>
 
           <script :type={Phoenix.LiveView.ColocatedHook} name=".Editor">
             // The paragraph's markdown, in place. Not a rich text editor: the
@@ -3758,6 +3837,71 @@ defmodule MarginaliaWeb.WorkLive.Show do
           </script>
         </div>
       <% end %>
+    </div>
+    """
+  end
+
+  @doc """
+  Notes for one place in the margin, grouped into the slots the rail holds.
+
+  Four or fewer, one slot each. A pile that fits is easier to read than a
+  pile with controls on it, and most paragraphs carry one or two notes.
+
+  Past four they are grouped by kind, and a kind with several in it becomes
+  one slot you flip through. The case that forced this is a section whose
+  beats could not be anchored: those have no paragraph to sit beside, so
+  every one of them stacks at the top of the rail, and seven of them is
+  thirteen hundred pixels of margin against three paragraphs of prose.
+
+  Grouping by kind rather than just paging the lot is the point. Three beats
+  about one section are the same kind of remark and read as a set; a beat, a
+  tension and a pays-off are three different things and hiding two of them
+  behind a control would be worse than the height.
+
+  The groups keep the order the notes arrived in, by first appearance, so
+  the rail does not reshuffle itself when a note is added.
+  """
+  def piles(notes) when length(notes) <= 4, do: Enum.map(notes, &[&1])
+
+  def piles(notes) do
+    notes
+    |> Enum.group_by(& &1.kind)
+    |> Enum.sort_by(fn {kind, _} -> Enum.find_index(notes, &(&1.kind == kind)) end)
+    |> Enum.map(fn {_kind, group} -> group end)
+  end
+
+  attr :pile, :list, required: true
+  attr :located, :boolean, default: true
+
+  # One slot. A pile of one is a card; a pile of several is a card with the
+  # rest behind it and a pager under it. Every card is rendered either way —
+  # the hook only changes which one is visible, so there is no round trip to
+  # the server to read the next note, and the height does not change when
+  # you flip because the cards share one grid cell.
+  defp deck(assigns) do
+    ~H"""
+    <div class="mg-deck" id={"deck-" <> hd(@pile).key} phx-hook=".Deck">
+      <div class="cards">
+        <button
+          :for={{n, i} <- Enum.with_index(@pile)}
+          class={["mg-note", n.kind, i == 0 && "on"]}
+          phx-click="discuss"
+          phx-value-key={n.key}
+          title="Talk about this"
+        >
+          <span class="who">
+            {String.replace(n.kind, "_", " ")}{if !@located, do: " · not located"}
+          </span>
+          <span class="said">{n.title}</span>
+          <span :if={n.body} class="why">{n.body}</span>
+        </button>
+      </div>
+
+      <div :if={length(@pile) > 1} class="nav">
+        <button type="button" data-step="-1" aria-label="Previous">‹</button>
+        <span class="n">1 / {length(@pile)}</span>
+        <button type="button" data-step="1" aria-label="Next">›</button>
+      </div>
     </div>
     """
   end

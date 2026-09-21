@@ -797,6 +797,82 @@ body {
 .mg-note.tension { background: #f7e9e5; }
 .mg-note.tension .who { color: var(--mg-accent); }
 
+/* --- a pile of like notes, as one slot ------------------------------------
+   The cards share one grid cell, so the slot is as tall as the tallest of
+   them and flipping never changes the height. The rail is measured; a slot
+   that grew when you pressed an arrow would push every note below it off
+   the line it belongs to. */
+.mg-deck .cards { display: grid; position: relative; }
+.mg-deck .cards > .mg-note {
+  grid-area: 1 / 1;
+  position: relative;
+  z-index: 1;
+  visibility: hidden;
+}
+.mg-deck .cards > .mg-note.on { visibility: visible; }
+
+/* the rest of the pile, showing under the top card */
+.mg-note-slot.deck .cards::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  border-radius: 14px;
+  background: var(--mg-margin);
+  border: 1px solid var(--mg-rule);
+}
+.mg-note-slot.deck .cards::before { left: 9px; right: 9px; top: 12px; bottom: -8px; }
+.mg-note-slot.deck .cards::before { box-shadow: 0 1px 2px rgb(0 0 0 / 5%); }
+
+/* The second layer only when there is actually a third note behind the
+   second. Two layers under a pile of two says three, and a pile that lies
+   about its own size is worse than a flat card — the pager underneath is
+   the exact count, and these should not contradict it. Past three it stops
+   growing: beyond that it is texture, and the pager is the number. */
+.mg-note-slot.deck.deep .cards::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: 19px;
+  right: 19px;
+  top: 16px;
+  bottom: -15px;
+  opacity: 0.65;
+  border-radius: 14px;
+  background: var(--mg-margin);
+  border: 1px solid var(--mg-rule);
+}
+.mg-note-slot.deck.deep.tension .cards::after { background: #f7e9e5; }
+.mg-note-slot.deck.tension .cards::before { background: #f7e9e5; }
+
+.mg-deck .nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.15rem;
+  margin-top: 0.85rem;
+  font-family: var(--mg-sans);
+}
+.mg-deck .nav button {
+  min-width: 1.35rem;
+  padding: 0.05rem 0.3rem;
+  border: 1px solid var(--mg-rule);
+  border-radius: 4px;
+  background: var(--mg-paper);
+  color: var(--mg-dim);
+  font-size: 0.8rem;
+  line-height: 1.3;
+  cursor: pointer;
+}
+.mg-deck .nav button:hover { color: var(--mg-ink); border-color: var(--mg-dim); }
+.mg-deck .nav .n {
+  min-width: 2.6rem;
+  text-align: center;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: var(--mg-dim);
+  font-variant-numeric: tabular-nums;
+}
+
 /* measured: absolute once the hook has run, static before that so the page
    is readable even if the script never arrives */
 .mg-read-rail.measured .mg-note-slot { position: absolute; left: 0.5rem; right: 0; }
