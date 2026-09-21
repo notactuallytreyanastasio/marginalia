@@ -112,4 +112,46 @@ defmodule Marginalia.SummariseFolderTest do
       assert Stacks.stats(ctx.user.id, empty.id).related == 0
     end
   end
+
+  describe "reading each document" do
+    test "a folder whose documents are all mapped has nothing to do", ctx do
+      for w <- [ctx.a, ctx.b, ctx.c], do: Works.set_status(w, "read")
+
+      me = self()
+
+      assert {0, []} =
+               Stacks.read_documents(ctx.user.id, ctx.folder.id,
+                 on_step: fn w, i, t -> send(me, {:step, w.title, i, t}) end
+               )
+
+      refute_received {:step, _, _, _}
+    end
+
+    test "mapped counts documents with a graph, not documents with a step", ctx do
+      stats = Stacks.stats(ctx.user.id, ctx.folder.id)
+      assert stats.documents == 3
+      assert stats.mapped == 0
+
+      # a step is the forward read's output and says nothing about whether
+      # the document has a map of its own — the distinction that made
+      # relating a fully-stepped folder produce nothing
+      Repo.insert!(%Stacks.Step{
+        folder_id: ctx.folder.id,
+        work_id: ctx.a.id,
+        ordinal: 1,
+        capability: "x"
+      })
+
+      stats = Stacks.stats(ctx.user.id, ctx.folder.id)
+      assert stats.read == 1, "one step"
+      assert stats.mapped == 0, "and still no map"
+
+      Works.set_status(ctx.a, "read")
+      assert Stacks.stats(ctx.user.id, ctx.folder.id).mapped == 1
+    end
+
+    test "another writer's folder reads nothing", ctx do
+      assert {0, []} = Stacks.read_documents(user_fixture().id, ctx.folder.id)
+    end
+  end
 end
