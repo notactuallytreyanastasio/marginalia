@@ -181,8 +181,13 @@ defmodule MarginaliaWeb.StackLive.Show do
   def handle_info({:run, :started, run}, socket),
     do: {:noreply, from_run(socket, run)}
 
+  # The content as well as the counter. A forward read writes each step as it
+  # finishes, and showing only "8 of 12" while the eight sit unshown in the
+  # database means the page looks like it is doing nothing for two hours and
+  # the work only appears on a refresh. `load/1` is four queries against a
+  # folder, and the ticks are one model call apart.
   def handle_info({:run, :progress, run}, socket),
-    do: {:noreply, from_run(socket, run)}
+    do: {:noreply, socket |> from_run(run) |> load()}
 
   def handle_info({:run, :done, _kind, {:errors, 0}}, socket),
     do: {:noreply, socket |> from_run(nil) |> load()}

@@ -1062,6 +1062,28 @@ defmodule Marginalia.Stacks do
     end)
   end
 
+  @doc """
+  Which step each of this writer's documents became, if any.
+
+  `%{work_id => {folder_id, ordinal}}`, in one query for the whole tree. A
+  list of a hundred and eleven documents asking per row is a hundred and
+  eleven queries to draw a page, and the answer is one join.
+
+  It exists because a folder that has been read forwards contains two things
+  for every document — the document, and the step composed from it — and
+  only one of them was reachable from the list.
+  """
+  def steps_by_work(user_id) do
+    Repo.all(
+      from s in Step,
+        join: w in Work,
+        on: w.id == s.work_id,
+        where: w.user_id == ^user_id,
+        select: {s.work_id, {s.folder_id, s.ordinal}}
+    )
+    |> Map.new()
+  end
+
   @doc "How much of a folder has been read forwards, and how sound it is."
   def stats(user_id, folder_id) do
     docs = documents(user_id, folder_id)

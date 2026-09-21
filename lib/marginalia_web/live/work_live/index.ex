@@ -27,6 +27,7 @@ defmodule MarginaliaWeb.WorkLive.Index do
     assign(socket,
       tree: tree,
       count: total(tree),
+      steps: Marginalia.Stacks.steps_by_work(user_id),
       unfiled: Folders.unfiled_collection_count(user_id)
     )
   end
@@ -210,7 +211,13 @@ defmodule MarginaliaWeb.WorkLive.Index do
         <% else %>
           <div id="tree" phx-hook=".Tree" class="mg-tree mt-2">
             <div class="mg-tree-root" data-drop-kind="folder" data-drop-id="root">
-              <.level node={@tree} collapsed={@collapsed} renaming={@renaming} depth={0} />
+              <.level
+                node={@tree}
+                collapsed={@collapsed}
+                renaming={@renaming}
+                steps={@steps}
+                depth={0}
+              />
               <p :if={@tree.folders != []} class="mg-tree-hint">
                 drag a draft onto a folder to file it · drop it out here to unfile it
               </p>
@@ -313,6 +320,7 @@ defmodule MarginaliaWeb.WorkLive.Index do
   attr :node, :map, required: true
   attr :collapsed, :any, required: true
   attr :renaming, :any, required: true
+  attr :steps, :map, required: true
   attr :depth, :integer, required: true
 
   defp level(assigns) do
@@ -389,7 +397,13 @@ defmodule MarginaliaWeb.WorkLive.Index do
         <p :if={child.folders == [] and child.works == []} class="mg-fempty">
           empty — drag a draft here
         </p>
-        <.level node={child} collapsed={@collapsed} renaming={@renaming} depth={@depth + 1} />
+        <.level
+          node={child}
+          collapsed={@collapsed}
+          renaming={@renaming}
+          steps={@steps}
+          depth={@depth + 1}
+        />
       </div>
     </div>
 
@@ -411,6 +425,15 @@ defmodule MarginaliaWeb.WorkLive.Index do
         <div class="mg-meta mt-0.5">{w.word_count} words</div>
       </div>
       <span class={"mg-badge " <> if(w.status == "read", do: "ink", else: "")}>{w.status}</span>
+      <%!-- A document in a folder that has been read forwards has a step
+            composed from it, and until now the only way to that step was to
+            open the folder and count. --%>
+      <.link
+        :if={@steps[w.id]}
+        navigate={~p"/stacks/#{elem(@steps[w.id], 0)}/#{elem(@steps[w.id], 1)}"}
+        class="mg-btn sm ghost"
+        title="The step of the method this document became"
+      >step {elem(@steps[w.id], 1)}</.link>
       <button
         class="mg-btn sm ghost"
         phx-click="delete"

@@ -198,4 +198,41 @@ defmodule MarginaliaWeb.StackRunTest do
     assert html =~ "crashed"
     refute Runs.running?(key)
   end
+
+  test "a progress tick shows the work, not only the count", ctx do
+    {:ok, view, html} = live(ctx.conn, ~p"/stacks/#{ctx.folder.id}")
+    refute html =~ "the second capability"
+
+    worker = hold(ctx.key, :read)
+
+    # what read_stack does: writes the step, then reports the tick. A second
+    # document, because a step is unique to its document in its folder.
+    {:ok, second} =
+      Works.create_work(ctx.user.id, %{
+        "title" => "2. Another chapter",
+        "body" => "# Another\n\n" <> String.duplicate("word ", 120)
+      })
+
+    {:ok, _} = Folders.move_work(ctx.user.id, second.id, ctx.folder.id)
+
+    Marginalia.Repo.insert!(%Marginalia.Stacks.Step{
+      folder_id: ctx.folder.id,
+      work_id: second.id,
+      ordinal: 2,
+      capability: "the second capability"
+    })
+
+    Runs.progress(ctx.key, done: 2, total: 12)
+    settled()
+
+    html = render(view)
+
+    assert html =~ "2 of 12"
+
+    assert html =~ "the second capability",
+           "a forward read takes hours; showing only the counter while the steps sit " <>
+             "unshown in the database is a page that looks like it is doing nothing"
+
+    send(worker, {:finish, {:errors, 0}})
+  end
 end
