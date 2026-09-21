@@ -36,7 +36,7 @@ defmodule MarginaliaWeb.ImportLive do
   """
   use MarginaliaWeb, :live_view
 
-  alias Marginalia.Import.{Bulk, GitHub}
+  alias Marginalia.Import.{Bulk, GitHub, Query}
 
   @max_files 40
   @max_pick 200
@@ -57,6 +57,7 @@ defmodule MarginaliaWeb.ImportLive do
        query: "",
        pattern: "",
        pattern_error: nil,
+       how: "query",
        order: "oldest",
        candidates: [],
        shown: [],
@@ -178,7 +179,8 @@ defmodule MarginaliaWeb.ImportLive do
   # choosing
 
   def handle_event("pattern", params, socket) do
-    {:noreply, refilter(socket, params["pattern"] || "")}
+    how = params["how"] || socket.assigns.how
+    {:noreply, socket |> assign(how: how) |> refilter(params["pattern"] || "")}
   end
 
   def handle_event("toggle", %{"key" => key}, socket) do
@@ -407,12 +409,23 @@ defmodule MarginaliaWeb.ImportLive do
   defp picked(%{candidates: candidates, chosen: chosen}),
     do: Enum.filter(candidates, &MapSet.member?(chosen, key(&1)))
 
-  # The regex is a filter on the view *and* the selection, which is the
-  # answer to "select these fifteen by name". Anything ticked by hand
-  # afterwards still counts: the boxes are the last word, this just saves
-  # forty clicks getting to them.
+  # The filter is on the view *and* the selection, which is the answer to
+  # "select these fifteen". Anything ticked by hand afterwards still counts:
+  # the boxes are the last word, this just saves forty clicks getting to
+  # them.
+  #
+  # Two languages, because they answer different questions. A query says
+  # which pull requests these are — closed, last month, not from dependabot.
+  # A regex says what the titles look like, which is the only way to catch a
+  # numbering convention or a prefix nobody made a label for.
   defp refilter(socket, pattern) do
-    case Bulk.by_title(socket.assigns.candidates, pattern) do
+    narrow =
+      case socket.assigns.how do
+        "regex" -> Bulk.by_title(socket.assigns.candidates, pattern)
+        _query -> Query.filter(socket.assigns.candidates, pattern)
+      end
+
+    case narrow do
       {:ok, shown} ->
         assign(socket,
           pattern: pattern,
@@ -576,23 +589,50 @@ defmodule MarginaliaWeb.ImportLive do
             </form>
           <% :pick -> %>
             <form id="im-pattern" phx-change="pattern" class="mt-6">
-              <label class="mg-field">
-                <span class="mg-label">Titles matching</span>
+              <span class="mg-label">Narrow this list</span>
+
+              <div class="im-filter">
+                <select name="how" class="mg-select sm">
+                  <option value="query" selected={@how == "query"}>Query</option>
+                  <option value="regex" selected={@how == "regex"}>Title regex</option>
+                </select>
                 <input
                   type="text"
                   name="pattern"
                   value={@pattern}
-                  placeholder="a regular expression — ^\d+\. or fix|revert"
+                  placeholder={
+                    if @how == "regex",
+                      do: "a regular expression — ^\d+\. or fix|revert",
+                      else: "is:pr state:closed created:>@today-30d"
+                  }
                   autocomplete="off"
                   class="mg-input"
                   phx-debounce="300"
                 />
-                <span :if={@pattern_error} class="cut-err">{@pattern_error}</span>
-                <span :if={!@pattern_error} class="mg-meta">
-                  Case insensitive. Filters the list and selects what it matches — the boxes
-                  below still have the last word.
-                </span>
-              </label>
+              </div>
+
+              <p :if={@pattern_error} class="cut-err mt-2">{@pattern_error}</p>
+
+              <p :if={!@pattern_error and @how == "regex"} class="mg-meta mt-2">
+                Case insensitive, matched against the title. Filters the list and selects what
+                it matches — the boxes below still have the last word.
+              </p>
+
+              <p :if={!@pattern_error and @how != "regex"} class="mg-meta mt-2">
+                Runs over the rows already fetched, so it costs nothing and does not have to be
+                right first time. <code>state:</code>
+                <code>is:</code>
+                <code>draft:</code>
+                <code>repo:</code>
+                <code>base:</code>
+                <code>head:</code>
+                <code>number:</code>, the dates <code>created:</code>
+                <code>updated:</code>
+                <code>merged:</code>, and a bare word matches the title. Dates take
+                <code>@today-30d</code>
+                as well as <code>2025-08-05</code>, and <code>-</code>
+                in front of anything takes it away.
+              </p>
             </form>
 
             <form id="im-order" phx-change="order" class="im-order">

@@ -123,7 +123,7 @@ defmodule MarginaliaWeb.ImportFlowTest do
     {:ok, view, _} = live(conn, ~p"/import")
     to_listing(view)
 
-    html = render_change(view, "pattern", %{"pattern" => "fix"})
+    html = render_change(view, "pattern", %{"how" => "regex", "pattern" => "fix"})
 
     assert html =~ "Fix the parser"
     assert html =~ "Revert the fix"
@@ -135,7 +135,7 @@ defmodule MarginaliaWeb.ImportFlowTest do
     {:ok, view, _} = live(conn, ~p"/import")
     to_listing(view)
 
-    html = render_change(view, "pattern", %{"pattern" => "(unclosed"})
+    html = render_change(view, "pattern", %{"how" => "regex", "pattern" => "(unclosed"})
 
     assert html =~ "Fix the parser", "a half-typed pattern should not empty the page"
     assert html =~ "missing closing parenthesis" or html =~ "unmatched"
@@ -145,7 +145,7 @@ defmodule MarginaliaWeb.ImportFlowTest do
     {:ok, view, _} = live(conn, ~p"/import")
     to_listing(view)
 
-    render_change(view, "pattern", %{"pattern" => "fix"})
+    render_change(view, "pattern", %{"how" => "regex", "pattern" => "fix"})
     # put one back that the pattern did not match
     render_click(view, "toggle", %{"key" => "temper/blimp#6"})
     render_change(view, "settings", %{"folder" => "Picked", "commits" => "false"})
@@ -160,7 +160,7 @@ defmodule MarginaliaWeb.ImportFlowTest do
     {:ok, view, _} = live(conn, ~p"/import")
     to_listing(view)
 
-    render_change(view, "pattern", %{"pattern" => "fix"})
+    render_change(view, "pattern", %{"how" => "regex", "pattern" => "fix"})
     assert render_click(view, "none", %{}) =~ "<b>0 selected</b>"
 
     # "all" means all *shown*, so the two the pattern hid stay out
@@ -294,5 +294,70 @@ defmodule MarginaliaWeb.ImportFlowTest do
 
     # #7 cannot be fetched, so the three that land are 9, 6, 8 in that order
     assert titles == ["1. Fix the parser", "2. Nothing to do with it", "3. Revert the fix"]
+  end
+
+  describe "the query box" do
+    test "narrows by state without another request", %{conn: conn} do
+      {:ok, view, _} = live(conn, ~p"/import")
+      to_listing(view)
+
+      html = render_change(view, "pattern", %{"how" => "query", "pattern" => "state:open"})
+
+      # #8 and #6 are the open ones in the stub
+      assert html =~ "Revert the fix"
+      assert html =~ "Nothing to do with it"
+      refute html =~ "Fix the parser"
+      assert html =~ "<b>2 selected</b>"
+    end
+
+    test "the shape from the report", %{conn: conn} do
+      {:ok, view, _} = live(conn, ~p"/import")
+      to_listing(view)
+
+      html =
+        render_change(view, "pattern", %{
+          "how" => "query",
+          "pattern" => "is:pr state:merged"
+        })
+
+      assert html =~ "Fix the parser"
+      assert html =~ "<b>1 selected</b>"
+    end
+
+    test "a bare word still matches the title, and a minus takes it away", %{conn: conn} do
+      {:ok, view, _} = live(conn, ~p"/import")
+      to_listing(view)
+
+      assert render_change(view, "pattern", %{"how" => "query", "pattern" => "fix"}) =~
+               "<b>2 selected</b>"
+
+      assert render_change(view, "pattern", %{"how" => "query", "pattern" => "-fix"}) =~
+               "<b>2 selected</b>"
+    end
+
+    test "a typo is refused by name and the list is kept", %{conn: conn} do
+      {:ok, view, _} = live(conn, ~p"/import")
+      to_listing(view)
+
+      html = render_change(view, "pattern", %{"how" => "query", "pattern" => "stat:closed"})
+
+      # the important half: it did not quietly mean nothing
+      assert html =~ "do not know"
+      assert html =~ "stat"
+      assert html =~ "Fix the parser", "the list stays while the query is wrong"
+      assert html =~ "<b>4 selected</b>", "and so does the selection"
+    end
+
+    test "switching language re-runs the same text", %{conn: conn} do
+      {:ok, view, _} = live(conn, ~p"/import")
+      to_listing(view)
+
+      # a regex that is a bare word in the other language
+      assert render_change(view, "pattern", %{"how" => "regex", "pattern" => "fix|test"}) =~
+               "<b>3 selected</b>"
+
+      assert render_change(view, "pattern", %{"how" => "query", "pattern" => "fix|test"}) =~
+               "<b>0 selected</b>"
+    end
   end
 end

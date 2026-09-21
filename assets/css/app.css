@@ -5090,3 +5090,15 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
   color: var(--mg-dim);
   font-variant-numeric: tabular-nums;
 }
+
+/* the two-language filter on the choosing step */
+.im-filter { display: flex; gap: 0.5rem; margin-top: 0.3rem; }
+.im-filter .mg-select { flex: none; width: auto; }
+.im-filter .mg-input { flex: 1 1 auto; min-width: 0; font-family: var(--mg-mono, ui-monospace, monospace); }
+.im-filter + .mg-meta code,
+.mg-meta code {
+  padding: 0.02rem 0.22rem;
+  border-radius: 3px;
+  background: var(--mg-margin);
+  font-size: 0.92em;
+}
