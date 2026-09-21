@@ -35,6 +35,18 @@ defmodule Marginalia.GitHubAccessTest do
       assert GitHub.explain({:rate_limited, nil}) =~ "few minutes"
     end
 
+    test "a query GitHub will not run is quoted back in its own words" do
+      said = GitHub.explain({:rejected, ~s("@today-30d" is not a recognized date/time format)})
+
+      assert said =~ "would not run that search"
+      assert said =~ "not a recognized date/time format"
+      refute said =~ "422", "the number is what somebody was staring at before"
+    end
+
+    test "a refusal with nothing to quote still says what to look at" do
+      assert GitHub.explain({:rejected, nil}) =~ "qualifiers and the dates"
+    end
+
     test "a real refusal still names the two reasons it happens" do
       said = GitHub.explain(:forbidden)
       assert said =~ "may lack access"
@@ -62,6 +74,31 @@ defmodule Marginalia.GitHubAccessTest do
 
     test "an empty string is the same as no token, not a bad one" do
       assert {:ok, _} = GitHub.list("phoenixframework", "phoenix", "", state: "closed")
+    end
+
+    test "a relative date is translated before it goes over the wire" do
+      # typed on the page, refused by GitHub as "not a recognized
+      # date/time format" until this translated it
+      assert {:ok, found} =
+               GitHub.search(
+                 "repo:phoenixframework/phoenix state:closed created:>@today-30d",
+                 nil
+               )
+
+      assert found != []
+      cutoff = Date.add(Date.utc_today(), -30)
+
+      for c <- found do
+        {:ok, made} = c.created_at |> String.slice(0, 10) |> Date.from_iso8601()
+        assert Date.compare(made, cutoff) in [:gt, :eq]
+      end
+    end
+
+    test "a query GitHub refuses comes back with GitHub's reason, not a number" do
+      assert {:error, {:rejected, said}} =
+               GitHub.search("repo:phoenixframework/phoenix created:>whenever", nil)
+
+      assert said =~ "date"
     end
   end
 

@@ -165,6 +165,10 @@ defmodule Marginalia.Import.GitHub do
       {:ok, %{status: 401}} -> {:error, :unauthorized}
       {:ok, %{status: s, headers: h}} when s in [403, 429] -> {:error, refused(h)}
       {:ok, %{status: 404}} -> {:error, :not_found}
+      # 422 from search is a malformed query, and GitHub says which part of
+      # it. Throwing that away and printing the number instead leaves
+      # somebody staring at a search that works on github.com.
+      {:ok, %{status: 422, body: body}} -> {:error, {:rejected, said(body)}}
       {:ok, %{status: status}} -> {:error, {:http, status}}
       {:error, reason} -> {:error, {:transport, inspect(reason)}}
     end
@@ -181,6 +185,12 @@ defmodule Marginalia.Import.GitHub do
       _ -> :forbidden
     end
   end
+
+  # The useful sentence is in errors[0].message; `message` on its own is
+  # "Validation Failed", which is the number in words.
+  defp said(%{"errors" => [%{"message" => m} | _]}) when is_binary(m), do: m
+  defp said(%{"message" => m}) when is_binary(m), do: m
+  defp said(_), do: nil
 
   defp header(headers, name) when is_map(headers) do
     case Map.get(headers, name) do
@@ -243,6 +253,11 @@ defmodule Marginalia.Import.GitHub do
         {:error, :empty_query}
 
       q ->
+        # The one thing not passed through verbatim. `@today-30d` is this
+        # app's syntax, taught on the next page and typed here by anybody
+        # who has seen it; GitHub answers it with a 422 that says it is not
+        # an ISO 8601 date. It is our word, so we translate it.
+        q = Marginalia.Import.Query.expand(q)
         q = if String.contains?(q, "is:pr"), do: q, else: q <> " is:pr"
         pages = min(opts[:pages] || @max_pages, @max_pages)
 
@@ -659,6 +674,11 @@ defmodule Marginalia.Import.GitHub do
 
   def explain(:no_pull_requests), do: "That repository has no open pull requests."
   def explain(:empty_query), do: "Write a search query first."
+
+  def explain({:rejected, nil}),
+    do: "GitHub would not run that search. Check the qualifiers and the dates."
+
+  def explain({:rejected, said}), do: "GitHub would not run that search: #{said}"
 
   def explain(:no_results_field),
     do: "GitHub answered the search with something this does not recognise."

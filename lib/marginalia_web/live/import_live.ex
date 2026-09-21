@@ -556,9 +556,11 @@ defmodule MarginaliaWeb.ImportLive do
                   class="mg-input"
                 />
                 <span class="mg-meta">
-                  Passed to GitHub as written; <code>is:pr</code>
-                  is added for you. Search is capped at 1000 results and rate limited to
-                  30 a minute, both by GitHub.
+                  Passed to GitHub as written, with two exceptions: <code>is:pr</code>
+                  is added for you, and <code>@today-30d</code>
+                  is turned into the date it means, because GitHub has no relative dates and
+                  answers them with a 422. Search is capped at 1000 results and rate limited
+                  to 30 a minute, both by GitHub.
                 </span>
               </label>
 

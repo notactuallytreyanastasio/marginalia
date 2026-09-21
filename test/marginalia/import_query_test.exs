@@ -203,4 +203,51 @@ defmodule Marginalia.ImportQueryTest do
     assert keep(rows, ~s("precommit alias")) == [1], "quoted, they have to be adjacent"
     assert keep(rows, "precommit alias") == [1, 2], "unquoted, both words anywhere"
   end
+
+  describe "expanding @today for GitHub" do
+    test "the query from the report, which GitHub answers 422" do
+      today = Date.utc_today()
+      want = today |> Date.add(-30) |> Date.to_iso8601()
+
+      assert Query.expand("repo:phoenixframework/phoenix state:closed created:>@today-30d") ==
+               "repo:phoenixframework/phoenix state:closed created:>#{want}"
+    end
+
+    test "every unit, and more than one in a query" do
+      today = Date.utc_today()
+      d = fn n -> today |> Date.add(n) |> Date.to_iso8601() end
+
+      assert Query.expand("created:>@today-7d merged:<@today") ==
+               "created:>#{d.(-7)} merged:<#{d.(0)}"
+
+      assert Query.expand("@today-2w") == d.(-14)
+      assert Query.expand("@today+1d") == d.(1)
+    end
+
+    test "a range with both ends relative" do
+      today = Date.utc_today()
+      from = today |> Date.add(-60) |> Date.to_iso8601()
+      to = today |> Date.add(-30) |> Date.to_iso8601()
+
+      assert Query.expand("merged:@today-60d..@today-30d") == "merged:#{from}..#{to}"
+    end
+
+    test "everything else is left exactly as it was" do
+      for q <- [
+            "repo:phoenixframework/phoenix is:pr",
+            "created:>2025-08-05",
+            "label:\"needs review\" -Bump",
+            ""
+          ] do
+        assert Query.expand(q) == q
+      end
+    end
+
+    test "something that looks like @today but is not is left alone" do
+      # not a unit this understands; better to let GitHub say so than to
+      # mangle it into a date nobody asked for
+      assert Query.expand("@today-3fortnights") =~ "@today-3fortnights"
+      assert Query.expand("@todays") =~ "@today"
+    end
+  end
 end

@@ -207,6 +207,36 @@ defmodule Marginalia.Import.Query do
   end
 
   @doc """
+  Rewrite every `@today` in a string into the date it means.
+
+  The two boxes take different languages — the one on the finding step is
+  GitHub's and goes over the wire, the one on the choosing step is this
+  module's and never leaves the machine — but `@today-30d` reads like it
+  belongs in both, and somebody who has just been taught it on one page will
+  type it on the other. GitHub answers that with a 422:
+
+      "@today-30d" is not a recognized date/time format. Please provide an
+      ISO 8601 date/time value
+
+  which is correct and useless. It is our syntax, so translating it is our
+  job, and GitHub takes the absolute date perfectly well. Anything that is
+  not a `@today` expression is left exactly as it was.
+  """
+  def expand(text) do
+    # The lookahead is the difference between translating and mangling.
+    # Without it `@today-3fortnights` matches the bare `@today`, expands to
+    # a date, and sends GitHub `2026-09-21-3fortnights` — a complaint about
+    # something nobody typed. An expression this does not understand is
+    # left for GitHub to refuse in its own words.
+    Regex.replace(~r/@today(?:[+-]\d+[dwmy])?(?![\w-])/i, to_string(text), fn token ->
+      case date(String.downcase(token)) do
+        {:ok, date} -> Date.to_iso8601(date)
+        :error -> token
+      end
+    end)
+  end
+
+  @doc """
   A date, absolute or relative to today.
 
   Public because `@today-30d` is the part somebody will want to check
