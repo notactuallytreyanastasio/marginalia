@@ -68,9 +68,13 @@ defmodule Marginalia.Analysis.Linker do
   - Use the numeric ids exactly as given. An id that is not in the lists gets the edge thrown
     away, and you will not be told which.
   - "why" is one concrete sentence naming what actually passes between the two nodes. It is
-    shown to the reader beside the edge. "These are both about AI" is useless. "He proposes
-    embedded evaluators as the mechanism; she names the staffing problem that would decide
-    whether they work" is the job.
+    shown to the reader beside the edge. "These are both about AI" is useless. "Manuscript A
+    proposes embedded evaluators as the mechanism; Manuscript B names the staffing problem
+    that would decide whether they work" is the job.
+  - Name the documents "Manuscript A" and "Manuscript B" IN FULL, every time, in "why" and in
+    "summary" alike. Never a bare "A" or "B". The reader sees these sentences with the real
+    titles substituted in, and a lone capital cannot be told apart from the word "A" starting
+    a sentence — so a bare letter either survives as a letter or eats an article.
   - `tension` is a real claim, not a way to make the graph interesting. Draw one only where
     the two documents genuinely disagree, and say what about.
   - `echoes` is for genuine independent convergence. If one document is clearly responding to

@@ -523,41 +523,87 @@ defmodule Marginalia.Links do
   says Congress entrenched the common law; B Jackson charges" is a
   sentence a reader has to decode before they can read it.
 
-  The bare letters are only substituted where a sentence starts, which is
-  where the convention puts them. "Part A" and "Exhibit B" are left
-  alone, and they are the reason this is not a plain word replacement.
+  Every reference is resolved in a single left-to-right pass, and that is
+  not a tidiness point. Done as one replacement per form, a title
+  substituted by an early pass is ordinary English by the time a later one
+  reads it, and the later one substitutes *inside* it — which is how "B
+  answers A's open question" became a sentence containing the same title
+  twice, spliced through itself.
+
+  "Manuscript A" and the possessive "A's" are unambiguous and resolved
+  anywhere. A bare letter is resolved only where a sentence starts, which
+  is where the convention puts it; "Part A" and "Exhibit B" are why it is
+  not a plain word replacement, and the indefinite article is why it can
+  never become one. `Linker` now requires the model to write "Manuscript
+  A" in full so new prose never depends on the guess.
   """
   def plain(nil, _link), do: nil
 
   def plain(text, %Link{} = link) when is_binary(text) do
     {a, b} = works(link)
-
-    text
-    |> String.replace(~r/\bManuscripts?\s+A\b/, name(a))
-    |> String.replace(~r/\bManuscripts?\s+B\b/, name(b))
-    |> letter("A", name(a))
-    |> letter("B", name(b))
+    substitute(text, %{"A" => name(a), "B" => name(b)})
   end
 
   def plain(text, _link), do: text
 
-  # A lone capital at the start of the text or of a sentence.
+  # Every reference to either manuscript, matched once, in one left-to-right
+  # pass. The pass count is the load-bearing part.
   #
-  # The replacement is a function rather than a pattern string, and that is
-  # the whole point. Built as `"\\1" <> replacement`, a title beginning with
-  # a digit — every chapter of a numbered stack — produced `"\\11. The
-  # out-grammar"`, which the regex engine reads as backreference *eleven*,
-  # not group one followed by a literal "1". Group 11 does not exist, so it
-  # expands to nothing and takes the chapter number with it:
+  # This was six sequential `String.replace/3` calls, and two of them were
+  # reading the output of the others. A title substituted early contains
+  # ordinary English, so a later pass found its letters and substituted
+  # again:
   #
-  #     "runner. B answers"  ->  "runner.. The backend scaffold answers"
+  #     "B answers A's open question."
+  #     -> "2. The backend scaffold answers 1. 1. A page with no script on
+  #         it, and the server generated too page with no script on it, and
+  #         the server generated too's open question."
   #
-  # Silent, and wrong in a way that reads as a typo rather than a bug. A
-  # function replacement is never scanned for backreferences, so no title
-  # can be misread as syntax.
-  defp letter(text, letter, replacement) do
-    Regex.replace(~r/(\A|(?<=[.;:—-])\s+)#{letter}\b/, text, fn _whole, lead ->
-      lead <> replacement
+  # One pass cannot do that: `Regex.replace/3` resumes after the match it
+  # just made, in the original string, so replaced text is never rescanned.
+  #
+  # The replacement is a function rather than a pattern string for the same
+  # family of reason. Built as `"\\1" <> title`, a title beginning with a
+  # digit — every chapter of a numbered stack — produced `"\\11. The
+  # out-grammar"`, which the engine reads as backreference *eleven*, not
+  # group one then a literal "1". Group 11 does not exist, so it expanded to
+  # nothing and took the chapter number with it. A function replacement is
+  # never scanned for backreferences, so no title can be misread as syntax.
+  #
+  # The four branches, in the order the alternation tries them:
+  #
+  #   "Manuscript A", "Manuscript A's"  the unambiguous form. `Linker` now
+  #                                     requires it, so new prose is only ever
+  #                                     this.
+  #   "A's"                             safe anywhere: English has no
+  #                                     possessive indefinite article, so this
+  #                                     is never the word "a".
+  #   ". A" / start of text             the convention the older summaries
+  #                                     were written to.
+  #   " A"                              left alone. "Part A" and "Exhibit B"
+  #                                     live here, and so does the indefinite
+  #                                     article.
+  #
+  # That last one is why bare mid-sentence letters are not substituted and
+  # cannot be. "A defines the output tree" and "A sentence defines the output
+  # tree" share a prefix; telling the label from the article needs to know
+  # whether the next word is a verb. Turning "A page with no script on it"
+  # into a manuscript title is a worse failure than leaving a letter on the
+  # page, so the fix for those went into the prompt instead.
+  @ref ~r/(\A|\bManuscripts?\s+|[.;:—-]\s+|\s+)([AB])(['’]s)?(?![\p{L}\p{N}'’])/u
+
+  defp substitute(text, names) do
+    Regex.replace(@ref, text, fn _whole, pre, letter, poss ->
+      cond do
+        # "Manuscript A" — the word goes, the title replaces both
+        Regex.match?(~r/\bManuscripts?\s+\z/, pre) -> names[letter] <> poss
+        # "A's" — unambiguous wherever it appears
+        poss != "" -> pre <> names[letter] <> poss
+        # start of the text, or of a sentence
+        pre == "" or Regex.match?(~r/[.;:—-]\s+\z/, pre) -> pre <> names[letter]
+        # a bare letter mid-sentence: could be "Part A", could be "a"
+        true -> pre <> letter <> poss
+      end
     end)
   end
 

@@ -271,48 +271,68 @@ defmodule Marginalia.LinksTest do
 
   describe "calling the documents by their names" do
     setup %{a: a, b: b} do
-      # what a numbered stack produces, and what broke it
-      {:ok, a} = Works.update_work(a, %{"title" => "1. The out-grammar"})
+      # A numbered stack title, and one whose own text starts with "A " —
+      # between them they are every way this has gone wrong.
+      {:ok, a} = Works.update_work(a, %{"title" => "1. A page with no script on it"})
       {:ok, b} = Works.update_work(b, %{"title" => "2. The backend scaffold"})
       {:ok, link} = Links.get_or_create(a.id, b.id)
       %{link: link}
     end
 
-    test "a title beginning with a digit survives the substitution", %{link: link} do
-      out = Links.plain("runner. B answers A. A is upstream.", link)
+    test "a title beginning with a digit keeps its number", %{link: link} do
+      out = Links.plain("runner. B answers it.", link)
 
-      # `"\\1" <> "2. The backend scaffold"` is `"\\12..."`, which the regex
-      # engine reads as backreference 12, not group 1 then a literal "2".
-      # It expanded to nothing and ate the chapter number with it.
+      # Built as `"\\1" <> "2. The backend scaffold"`, the replacement reads
+      # as backreference 12 — which does not exist, so it expanded to nothing
+      # and took the chapter number and the captured space with it.
       assert out =~ "2. The backend scaffold",
-             "the chapter number was eaten by a backreference that was never meant to be one"
-
-      assert out =~ "1. The out-grammar"
+             "the chapter number was eaten by a backreference nobody wrote"
 
       refute out =~ "runner.. ",
-             "the captured whitespace vanished along with the number, doubling the full stop"
+             "the captured whitespace went with it, doubling the full stop"
+    end
+
+    test "a title is never substituted into a second time", %{link: link} do
+      out = Links.plain("B answers A's open question.", link)
+
+      # Six sequential replaces meant a title inserted early was ordinary
+      # English by the time a later pass read it, and "A page" inside it got
+      # substituted again. One pass resumes after the match it just made.
+      assert out == "2. The backend scaffold answers 1. A page with no script on it's open question."
+
+      refute out =~ "1. 1.", "the title was spliced through itself"
+    end
+
+    test "a possessive letter is resolved wherever it appears", %{link: link} do
+      out = Links.plain("It sits downstream of A's grammar.", link)
+
+      # English has no possessive indefinite article, so "A's" is never the
+      # word "a" and needs no sentence-start to be safe.
+      assert out =~ "1. A page with no script on it's grammar"
+    end
+
+    test "the full form is resolved and loses the word Manuscript", %{link: link} do
+      out = Links.plain("Manuscript B extends Manuscript A.", link)
+
+      assert out == "2. The backend scaffold extends 1. A page with no script on it."
+      refute out =~ "Manuscript"
+    end
+
+    test "a bare letter mid-sentence is left alone, and so is the article", %{link: link} do
+      # "Part A" is the reason this is not a plain word replacement, and
+      # "A page" is the reason it can never become one: telling the label
+      # from the article needs to know whether the next word is a verb.
+      assert Links.plain("See Part A and Exhibit B.", link) =~ "Part A and Exhibit B"
+
+      refute Links.plain("It extends B.", link) =~ "2. The backend scaffold",
+             "a bare letter mid-sentence could be anything"
     end
 
     test "the summary goes through the same substitution", %{link: link} do
       {:ok, link} = Links.set_status(link, "linked", %{summary: "B develops it. A is upstream."})
 
       assert Links.summary(link) =~ "2. The backend scaffold"
-      assert Links.summary(link) =~ "1. The out-grammar"
-    end
-
-    # Pinned as the current behaviour, not endorsed. `letter/2` substitutes
-    # only at the start of the text or of a sentence, which is what keeps
-    # "Part A" and "Exhibit B" intact — but the model writes "A's grammar"
-    # and "downstream of B" constantly, and those survive untouched. A
-    # reader gets one paragraph naming the same document two different ways.
-    # Widening the match is a product decision, so this records the cost
-    # rather than hiding it.
-    test "a letter in the middle of a sentence is left alone, titles and all", %{link: link} do
-      out = Links.plain("It sits downstream of A's grammar and extends B.", link)
-
-      assert out =~ "A's grammar", "mid-sentence possessive is not substituted"
-      assert out =~ "extends B.", "mid-sentence object is not substituted"
-      refute out =~ "1. The out-grammar"
+      assert Links.summary(link) =~ "1. A page with no script on it"
     end
   end
 end
