@@ -235,4 +235,39 @@ defmodule MarginaliaWeb.StackRunTest do
 
     send(worker, {:finish, {:errors, 0}})
   end
+
+  test "the summarise pass has its own button and its own sentence", ctx do
+    {:ok, view, html} = live(ctx.conn, ~p"/stacks/#{ctx.folder.id}")
+
+    assert html =~ "Summarise each document"
+    assert html =~ "0 summarised"
+
+    worker = hold(ctx.key, :summarise)
+    Runs.progress(ctx.key, done: 1, total: 3)
+    settled()
+
+    html = render(view)
+
+    assert html =~ "1 of 3"
+
+    assert html =~ "one whole-document summary each",
+           "the sentence has to say which pass this is: the forward read's " <>
+             "\"waits on the one before it\" is not true of summaries"
+
+    refute html =~ "waits on the one before it"
+
+    send(worker, {:finish, {:errors, 0}})
+  end
+
+  test "it will not start while another pass is running", ctx do
+    worker = hold(ctx.key, :read)
+
+    {:ok, view, _} = live(ctx.conn, ~p"/stacks/#{ctx.folder.id}")
+    html = render_click(view, "summarise", %{})
+
+    assert html =~ "A read pass is already running"
+    assert %{kind: :read} = Runs.get(ctx.key)
+
+    send(worker, {:finish, {:errors, 0}})
+  end
 end

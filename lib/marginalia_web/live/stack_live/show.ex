@@ -35,13 +35,30 @@ defmodule MarginaliaWeb.StackLive.Show do
   # The two things the buttons read, derived from the run rather than set
   # beside it, so a page that mounts into a pass in flight and a page that
   # started one show the same thing.
-  defp from_run(socket, nil), do: assign(socket, reading: nil, composing: false, stage: nil)
+  defp from_run(socket, nil),
+    do: assign(socket, reading: nil, running: nil, composing: false, stage: nil)
 
   defp from_run(socket, %{kind: :compose} = run),
-    do: assign(socket, reading: nil, composing: true, stage: stage_of(run))
+    do: assign(socket, reading: nil, running: :compose, composing: true, stage: stage_of(run))
 
-  defp from_run(socket, %{kind: kind} = run) when kind in [:read, :deepen],
-    do: assign(socket, reading: {run.done, run.total || 0}, composing: false, stage: nil)
+  defp from_run(socket, %{kind: kind} = run) when kind in [:read, :deepen, :summarise],
+    do:
+      assign(socket,
+        reading: {run.done, run.total || 0},
+        running: kind,
+        composing: false,
+        stage: nil
+      )
+
+  defp pass_note(:summarise),
+    do:
+      "one whole-document summary each, sections six at a time. " <>
+        "This runs on the server: you can close the page."
+
+  defp pass_note(_read_or_deepen),
+    do:
+      "each document waits on the one before it. " <>
+        "This runs on the server: you can close the page."
 
   defp stage_of(%{stage: "outlining"}), do: "outlining"
 
@@ -137,6 +154,25 @@ defmodule MarginaliaWeb.StackLive.Show do
       {_steps, errors} =
         Stacks.deepen_stack(id,
           on_step: fn _s, i, _t -> Runs.progress(key(id), done: i, total: total) end
+        )
+
+      {:errors, length(errors)}
+    end)
+  end
+
+  # Not the forward read. A summary is what one document says; a step is what
+  # somebody building the same thing has to do next. A folder of imported
+  # pull requests wants both, and this was a button per document opened one
+  # at a time.
+  def handle_event("summarise", _params, socket) do
+    user_id = socket.assigns.current_scope.user.id
+    id = socket.assigns.folder.id
+    total = socket.assigns.stats.documents - socket.assigns.stats.summarised
+
+    run(socket, :summarise, fn ->
+      {_done, errors} =
+        Stacks.summarise_documents(user_id, id,
+          on_step: fn _w, i, _t -> Runs.progress(key(id), done: i, total: total) end
         )
 
       {:errors, length(errors)}
@@ -329,7 +365,7 @@ defmodule MarginaliaWeb.StackLive.Show do
           {@folder.name}
         </h1>
         <div class="mg-meta mt-1">
-          {@stats.documents} documents · {@stats.read} read · {@stats.pitfalls} pitfalls · {@stats.links} dependencies
+          {@stats.documents} documents · {@stats.read} read · {@stats.summarised} summarised · {@stats.pitfalls} pitfalls · {@stats.links} dependencies
           <span :if={@stats.deepened > 0}>
             · {@stats.deepened} deepened · {@stats.revisions} revised later
           </span>
@@ -355,6 +391,20 @@ defmodule MarginaliaWeb.StackLive.Show do
               true -> "Second pass"
             end}
           </button>
+          <%!-- A fourth pass, and the only one that does not care about order.
+                It is next to the others because it costs the same kind of
+                money and takes the same kind of time. --%>
+          <button
+            :if={@stats.documents > @stats.summarised}
+            class="mg-btn ghost"
+            phx-click="summarise"
+            disabled={@reading != nil or @composing}
+          >
+            {if @stats.summarised > 0,
+              do: "Summarise the other #{@stats.documents - @stats.summarised}",
+              else: "Summarise each document"}
+          </button>
+
           <button
             :if={@stats.read > 0}
             class="mg-btn ghost"
@@ -368,9 +418,12 @@ defmodule MarginaliaWeb.StackLive.Show do
               true -> "Compose the telling"
             end}
           </button>
+          <%!-- Built in one expression rather than wrapped across lines.
+                HEEx keeps the newline, so a phrase broken over two lines
+                is not that phrase any more — which a test caught and a
+                reader would not have. --%>
           <span :if={@reading} class="mg-meta">
-            {elem(@reading, 0)} of {elem(@reading, 1)} — each document waits on the one before it.
-            This runs on the server: you can close the page.
+            {elem(@reading, 0)} of {elem(@reading, 1)} — {pass_note(@running)}
           </span>
         </div>
 

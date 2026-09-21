@@ -31,7 +31,7 @@ defmodule Marginalia.Stacks do
 
   import Ecto.Query
 
-  alias Marginalia.{Cuts, Folders, LLM, Reading, Repo, Works}
+  alias Marginalia.{Cuts, Document, Folders, LLM, Reading, Repo, Works}
   alias Marginalia.Stacks.{Step, Story}
   alias Marginalia.Works.Work
 
@@ -63,6 +63,20 @@ defmodule Marginalia.Stacks do
       [_, n] -> String.to_integer(n)
       _ -> nil
     end
+  end
+
+  # One query for the folder rather than one per document: the page that
+  # shows this number is the page listing a hundred and eleven of them.
+  defp summarised_count([]), do: 0
+
+  defp summarised_count(docs) do
+    ids = Enum.map(docs, & &1.id)
+
+    Repo.one(
+      from d in Marginalia.Works.DocumentSummary,
+        where: d.work_id in ^ids and not is_nil(d.summary) and d.summary != "",
+        select: count(d.id)
+    ) || 0
   end
 
   @doc "The works of a folder, ordered. Subfolders are not a stack."
@@ -1084,6 +1098,51 @@ defmodule Marginalia.Stacks do
     |> Map.new()
   end
 
+  @doc """
+  Summarise every document in a folder, one at a time.
+
+  The same whole-document pass the read view runs on one draft, over all of
+  them. It is not the forward read and does not pretend to be: a summary is
+  what one document says, and a step is what somebody building the same
+  thing has to do next. A folder of imported pull requests wants both, and
+  before this the second was a button per document, opened one at a time.
+
+  Sequential, though nothing here depends on order. `Marginalia.Document`
+  already fans its own sections out six at a time, so two documents at once
+  is twelve calls in flight and the rate limit is the thing that decides how
+  fast this goes, not the concurrency written here.
+
+  Already-summarised documents are skipped unless `:force`, because the
+  expensive half of a hundred and eleven documents is the ones that are
+  already done.
+  """
+  def summarise_documents(user_id, folder_id, opts \\ []) do
+    docs = documents(user_id, folder_id)
+
+    todo =
+      if opts[:force],
+        do: docs,
+        else: Enum.reject(docs, &(Document.get(&1.id) != nil))
+
+    total = length(todo)
+
+    errors =
+      todo
+      |> Enum.with_index(1)
+      |> Enum.reduce([], fn {work, i}, errors ->
+        out =
+          case Document.run(work, opts) do
+            {:ok, _} -> errors
+            {:error, reason} -> errors ++ [{work.title, reason}]
+          end
+
+        if is_function(opts[:on_step]), do: opts[:on_step].(work, i, total)
+        out
+      end)
+
+    {total - length(errors), errors}
+  end
+
   @doc "How much of a folder has been read forwards, and how sound it is."
   def stats(user_id, folder_id) do
     docs = documents(user_id, folder_id)
@@ -1098,6 +1157,7 @@ defmodule Marginalia.Stacks do
       excerpts: steps |> Enum.map(&length(&1.excerpts || [])) |> Enum.sum(),
       links: steps |> Enum.map(&length(&1.requires || [])) |> Enum.sum(),
       dropped: steps |> Enum.map(&length(&1.dropped || [])) |> Enum.sum(),
+      summarised: summarised_count(docs),
       deepened: Enum.count(steps, &(&1.deepened_at != nil)),
       deep_failed:
         Enum.count(steps, fn s ->
