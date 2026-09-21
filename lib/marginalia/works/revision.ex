@@ -23,10 +23,13 @@ defmodule Marginalia.Works.Revision do
     timestamps(type: :utc_datetime)
   end
 
-  # `summary` is the whole body at once rather than a paragraph: the draft
-  # replaced by its own summary. Replay still works on it — `before` is the
-  # entire old body, which is exactly what the body is at that point in the
-  # sequence — and the Changes view has a word for it.
+  # `summary` is a whole body at once rather than a paragraph, from the brief
+  # life of a control that replaced a draft with its own summary in place.
+  # That was the wrong shape — the condensation should be a draft of its own,
+  # so the two can be read against each other — and the control is gone. The
+  # origin stays because a draft somewhere may have been through it, and a
+  # history with a word the schema has since forgotten is a history that
+  # cannot be loaded.
   @origins ~w(edit rewrite summary)
   def origins, do: @origins
 

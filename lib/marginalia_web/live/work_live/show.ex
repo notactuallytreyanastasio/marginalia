@@ -9,7 +9,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   """
   use MarginaliaWeb, :live_view
 
-  alias Marginalia.{Works, Analysis, Chat, Accounts, Graph, Walkthrough, Links}
+  alias Marginalia.{Works, Analysis, Chat, Accounts, Graph, Runs, Walkthrough, Links}
   alias Marginalia.Analysis.DecisionGraph
   alias Marginalia.Chat.Editor
 
@@ -22,8 +22,11 @@ defmodule MarginaliaWeb.WorkLive.Show do
         {:ok, socket |> put_flash(:error, "No such draft.") |> push_navigate(to: ~p"/works")}
 
       work ->
-        if connected?(socket),
-          do: Phoenix.PubSub.subscribe(Marginalia.PubSub, Analysis.topic(work.id))
+        if connected?(socket) do
+          Phoenix.PubSub.subscribe(Marginalia.PubSub, Analysis.topic(work.id))
+          # the comparison pass belongs to the draft, not to this socket
+          Runs.subscribe({:work, work.id})
+        end
 
         {:ok, convo} = Chat.get_or_create_conversation(work.id)
 
@@ -54,6 +57,9 @@ defmodule MarginaliaWeb.WorkLive.Show do
            # nil is the canonical "no filter" — see set_only
            only: nil,
            focus: nil,
+           # the summary drafted from this one, related to it, if it exists
+           summary_link: summary_link(work),
+           comparing: comparing(Runs.get({:work, work.id})),
            quota: Chat.remaining(socket.assigns.current_scope.user),
            threads_list: Chat.conversation_summaries(work.id),
            cited: [],
@@ -109,6 +115,23 @@ defmodule MarginaliaWeb.WorkLive.Show do
          |> load_map()}
     end
   end
+
+  # The link between this draft and the condensation drafted from it, if both
+  # exist. Nil is the ordinary case and means the button says "draft it".
+  defp summary_link(work) do
+    with %{id: id} <- Works.condensation_of(work.id),
+         %{id: link_id} <- Links.get_for(work.id, id) do
+      link_id
+    else
+      _ -> nil
+    end
+  end
+
+  defp comparing(%{kind: :compare, stage: stage}) when is_binary(stage),
+    do: String.capitalize(stage)
+
+  defp comparing(%{kind: :compare}), do: "Drafting the summary"
+  defp comparing(_), do: nil
 
   @impl true
   def handle_params(params, _uri, socket) do
@@ -519,32 +542,38 @@ defmodule MarginaliaWeb.WorkLive.Show do
   def handle_event("toggle_changes", _params, socket),
     do: {:noreply, assign(socket, changes_on: not socket.assigns.changes_on)}
 
-  # The long version has served its purpose and the condensation is the thing
-  # to keep working on. Destructive, and the only control on this panel that
-  # is, so it asks first and says what it takes.
-  def handle_event("become_summary", _params, socket) do
+  # Three passes and several minutes: the condensation is drafted, read, and
+  # related to the draft it came from. Under Marginalia.Runs rather than the
+  # socket, for the same reason the folder passes are — a dropped websocket
+  # should not destroy a read that has already been paid for.
+  def handle_event("compare_summary", _params, socket) do
     a = socket.assigns
 
     if not a.mine? do
       {:noreply, put_flash(socket, :error, "This draft is someone else's.")}
     else
-      case Marginalia.Document.become_summary(a.work) do
-        {:ok, work} ->
-          Marginalia.Analysis.start(work, a.provider)
+      user_id = a.current_scope.user.id
+      work = a.work
+      provider = a.provider
+      key = {:work, work.id}
 
+      fun = fn ->
+        case Marginalia.Document.compare(user_id, work,
+               provider: provider,
+               on_stage: fn stage -> Runs.progress(key, stage: stage) end
+             ) do
+          {:ok, %{link: link}} -> {:compared, link.id}
+          {:error, reason} -> {:error, reason}
+        end
+      end
+
+      case Runs.start(key, :compare, fun) do
+        {:ok, _} ->
+          {:noreply, assign(socket, comparing: "Drafting the summary")}
+
+        {:error, {:already_running, kind}} ->
           {:noreply,
-           socket
-           |> put_flash(
-             :info,
-             "Replaced. The draft you had is in Changes; this one is being read now."
-           )
-           |> push_navigate(to: ~p"/works/#{work.slug}?view=read")}
-
-        {:error, :nothing_summarised} ->
-          {:noreply, put_flash(socket, :error, "Summarise at least one section first.")}
-
-        {:error, reason} ->
-          {:noreply, put_flash(socket, :error, "Could not replace it: #{inspect(reason)}")}
+           put_flash(socket, :error, "A #{kind} pass is already running on this draft.")}
       end
     end
   end
@@ -1119,6 +1148,39 @@ defmodule MarginaliaWeb.WorkLive.Show do
   # ==========================================================================
 
   @impl true
+  # The comparison pass, which belongs to the draft rather than to this
+  # socket: any page open on this draft follows it, and closing them all does
+  # not stop it.
+  def handle_info({:run, :started, run}, socket),
+    do: {:noreply, assign(socket, comparing: comparing(run))}
+
+  def handle_info({:run, :progress, run}, socket),
+    do: {:noreply, assign(socket, comparing: comparing(run))}
+
+  def handle_info({:run, :done, :compare, {:compared, link_id}}, socket) do
+    {:noreply,
+     socket
+     |> assign(comparing: nil, summary_link: link_id)
+     |> put_flash(:info, "Drafted, read and related. They are side by side now.")}
+  end
+
+  def handle_info({:run, :done, :compare, {:error, reason}}, socket) do
+    {:noreply,
+     socket
+     |> assign(comparing: nil)
+     |> put_flash(:error, "Could not compare them: #{inspect(reason)}")}
+  end
+
+  def handle_info({:run, :crashed, :compare, _reason}, socket) do
+    {:noreply,
+     socket
+     |> assign(comparing: nil)
+     |> put_flash(:error, "The comparison crashed. Anything it finished is saved.")}
+  end
+
+  def handle_info({:run, _kind, _a, _b}, socket), do: {:noreply, socket}
+  def handle_info({:run, _kind, _a}, socket), do: {:noreply, socket}
+
   def handle_info({:stage, which, state}, socket) do
     {:noreply,
      socket
@@ -1431,6 +1493,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   doc_running={@doc_running}
                   changes_on={@changes_on}
                   applied={@applied}
+                  summary_link={@summary_link}
+                  comparing={@comparing}
                   graph_json={@graph_json}
                   graph_stats={@graph_stats}
                   passes={@passes}
@@ -1810,6 +1874,13 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :doc_running, :boolean, default: false
   attr :changes_on, :boolean, default: false
   attr :applied, :any, default: nil
+  # Declared here *and* passed at every call site between the render and the
+  # button. An assign used inside a function component and missing from its
+  # attrs is a KeyError during render, which LiveView turns into a dropped
+  # socket rather than an error — the failure that has cost the most time in
+  # this file, and this feature reproduced it twice.
+  attr :summary_link, :any, default: nil
+  attr :comparing, :any, default: nil
 
   defp map_view(assigns) do
     ~H"""
@@ -1876,6 +1947,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
             changes_on={@changes_on}
             revisions={@revisions}
             applied={@applied}
+            summary_link={@summary_link}
+            comparing={@comparing}
             summarising={@summarising}
             document={@document}
             doc_running={@doc_running}
@@ -2823,6 +2896,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :changes_on, :boolean, default: false
   attr :revisions, :list, default: []
   attr :applied, :any, default: nil
+  attr :summary_link, :any, default: nil
+  attr :comparing, :any, default: nil
 
   # The draft with its notes in the margin. This is the only view that shows
   # the writer their own prose, and the notes sit beside the paragraph that
@@ -2882,21 +2957,30 @@ defmodule MarginaliaWeb.WorkLive.Show do
                 title="Make a draft out of the summaries, to edit and read like any other"
               >Open as a draft</button>
 
-              <%!-- The other way round: keep this draft and throw the long
-                    version away. Named for what it destroys, because it is
-                    the one control here that does. --%>
+              <%!-- The summary as a draft of its own, read, and related back
+                    to this one — so the two can be held against each other
+                    instead of the short version being a claim about a
+                    document you are no longer looking at. --%>
+              <.link
+                :if={@summary_link}
+                navigate={~p"/links/#{@summary_link}?lead=#{@work.slug}"}
+                class="mg-btn sm"
+              >
+                Side by side
+              </.link>
+
               <button
                 :if={@mine? and Enum.any?(@page || [], &(&1.section.summary not in [nil, ""]))}
                 class="mg-btn sm ghost"
-                phx-click="become_summary"
-                data-confirm={
-                  "Replace this draft with its summary, and read it again?\n\n" <>
-                    "The prose you have now stays in Changes and can be read there. " <>
-                    "Every beat, every note and every thread anchored to it goes — they " <>
-                    "point at sentences that will not exist."
-                }
-                title="Replace the draft with this summary and read it again"
-              >Replace the draft</button>
+                phx-click="compare_summary"
+                disabled={@comparing != nil}
+              >
+                {cond do
+                  @comparing -> "#{@comparing}…"
+                  @summary_link -> "Relate them again"
+                  true -> "Draft it and compare"
+                end}
+              </button>
 
               <button
                 class="mg-btn sm ghost"

@@ -73,7 +73,11 @@ defmodule MarginaliaWeb.LinkLive.Read do
        link: link,
        # the previous leg of the tour hands over in the query string, so a
        # reader can also be sent straight into the middle of it by link
-       walk: if(params["walk"] == "1", do: Walkthrough.Cases.steps(:follow), else: socket.assigns.walk),
+       walk:
+         if(params["walk"] == "1",
+           do: Walkthrough.Cases.steps(:follow),
+           else: socket.assigns.walk
+         ),
        tour: if(params["walk"] == "1", do: nil, else: socket.assigns[:tour]),
        others: others,
        wait_a: wait_a,
@@ -130,7 +134,9 @@ defmodule MarginaliaWeb.LinkLive.Read do
     lead = socket.assigns.lead
 
     case lead.collection do
-      nil -> {:noreply, assign(socket, walk: [])}
+      nil ->
+        {:noreply, assign(socket, walk: [])}
+
       name ->
         {:noreply,
          push_navigate(socket,
@@ -302,7 +308,7 @@ defmodule MarginaliaWeb.LinkLive.Read do
               <span class="mg-label">Reading…</span>
               <a href={~p"/works/#{@lead.slug}"}>{@lead.title}</a>
             </div>
-            <.side page={@lead_page} only={@only} side="lead" />
+            <.side page={@lead_page} only={@only} side="lead" slug={@lead.slug} />
           </div>
 
           <%!-- the reason lives between the two documents, which is where it
@@ -408,7 +414,7 @@ defmodule MarginaliaWeb.LinkLive.Read do
                 </details>
               <% end %>
             </div>
-            <.side page={@other_page} only={@only} side="other" />
+            <.side page={@other_page} only={@only} side="other" slug={@other.slug} />
           </div>
         </div>
       </div>
@@ -985,6 +991,7 @@ defmodule MarginaliaWeb.LinkLive.Read do
   attr :page, :list, required: true
   attr :only, :string, default: nil
   attr :side, :string, required: true
+  attr :slug, :string, required: true
 
   defp side(assigns) do
     ~H"""
@@ -1024,6 +1031,17 @@ defmodule MarginaliaWeb.LinkLive.Read do
                       breaks DOM patching and means getElementById returns
                       whichever one happens to be first. --%>
                 {Reading.render_block(block.text, notes != [] && block.mark, "#{@side}-#{block.ref}")}
+
+                <%!-- This view is for reading the two against each other, and
+                      the thing you want the moment you see the problem is to
+                      fix it. The fragment is the block's id on the draft's own
+                      page, so the browser lands on the paragraph rather than
+                      at the top of a document you then have to find it in. --%>
+                <a
+                  class="fl-edit"
+                  href={~p"/works/#{@slug}?view=read#block-#{block.ref}"}
+                  title="Edit this paragraph in the draft"
+                >edit</a>
 
                 <%!-- the relation is carried on the paragraph as data; the strip
                   between the columns is what actually shows it --%>

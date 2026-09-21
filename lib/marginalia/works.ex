@@ -155,97 +155,15 @@ defmodule Marginalia.Works do
   end
 
   @doc """
-  Replace a draft's prose wholesale, keeping the draft.
+  The summary drafted from this one, if there is one.
 
-  Everything anchored into the old text goes, and that is not a side effect
-  to be worked around — it is what replacing the prose *means*. A beat says
-  "this sentence does this", and the sentence is gone; a thread is pinned to
-  a paragraph that no longer exists. Keeping them would leave a map of a
-  document nobody can read any more, which is worse than an empty one,
-  because it looks like a map.
-
-  So: the graph is cleared here rather than left to the cascade, in the
-  order edges-then-nodes, and the sections go after it. Conversations
-  anchored to a section go with the section, by the foreign key. What
-  survives is the history — `revisions.section_id` nullifies rather than
-  cascading — and one more revision recording the whole swap, so the
-  Changes view can still show the draft as it arrived beside what it is
-  now, and `replay/1` still reproduces the body from the baseline.
-
-  `baseline_body` is only filled if it was empty. It means "as it arrived",
-  and a draft that has already been edited arrived once.
+  A title match would have done until somebody renames the draft, which is
+  the first thing anybody does to one they mean to keep.
   """
-  def replace_body(%Work{} = work, new_body, opts \\ []) do
-    new_body = new_body |> to_string() |> String.trim()
-    before = work.body || ""
-
-    cond do
-      new_body == "" ->
-        {:error, :empty}
-
-      new_body == String.trim(before) ->
-        {:ok, work}
-
-      true ->
-        Repo.transaction(fn ->
-          reset_read(work.id)
-          Repo.delete_all(from s in Section, where: s.work_id == ^work.id)
-
-          {:ok, staged} = work |> Ecto.Changeset.change(body: new_body) |> Repo.update()
-
-          case insert_sections(staged) do
-            {:ok, _} ->
-              # the join, not the text handed in: the segmenter normalises
-              # whitespace, and baseline + patches == body is the property
-              # the diff view rests on
-              joined = staged.id |> list_sections() |> Enum.map_join("\n\n", & &1.body)
-
-              {:ok, settled} =
-                staged
-                |> Ecto.Changeset.change(
-                  body: joined,
-                  baseline_body:
-                    if(blank?(staged.baseline_body), do: before, else: staged.baseline_body),
-                  word_count: length(String.split(joined, ~r/\s+/, trim: true)),
-                  status: "pending",
-                  status_detail: nil
-                )
-                |> Repo.update()
-
-              if before != "", do: record_body_revision(settled, before, joined, opts)
-              settled
-
-            {:error, reason} ->
-              Repo.rollback(reason)
-          end
-        end)
-    end
-  end
-
-  defp blank?(nil), do: true
-  defp blank?(""), do: true
-  defp blank?(s) when is_binary(s), do: String.trim(s) == ""
-
-  # A revision with no section on it. The schema allows that, and the
-  # alternative — pinning the whole swap to whichever section happened to be
-  # first — would put a lie in the history to satisfy a column.
-  defp record_body_revision(%Work{} = work, before, aft, opts) do
-    seq =
-      Revision
-      |> where([r], r.work_id == ^work.id)
-      |> select([r], coalesce(max(r.seq), 0))
-      |> Repo.one()
-
-    %Revision{}
-    |> Revision.changeset(%{
-      work_id: work.id,
-      seq: seq + 1,
-      before: before,
-      after: aft,
-      origin: to_string(opts[:origin] || "edit"),
-      note: opts[:note]
-    })
-    |> Repo.insert()
+  def condensation_of(work_id) do
+    Repo.one(
+      from w in Work, where: w.derived_from_id == ^work_id, order_by: [desc: w.id], limit: 1
+    )
   end
 
   def update_work(%Work{} = work, attrs) do

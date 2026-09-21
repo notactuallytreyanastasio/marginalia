@@ -42,7 +42,8 @@ defmodule Marginalia.Document do
 
   require Logger
 
-  alias Marginalia.{LLM, Repo, Summary, Works}
+  alias Marginalia.{Links, LLM, Repo, Summary, Works}
+  alias Marginalia.Analysis.Linker
   alias Marginalia.Works.{DocumentSummary, Work}
 
   @concurrency 6
@@ -452,6 +453,7 @@ defmodule Marginalia.Document do
       doc = get(work.id)
 
       Works.create_work(user_id, %{
+        "derived_from_id" => work.id,
         "title" => "#{work.title} — in summary",
         "intent" =>
           "A condensation of #{work.title}: #{length(summarised)} of its " <>
@@ -464,36 +466,50 @@ defmodule Marginalia.Document do
   end
 
   @doc """
-  Replace the draft with its own summary, and leave it ready to read again.
+  Draft the summary, read it, and relate it to the draft it came from.
 
-  The other way round from `to_draft/2`, which makes a second document and
-  leaves the first alone. This is for the case where the long version has
-  served its purpose — an imported pull request, a transcript — and what you
-  want to keep working on is the condensation.
+  Three passes, and the order is forced. The condensation has to exist
+  before it can be read; it has to be read before it can be related,
+  because `Analysis.Linker` works over the two node maps and a draft nobody
+  has read has none — it answers `:not_read` rather than guessing.
 
-  It costs the map. Every beat is anchored to a sentence that is about to
-  stop existing, and every thread is pinned to a paragraph that is about to
-  stop existing; `Works.replace_body/3` clears both rather than leaving a
-  map of a document nobody can read. The prose itself survives in the
-  Changes view, because the swap is recorded as a revision.
+  What this is for is the comparison. A summary read on its own is a claim
+  about a document you are no longer looking at. Side by side, with the
+  relations drawn between them, it is checkable: this paragraph is what
+  those four became, and that promise in the long version has nothing
+  answering it in the short one.
 
-  What comes back is the work, unread, with the summary as its body.
-  Reading it again is the caller's call: it costs money, and doing it
-  without being asked would spend somebody's money on a decision they had
-  not made yet.
+  Idempotent on the draft. Asking twice does not make a second
+  condensation; it reuses the one that is there and relates it again, which
+  is what somebody pressing the button after editing either side means.
   """
-  def become_summary(%Work{} = work) do
-    sections = Works.list_sections(work.id)
-    summarised = Enum.filter(sections, &(&1.summary not in [nil, ""]))
+  def compare(user_id, %Work{} = work, opts \\ []) do
+    with {:ok, summary} <- condensation(user_id, work),
+         {:ok, summary} <- read(summary, opts),
+         {:ok, link} <- Links.get_or_create(work.id, summary.id) do
+      if is_function(opts[:on_stage]), do: opts[:on_stage].("relating")
+      Linker.run(link, opts[:provider])
+      {:ok, %{draft: summary, link: link}}
+    end
+  end
 
-    if summarised == [] do
-      {:error, :nothing_summarised}
+  defp condensation(user_id, work) do
+    case Works.condensation_of(work.id) do
+      nil -> to_draft(user_id, work)
+      existing -> {:ok, existing}
+    end
+  end
+
+  # Read only when it has not been. Pressing compare again after editing the
+  # summary should relate what is there now, not spend a full read to arrive
+  # at the same map.
+  defp read(summary, opts) do
+    if Works.list_nodes(summary.id) == [] do
+      if is_function(opts[:on_stage]), do: opts[:on_stage].("reading the summary")
+      Marginalia.Analysis.run(summary, opts[:provider])
+      {:ok, Works.get_work!(summary.user_id, summary.id)}
     else
-      Works.replace_body(work, draft_body(work, get(work.id), summarised),
-        origin: "summary",
-        note:
-          "Replaced with its own summary: #{length(summarised)} of #{length(sections)} sections."
-      )
+      {:ok, summary}
     end
   end
 
