@@ -75,6 +75,9 @@ defmodule Marginalia.Analysis.Linker do
     "summary" alike. Never a bare "A" or "B". The reader sees these sentences with the real
     titles substituted in, and a lone capital cannot be told apart from the word "A" starting
     a sentence — so a bare letter either survives as a letter or eats an article.
+  - Never assume anyone's gender. Whoever wrote either manuscript is "they" — you have two
+    maps, not two biographies. Someone written about IN a manuscript gets the pronouns that
+    manuscript uses for them, and "they" where it has not said.
   - `tension` is a real claim, not a way to make the graph interesting. Draw one only where
     the two documents genuinely disagree, and say what about.
   - `echoes` is for genuine independent convergence. If one document is clearly responding to

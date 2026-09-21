@@ -84,7 +84,7 @@ defmodule Marginalia.Analysis do
 
   A BEAT is one move the section makes: a decision, a reveal, a turn in the argument, a
   change in who wants what, an image the section rests on. One move, not one sentence. If
-  two of your beats could be joined by "and then he also says", they are one beat and you
+  two of your beats could be joined by "and then they also say", they are one beat and you
   have split a single move in half.
 
   HOW MANY. You are given a target and a hard limit. The target is roughly how many moves a
@@ -95,7 +95,15 @@ defmodule Marginalia.Analysis do
 
   EACH BEAT
   - title: one line under 90 characters, naming the move in plain words. Write it as
-    something the writer DOES: "He sets June 2020 as the baseline", not "The baseline".
+    something the writer DOES: "They set June 2020 as the baseline", not "The baseline".
+
+  PRONOUNS. Never assume anyone's gender; the rule is the same for everyone and it is
+  about evidence, not about a default.
+  - The writer is "they". A draft almost never states its author's gender, and neither the
+    prose, the subject matter nor the name on the file is evidence of it.
+  - A person or character IN the draft gets whatever the draft itself uses for them. If it
+    calls her she, write she. Use "they" only where the text has not said, and do not work
+    it out from a name, a role or what they do.
   - note: one or two sentences on what this does TO A READER, and what it sets up or pays
     off if it does either. A later pass uses these to work out what leads to what, so
     "introduces the thermostat metaphor the regulation chapters depend on" is worth ten
