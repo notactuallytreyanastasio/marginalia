@@ -17,6 +17,11 @@ defmodule MarginaliaWeb.LinkLive.Index do
   alias Marginalia.Links.Bulk
   alias Marginalia.Analysis.Linker
 
+  # How many pairs to draw before asking. Four hundred rows is not a list, it
+  # is a wall — and the page above them holds two tools and a diagram per
+  # cluster, so the list starts below the fold before a single row is drawn.
+  @page 40
+
   @impl true
   def mount(_params, _session, socket) do
     user = socket.assigns.current_scope.user
@@ -30,7 +35,9 @@ defmodule MarginaliaWeb.LinkLive.Index do
        folders: Folders.list_folders(user.id),
        bulk_folder: nil,
        bulk: nil,
-       bulk_running: false
+       bulk_running: false,
+       filter: "",
+       limit: @page
      )
      |> load(user)}
   end
@@ -48,6 +55,7 @@ defmodule MarginaliaWeb.LinkLive.Index do
     )
   end
 
+  @impl true
   # Triage first, relate second. A folder of a hundred and eleven is six
   # thousand pairs; the point of this button is to not run six thousand
   # model calls, so the cheap pass runs on its own and shows its work.
@@ -89,7 +97,15 @@ defmodule MarginaliaWeb.LinkLive.Index do
     end
   end
 
-  @impl true
+  # Narrowing happens here rather than over the wire per keystroke: the pairs
+  # are already in the socket, and matching four hundred titles is cheaper
+  # than asking the database what it already told us.
+  def handle_event("filter", %{"q" => q}, socket),
+    do: {:noreply, assign(socket, filter: q, limit: @page)}
+
+  def handle_event("more", _params, socket),
+    do: {:noreply, assign(socket, limit: socket.assigns.limit + @page)}
+
   def handle_event("pick", params, socket) do
     {:noreply, assign(socket, a: id(params["a"]), b: id(params["b"]))}
   end
@@ -143,8 +159,35 @@ defmodule MarginaliaWeb.LinkLive.Index do
       {:noreply,
        socket |> assign(bulk_running: false) |> put_flash(:error, "Crashed: #{inspect(reason)}")}
 
+  # Either title, case-insensitively. A pair is two documents and somebody
+  # looking for one of them does not know or care which side it landed on.
+  defp matching(links, q) do
+    case String.trim(q || "") do
+      "" ->
+        links
+
+      q ->
+        q = String.downcase(q)
+
+        Enum.filter(links, fn l ->
+          String.contains?(String.downcase(l.a_work.title || ""), q) or
+            String.contains?(String.downcase(l.b_work.title || ""), q)
+        end)
+    end
+  end
+
   @impl true
   def render(assigns) do
+    found = matching(assigns.links, assigns.filter)
+
+    assigns =
+      assign(assigns,
+        found: found,
+        shown: Enum.take(found, assigns.limit),
+        webs: Enum.filter(assigns.clusters, &(length(&1.works) > 2)),
+        page: @page
+      )
+
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <div class="lx">
@@ -159,8 +202,11 @@ defmodule MarginaliaWeb.LinkLive.Index do
         <%!-- Triage, then relate. A folder of 111 documents is 6,105 pairs, so
               the cheap pass runs alone and shows what it chose before
               anything is spent per pair. --%>
-        <div :if={@folders != []} class="lx-bulk">
-          <span class="mg-label">relate a whole folder</span>
+        <%!-- Folded. It is the tool you reach for once and then scroll past
+              every time afterwards, and it sits between the page's title and
+              the thing the page is actually for. --%>
+        <details :if={@folders != []} class="lx-fold" open={@bulk != nil or @bulk_running}>
+          <summary><span class="mg-label">relate a whole folder</span></summary>
 
           <form phx-submit="bulk_propose" class="lx-bulk-pick">
             <select name="folder" disabled={@bulk_running}>
@@ -210,7 +256,7 @@ defmodule MarginaliaWeb.LinkLive.Index do
               Relate these {length(@bulk.pairs) - length(Bulk.ineligible(@bulk.pairs))}
             </button>
           </div>
-        </div>
+        </details>
 
         <div class="lx-make">
           <span class="mg-label">relate two drafts</span>
@@ -271,15 +317,43 @@ defmodule MarginaliaWeb.LinkLive.Index do
         <% else %>
           <%!-- Links are pairs, but pairs chain. Three documents with two
                 links between them are one body of work, and a flat list of
-                pairs is the one shape that cannot show that. --%>
-          <div :for={c <- @clusters} :if={length(c.works) > 2} class="lx-web">
-            <span class="mg-label">{length(c.works)} drafts, {length(c.links)} links</span>
-            <.constellation cluster={c} />
-          </div>
+                pairs is the one shape that cannot show that.
 
-          <span class="mg-label mt-8 block">{length(@links)} linked</span>
+                Folded, because each of these is a 300px diagram and a
+                writer with nine clusters had three screens of them between
+                the top of the page and the first row of the list. --%>
+          <details :if={@webs != []} class="lx-fold">
+            <summary>
+              <span class="mg-label">
+                {length(@webs)} {if length(@webs) == 1, do: "web", else: "webs"} of three or more
+              </span>
+            </summary>
 
-          <.link :for={l <- @links} navigate={~p"/links/#{l.id}"} class="lx-row">
+            <div :for={c <- @webs} class="lx-web">
+              <span class="mg-label">{length(c.works)} drafts, {length(c.links)} links</span>
+              <.constellation cluster={c} />
+            </div>
+          </details>
+
+          <form phx-change="filter" id="lx-filter" class="lx-filter">
+            <input
+              type="text"
+              name="q"
+              value={@filter}
+              placeholder="narrow by either draft's title"
+              autocomplete="off"
+              phx-debounce="150"
+            />
+            <span class="mg-label">
+              {length(@found)} of {length(@links)} linked
+            </span>
+          </form>
+
+          <p :if={@found == []} class="none">
+            Nothing matches “{@filter}”.
+          </p>
+
+          <.link :for={l <- @shown} navigate={~p"/links/#{l.id}"} class="lx-row">
             <div class="min-w-0">
               <span class="pair">
                 {l.a_work.title} <span class="x">↔</span> {l.b_work.title}
@@ -297,6 +371,13 @@ defmodule MarginaliaWeb.LinkLive.Index do
               <% end %>
             </div>
           </.link>
+
+          <div :if={length(@found) > length(@shown)} class="lx-more">
+            <button class="mg-btn sm" phx-click="more">
+              Show {min(@page, length(@found) - length(@shown))} more
+              <span class="mg-meta">of {length(@found) - length(@shown)} left</span>
+            </button>
+          </div>
         <% end %>
       </div>
     </Layouts.app>

@@ -5173,3 +5173,43 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
   border-radius: 0 3px 3px 0;
 }
 .st-yours a { color: var(--mg-accent); }
+
+/* The two tools on /links are things you reach for once and scroll past
+   every time afterwards, and they sat between the page's title and the list
+   it is named for. Folded, they cost one line each. */
+.lx-fold { margin-top: 1.4rem; }
+.lx-fold > summary {
+  cursor: pointer;
+  padding: 0.35rem 0;
+  list-style: none;
+}
+.lx-fold > summary::-webkit-details-marker { display: none; }
+.lx-fold > summary::before {
+  content: "▸";
+  display: inline-block;
+  width: 1rem;
+  color: var(--mg-dim);
+  font-size: 0.7rem;
+}
+.lx-fold[open] > summary::before { content: "▾"; }
+.lx-fold > summary:hover .mg-label { color: var(--mg-ink); }
+
+.lx-filter {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  margin: 1.6rem 0 0.4rem;
+}
+.lx-filter input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--mg-sans);
+  font-size: 0.82rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--mg-rule);
+  border-radius: 3px;
+  background: var(--mg-paper);
+}
+.lx-filter .mg-label { flex: none; }
+.lx-more { margin-top: 1rem; text-align: center; }
+.lx-more .mg-meta { margin-left: 0.4rem; }
