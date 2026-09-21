@@ -2399,15 +2399,33 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
       <%!-- Optional, and after the fact: the first three come back off one
             click, and this is for when none of them is what was wanted. --%>
-      <form class="mg-rw-steer" phx-submit="steer_rewrite">
-        <input
-          type="text"
+      <%!-- A textarea that grows, not a one-line input. What people write
+            here is a sentence or three — "lead with the finding, keep the
+            scale point, do not add claims that are not already there" — and
+            a single line shows the tail of that and hides the rest, so you
+            cannot read back what you asked for before asking for it.
+
+            The id is not decoration. Without one, LiveView matches this
+            node by position when it patches, and the panel above it changes
+            shape every time an answer lands.
+
+            `phx-update="ignore"` keeps what is half-typed through those
+            patches, and it freezes every attribute on the node, not only
+            the value — which is why `disabled` is not on the textarea. It
+            was, for about ten minutes, and the box rendered disabled on
+            first paint and stayed that way for good. Nothing needs it:
+            typing while a rewrite runs is harmless and `steer_rewrite`
+            already ignores a submit that arrives mid-pass. --%>
+      <form id="rw-steer-form" class="mg-rw-steer" phx-submit="steer_rewrite">
+        <textarea
+          id="rw-steer"
           name="steer"
-          value={@steer}
+          rows="1"
           maxlength="400"
+          phx-hook=".Steer"
+          phx-update="ignore"
           placeholder="ask for something specific — shorter, lead with the finding, drop the hedging"
-          disabled={@working}
-        />
+        >{@steer}</textarea>
         <button type="submit" class="mg-btn sm" disabled={@working}>Again</button>
       </form>
 
@@ -3152,6 +3170,50 @@ defmodule MarginaliaWeb.WorkLive.Show do
               <% end %>
             <% end %>
           </div>
+
+          <script :type={Phoenix.LiveView.ColocatedHook} name=".Steer">
+            // The steering box grows with what is typed in it, up to a point.
+            //
+            // It was a one-line input, which is fine for "shorter" and wrong
+            // for the three-clause instruction people actually write: past
+            // the width of the box you are typing into a slot that shows you
+            // the last few words and hides the rest.
+            export default {
+              mounted() {
+                this.grow = () => {
+                  this.el.style.height = "auto";
+                  // capped, because this sits between the passage and the
+                  // candidates and should not push either off the screen
+                  this.el.style.height = Math.min(this.el.scrollHeight, 160) + "px";
+                };
+
+                this.onKey = (e) => {
+                  // Enter sends it; Shift+Enter is a newline, which is the
+                  // convention every chat box has taught everybody
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    this.el.form?.dispatchEvent(
+                      new Event("submit", {bubbles: true, cancelable: true})
+                    );
+                  }
+                };
+
+                this.el.addEventListener("input", this.grow);
+                this.el.addEventListener("keydown", this.onKey);
+                this.grow();
+              },
+
+              // phx-update="ignore" keeps what is half-typed through a patch,
+              // so the height has to be re-measured here rather than on the
+              // server's say-so
+              updated() { this.grow(); },
+
+              destroyed() {
+                this.el.removeEventListener("input", this.grow);
+                this.el.removeEventListener("keydown", this.onKey);
+              },
+            };
+          </script>
 
           <script :type={Phoenix.LiveView.ColocatedHook} name=".Deck">
             // One slot holding several notes of the same kind, one visible.

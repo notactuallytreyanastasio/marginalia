@@ -64,7 +64,9 @@ defmodule MarginaliaWeb.RewritePanelTest do
   test "several paragraphs open it too, and it says how much", %{conn: conn, work: work} do
     {:ok, view, _} = live(conn, ~p"/works/#{work.slug}?view=read")
 
-    span = Enum.map_join(1..4, "\n\n", fn i -> "Paragraph #{i}. " <> String.duplicate("word ", 150) end)
+    span =
+      Enum.map_join(1..4, "\n\n", fn i -> "Paragraph #{i}. " <> String.duplicate("word ", 150) end)
+
     html = open(view, span)
 
     assert html =~ "mg-rewrite"
@@ -105,5 +107,42 @@ defmodule MarginaliaWeb.RewritePanelTest do
 
     # a dropped socket makes this raise rather than return markup
     assert render(view) =~ "mg-read-body"
+  end
+
+  describe "the steering box" do
+    test "is a textarea that can grow, not a one-line slot", %{conn: conn, work: work} do
+      {:ok, view, _} = live(conn, ~p"/works/#{work.slug}?view=read")
+      html = open(view, String.duplicate("word ", 120))
+
+      assert html =~ ~s(name="steer")
+      assert html =~ "<textarea", "what people write here is a sentence or three"
+      assert html =~ ~s(id="rw-steer")
+    end
+
+    test "is never disabled, because phx-update=ignore would freeze it that way", %{
+      conn: conn,
+      work: work
+    } do
+      {:ok, view, _} = live(conn, ~p"/works/#{work.slug}?view=read")
+
+      # the panel is opened while the pass is running, which is exactly when
+      # `disabled={@working}` would be rendered true — and `ignore` means the
+      # attribute never comes back off
+      html = open(view, String.duplicate("word ", 120))
+
+      [box] = Regex.run(~r/<textarea[^>]*id="rw-steer"[^>]*>/, html)
+
+      refute box =~ "disabled",
+             "it rendered disabled on first paint and stayed that way for good"
+
+      assert box =~ ~s(phx-update="ignore"), "or half-typed text is lost on every patch"
+    end
+
+    test "the button is the thing that goes quiet during a pass", %{conn: conn, work: work} do
+      {:ok, view, _} = live(conn, ~p"/works/#{work.slug}?view=read")
+      html = open(view, String.duplicate("word ", 120))
+
+      assert html =~ ~r/<button[^>]*disabled[^>]*>\s*Again/
+    end
   end
 end

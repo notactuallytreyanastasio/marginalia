@@ -4602,20 +4602,30 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
 .mg-rw-steer {
   display: flex;
   gap: 0.4rem;
+  align-items: flex-start;
   padding: 0 0.75rem 0.6rem;
 }
-.mg-rw-steer input {
+.mg-rw-steer textarea {
   flex: 1;
   min-width: 0;
+  /* the hook sets the height from the content; this is the floor and the
+     value before any script has run */
+  height: 2rem;
+  max-height: 10rem;
+  resize: none;
+  overflow-y: auto;
   font-family: var(--mg-sans);
   font-size: 0.8rem;
+  line-height: 1.45;
   padding: 0.35rem 0.5rem;
   border: 1px solid var(--mg-rule);
   border-radius: 3px;
   background: var(--mg-paper);
+  color: var(--mg-ink);
 }
-.mg-rw-steer input::placeholder { color: var(--mg-dim); opacity: 0.75; }
-.mg-rw-steer input:disabled { opacity: 0.55; }
+.mg-rw-steer textarea::placeholder { color: var(--mg-dim); opacity: 0.75; }
+.mg-rw-steer textarea:disabled { opacity: 0.55; }
+.mg-rw-steer .mg-btn { flex: none; margin-top: 0.1rem; }
 
 /* What is about to be replaced, head and tail. The panel sits under the
    first block of the selection, so on a long span the rest of it is off
