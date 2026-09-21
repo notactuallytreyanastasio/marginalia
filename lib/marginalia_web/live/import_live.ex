@@ -57,6 +57,7 @@ defmodule MarginaliaWeb.ImportLive do
        query: "",
        pattern: "",
        pattern_error: nil,
+       hint: nil,
        how: "query",
        order: "oldest",
        candidates: [],
@@ -430,6 +431,9 @@ defmodule MarginaliaWeb.ImportLive do
         assign(socket,
           pattern: pattern,
           pattern_error: nil,
+          # only when it would help: a hint under a list that has results is
+          # a correction to something nobody got wrong
+          hint: if(shown == [], do: Query.hint(pattern)),
           shown: shown,
           chosen: shown |> Enum.map(&key/1) |> MapSet.new()
         )
@@ -590,7 +594,13 @@ defmodule MarginaliaWeb.ImportLive do
               </div>
             </form>
           <% :pick -> %>
-            <form id="im-pattern" phx-change="pattern" class="mt-6">
+            <%!-- phx-submit as well as phx-change, and it does the same thing.
+                  A form with neither is submitted natively when somebody
+                  presses Enter in it, which here means a GET to this page, a
+                  fresh mount, and five hundred fetched pull requests thrown
+                  away — the one keystroke most likely to follow typing a
+                  filter. --%>
+            <form id="im-pattern" phx-submit="pattern" phx-change="pattern" class="mt-6">
               <span class="mg-label">Narrow this list</span>
 
               <div class="im-filter">
@@ -637,7 +647,7 @@ defmodule MarginaliaWeb.ImportLive do
               </p>
             </form>
 
-            <form id="im-order" phx-change="order" class="im-order">
+            <form id="im-order" phx-submit="order" phx-change="order" class="im-order">
               <span class="mg-label">Order</span>
               <select name="order" class="mg-select sm">
                 <option value="oldest" selected={@order == "oldest"}>
@@ -684,9 +694,15 @@ defmodule MarginaliaWeb.ImportLive do
               </li>
             </ul>
 
-            <p :if={@shown == []} class="mg-meta mt-3">
-              Nothing matches that pattern.
-            </p>
+            <div :if={@shown == [] and not @working} class="mt-3">
+              <p class="mg-meta">
+                Nothing matches {if @how == "regex", do: "that pattern", else: "that query"}.
+              </p>
+              <p :if={@hint} class="mg-meta mt-1">
+                <code>{@hint.was}</code>
+                is that one day. For everything since it, write <code>{@hint.try}</code>.
+              </p>
+            </div>
 
             <form id="im-settings" phx-submit="import" phx-change="settings" class="mt-6 space-y-4">
               <label class="mg-field">

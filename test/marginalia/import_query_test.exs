@@ -250,4 +250,36 @@ defmodule Marginalia.ImportQueryTest do
       assert Query.expand("@todays") =~ "@today"
     end
   end
+
+  describe "why nothing matched" do
+    test "a bare relative date is the trap, and it is named" do
+      assert Query.hint("created:@today-90d") ==
+               %{was: "created:@today-90d", try: "created:>@today-90d"}
+    end
+
+    test "an absolute one too" do
+      assert Query.hint("merged:2025-08-05").try == "merged:>2025-08-05"
+    end
+
+    test "nothing to say about a query that already compares" do
+      assert Query.hint("created:>@today-90d") == nil
+      assert Query.hint("created:>=2025-01-01") == nil
+      assert Query.hint("created:<2025-01-01") == nil
+    end
+
+    test "nothing to say about a range either" do
+      assert Query.hint("merged:2025-04-01..2025-08-05") == nil
+      assert Query.hint("merged:@today-60d..@today-30d") == nil
+    end
+
+    test "nothing to say when there is no date in it at all" do
+      assert Query.hint("state:closed -Bump") == nil
+      assert Query.hint("") == nil
+    end
+
+    test "the date is found among other terms" do
+      assert Query.hint("is:pr state:closed created:@today-90d -Bump").try ==
+               "created:>@today-90d"
+    end
+  end
 end

@@ -207,6 +207,34 @@ defmodule Marginalia.Import.Query do
   end
 
   @doc """
+  Why a query that looks right matched nothing, when the reason is guessable.
+
+  There is one mistake worth catching, and it is the one a relative date
+  invites: `created:@today-90d` is that day, the one ninety days ago, and
+  what anybody typing it meant was everything since. A bare date is an exact
+  day here because that is what it is on GitHub, and keeping one rule is
+  worth more than special-casing the relative form — but a rule that is
+  right and surprising should say so at the moment it surprises somebody,
+  which is when the list has just gone empty.
+
+  Returns `%{was: term, try: term}` — the two halves a page sets in `<code>`
+  — or `nil` when there is nothing useful to say, which is most of the time.
+  The sentence around them is the page's business; a string with backticks
+  in it renders as a string with backticks in it.
+  """
+  def hint(text) do
+    case Regex.run(~r/\b(created|updated|merged):([^\s<>=]\S*)/, to_string(text)) do
+      [_, key, value] ->
+        if String.contains?(value, ".."),
+          do: nil,
+          else: %{was: "#{key}:#{value}", try: "#{key}:>#{value}"}
+
+      _ ->
+        nil
+    end
+  end
+
+  @doc """
   Rewrite every `@today` in a string into the date it means.
 
   The two boxes take different languages — the one on the finding step is
@@ -288,7 +316,7 @@ defmodule Marginalia.Import.Query do
     do: String.contains?(String.downcase(c.title || ""), String.downcase(word))
 
   defp hit?({:state, want}, c), do: (c.state || "open") == want
-  defp hit?({:draft, want}, c), do: (c.draft == true) == want
+  defp hit?({:draft, want}, c), do: c.draft == true == want
 
   defp hit?({:field, key, want}, c),
     do: String.downcase(to_string(Map.get(c, key) || "")) == want

@@ -360,4 +360,54 @@ defmodule MarginaliaWeb.ImportFlowTest do
                "<b>0 selected</b>"
     end
   end
+
+  describe "pressing Enter in a filter box" do
+    test "re-applies the filter instead of reloading the page", %{conn: conn} do
+      {:ok, view, _} = live(conn, ~p"/import")
+      to_listing(view)
+
+      render_change(view, "pattern", %{"how" => "query", "pattern" => "state:merged"})
+
+      # what Enter does to a form that has a phx-submit: the same event, and
+      # crucially not a GET that remounts the view and loses the listing
+      html = render_submit(view, "pattern", %{"how" => "query", "pattern" => "state:merged"})
+
+      assert html =~ "Fix the parser"
+      assert html =~ "<b>1 selected</b>"
+      assert html =~ "Choose", "still on the choosing step"
+      refute html =~ "Pull requests", "a remount would put us back on the source step"
+    end
+
+    test "the order form survives it too", %{conn: conn} do
+      {:ok, view, _} = live(conn, ~p"/import")
+      to_listing(view)
+
+      html = render_submit(view, "order", %{"order" => "newest"})
+
+      assert html =~ "Fix the parser", "the listing is still here"
+      assert html =~ "<b>4 selected</b>"
+    end
+
+    test "an empty query explains itself when it is the guessable mistake", %{conn: conn} do
+      {:ok, view, _} = live(conn, ~p"/import")
+      to_listing(view)
+
+      html =
+        render_change(view, "pattern", %{"how" => "query", "pattern" => "created:@today-90d"})
+
+      assert html =~ "Nothing matches that query"
+      assert html =~ "that one day"
+      assert html =~ "created:&gt;@today-90d" or html =~ "created:>@today-90d"
+    end
+
+    test "and says nothing when the query is simply too narrow", %{conn: conn} do
+      {:ok, view, _} = live(conn, ~p"/import")
+      to_listing(view)
+
+      html = render_change(view, "pattern", %{"how" => "query", "pattern" => "nonesuch"})
+
+      assert html =~ "Nothing matches that query"
+      refute html =~ "that one day"
+    end
+  end
 end
