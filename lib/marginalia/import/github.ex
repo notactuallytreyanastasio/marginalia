@@ -141,24 +141,62 @@ defmodule Marginalia.Import.GitHub do
     end)
   end
 
+  # No token is a real answer, not a missing one: a public repository can be
+  # read without one, at 60 requests an hour rather than 5000. What is not a
+  # real answer is an empty credential — `Authorization: Bearer ` is a 401,
+  # checked against the live API, so a reader who left the box blank got
+  # "GitHub rejected the token" about a token they had not given.
+  defp headers(token) do
+    base = [
+      {"accept", "application/vnd.github+json"},
+      {"x-github-api-version", "2022-11-28"},
+      {"user-agent", "marginalia"}
+    ]
+
+    case String.trim(to_string(token || "")) do
+      "" -> base
+      token -> [{"authorization", "Bearer #{token}"} | base]
+    end
+  end
+
   defp get(path, token) do
-    case Req.get(@api <> path,
-           headers: [
-             {"authorization", "Bearer #{token}"},
-             {"accept", "application/vnd.github+json"},
-             {"x-github-api-version", "2022-11-28"},
-             {"user-agent", "marginalia"}
-           ],
-           receive_timeout: @timeout
-         ) do
+    case Req.get(@api <> path, headers: headers(token), receive_timeout: @timeout) do
       {:ok, %{status: 200, body: body}} -> {:ok, body}
       {:ok, %{status: 401}} -> {:error, :unauthorized}
-      {:ok, %{status: 403}} -> {:error, :forbidden}
+      {:ok, %{status: s, headers: h}} when s in [403, 429] -> {:error, refused(h)}
       {:ok, %{status: 404}} -> {:error, :not_found}
       {:ok, %{status: status}} -> {:error, {:http, status}}
       {:error, reason} -> {:error, {:transport, inspect(reason)}}
     end
   end
+
+  # A 403 from this API is usually not "you may not" but "not yet": without a
+  # token the allowance is 60 requests an hour, and a bulk import of a
+  # hundred pull requests is three hundred. The two are told apart by a
+  # header, and the difference is the difference between "get a token" and
+  # "wait eleven minutes" — so it is worth reading rather than guessing.
+  defp refused(headers) do
+    case header(headers, "x-ratelimit-remaining") do
+      "0" -> {:rate_limited, header(headers, "x-ratelimit-reset")}
+      _ -> :forbidden
+    end
+  end
+
+  defp header(headers, name) when is_map(headers) do
+    case Map.get(headers, name) do
+      [value | _] -> value
+      value when is_binary(value) -> value
+      _ -> nil
+    end
+  end
+
+  defp header(headers, name) when is_list(headers) do
+    Enum.find_value(headers, fn {k, v} ->
+      if String.downcase(to_string(k)) == name, do: List.wrap(v) |> List.first()
+    end)
+  end
+
+  defp header(_, _), do: nil
 
   # --- the chain ------------------------------------------------------------
 
@@ -602,11 +640,37 @@ defmodule Marginalia.Import.GitHub do
   def explain(:unauthorized), do: "GitHub rejected the token."
 
   def explain(:forbidden),
-    do: "GitHub refused: the token may lack access, or you are rate limited."
+    do:
+      "GitHub refused: the token may lack access, or you are rate limited. " <>
+        "Without a token that is 60 requests an hour, and 10 searches a minute."
+
+  def explain({:rate_limited, reset}) do
+    "GitHub is rate limiting this. " <>
+      back_at(reset) <>
+      " Without a token the allowance is 60 requests an hour; with one it is 5000, " <>
+      "and a hundred pull requests is three hundred requests."
+  end
 
   def explain(:not_found), do: "No such repository, or the token cannot see it."
   def explain(:bad_name), do: "Owner and repository must look like GitHub names."
   def explain({:http, status}), do: "GitHub answered #{status}."
   def explain({:transport, _}), do: "Could not reach GitHub."
   def explain(other), do: "Import failed: #{inspect(other)}"
+
+  # The reset header is a unix timestamp. Said as a wall clock and as a wait,
+  # because "resets at 1755 seconds" is not a thing anybody can act on.
+  defp back_at(nil), do: "Give it a few minutes."
+
+  defp back_at(reset) do
+    case Integer.parse(to_string(reset)) do
+      {seconds, _} ->
+        at = DateTime.from_unix!(seconds)
+        wait = max(DateTime.diff(at, DateTime.utc_now()), 0)
+
+        "It comes back at #{Calendar.strftime(at, "%H:%M")} UTC, in #{div(wait, 60)}m#{rem(wait, 60)}s."
+
+      _ ->
+        "Give it a few minutes."
+    end
+  end
 end

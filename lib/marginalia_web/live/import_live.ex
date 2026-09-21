@@ -539,18 +539,20 @@ defmodule MarginaliaWeb.ImportLive do
               </label>
 
               <label class="mg-field">
-                <span class="mg-label">GitHub token</span>
+                <span class="mg-label">GitHub token <em>optional</em></span>
                 <input
                   type="password"
                   name="token"
                   value=""
                   autocomplete="off"
-                  placeholder="used for this fetch, never stored"
+                  placeholder="leave blank for a public repository"
                   class="mg-input"
                 />
                 <span class="mg-meta">
-                  Read access is enough. It is held for as long as this page is open and
-                  written down nowhere.
+                  A public repository needs none, at 60 requests an hour and 10 searches a
+                  minute. A token raises that to 5000 an hour and reaches private
+                  repositories; read access is enough. It is held for as long as this page is
+                  open and written down nowhere.
                 </span>
               </label>
 
