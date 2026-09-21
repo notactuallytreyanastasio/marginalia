@@ -41,14 +41,20 @@ defmodule MarginaliaWeb.StackLive.Show do
   defp from_run(socket, %{kind: :compose} = run),
     do: assign(socket, reading: nil, running: :compose, composing: true, stage: stage_of(run))
 
-  defp from_run(socket, %{kind: kind} = run) when kind in [:read, :deepen, :summarise, :relate],
+  defp from_run(socket, %{kind: kind} = run)
+       when kind in [:read, :deepen, :summarise, :relate, :read_each],
+       do:
+         assign(socket,
+           reading: {run.done, run.total || 0},
+           running: kind,
+           composing: false,
+           stage: nil
+         )
+
+  defp pass_note(:read_each),
     do:
-      assign(socket,
-        reading: {run.done, run.total || 0},
-        running: kind,
-        composing: false,
-        stage: nil
-      )
+      "the ordinary read of each one, sections at a time. " <>
+        "This runs on the server: you can close the page."
 
   defp pass_note(:relate),
     do:
@@ -207,6 +213,25 @@ defmodule MarginaliaWeb.StackLive.Show do
         {:error, reason} ->
           {:error, reason}
       end
+    end)
+  end
+
+  # The ordinary read, in bulk. Not the forward read: that one builds this
+  # folder's steps and never touches the documents' own graphs, which is why
+  # a folder of nine fully-stepped documents can still have nothing to
+  # relate.
+  def handle_event("read_each", _params, socket) do
+    user_id = socket.assigns.current_scope.user.id
+    id = socket.assigns.folder.id
+    total = socket.assigns.stats.documents - socket.assigns.stats.mapped
+
+    run(socket, :read_each, fn ->
+      {_done, errors} =
+        Stacks.read_documents(user_id, id,
+          on_step: fn _w, i, _t -> Runs.progress(key(id), done: i, total: total) end
+        )
+
+      {:errors, length(errors)}
     end)
   end
 
@@ -425,7 +450,7 @@ defmodule MarginaliaWeb.StackLive.Show do
           {@folder.name}
         </h1>
         <div class="mg-meta mt-1">
-          {@stats.documents} documents · {@stats.read} read · {@stats.summarised} summarised · {@stats.related} related · {@stats.pitfalls} pitfalls · {@stats.links} dependencies
+          {@stats.documents} documents · {@stats.read} read · {@stats.summarised} summarised · {@stats.mapped} mapped · {@stats.related} related · {@stats.pitfalls} pitfalls · {@stats.links} dependencies
           <span :if={@stats.deepened > 0}>
             · {@stats.deepened} deepened · {@stats.revisions} revised later
           </span>
@@ -451,10 +476,23 @@ defmodule MarginaliaWeb.StackLive.Show do
               true -> "Second pass"
             end}
           </button>
+          <%!-- Before anything can be related, each document needs its own
+                map. The forward read does not make one, so a folder can be
+                fully stepped and still have nothing to relate. --%>
+          <button
+            :if={@stats.mapped < @stats.documents}
+            class="mg-btn ghost"
+            phx-click="read_each"
+            disabled={@reading != nil or @composing}
+          >
+            Read each document{if @stats.mapped > 0,
+              do: " (#{@stats.documents - @stats.mapped} left)"}
+          </button>
+
           <%!-- The fifth, and the only one that reads documents against each
                 other rather than in order. --%>
           <button
-            :if={@stats.documents > 1}
+            :if={@stats.documents > 1 and @stats.mapped > 1}
             class="mg-btn ghost"
             phx-click="relate"
             disabled={@reading != nil or @composing}

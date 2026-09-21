@@ -1116,6 +1116,52 @@ defmodule Marginalia.Stacks do
   end
 
   @doc """
+  Read every unread document in a folder, one at a time.
+
+  Not the forward read. That one produces this folder's *steps* — what
+  somebody building the same thing does next — and it never touches the
+  documents' own graphs. This is the ordinary read, the one a draft gets on
+  its own page: beats, spine, the weave between them.
+
+  The distinction is invisible until you try to relate two documents and
+  are told neither has been read, which is exactly what a folder of nine
+  fully-stepped documents with no nodes in them says. `Analysis.Linker`
+  works over the two node maps and answers `:not_read` rather than
+  guessing, so this is the pass that has to come first.
+
+  Sequential. Each document's own read already fans its sections out, and
+  the rate limit is what decides how fast this goes.
+  """
+  def read_documents(user_id, folder_id, opts \\ []) do
+    docs = documents(user_id, folder_id)
+
+    todo =
+      if opts[:force],
+        do: docs,
+        else: Enum.reject(docs, &(&1.status == "read"))
+
+    total = length(todo)
+
+    errors =
+      todo
+      |> Enum.with_index(1)
+      |> Enum.reduce([], fn {work, i}, errors ->
+        # `Analysis.run/2` always answers `{:ok, work}`: a failed synthesis
+        # degrades rather than voiding the run, because the beats are already
+        # stored and useful on their own. What can still go wrong is the read
+        # producing nothing, and that shows as a document with no nodes.
+        {:ok, done} = Marginalia.Analysis.run(work, opts[:provider])
+        if is_function(opts[:on_step]), do: opts[:on_step].(work, i, total)
+
+        if Works.list_nodes(done.id) == [],
+          do: errors ++ [{work.title, :nothing_read}],
+          else: errors
+      end)
+
+    {total - length(errors), errors}
+  end
+
+  @doc """
   Summarise every document in a folder, one at a time.
 
   The same whole-document pass the read view runs on one draft, over all of
@@ -1175,6 +1221,9 @@ defmodule Marginalia.Stacks do
       links: steps |> Enum.map(&length(&1.requires || [])) |> Enum.sum(),
       dropped: steps |> Enum.map(&length(&1.dropped || [])) |> Enum.sum(),
       summarised: summarised_count(docs),
+      # documents with a graph of their own, which is what relating needs
+      # and what the forward read does not produce
+      mapped: Enum.count(docs, &(&1.status == "read")),
       related: related_count(docs),
       deepened: Enum.count(steps, &(&1.deepened_at != nil)),
       deep_failed:

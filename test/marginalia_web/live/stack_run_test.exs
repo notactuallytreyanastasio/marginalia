@@ -284,6 +284,14 @@ defmodule MarginaliaWeb.StackRunTest do
 
     {:ok, _} = Folders.move_work(ctx.user.id, other.id, ctx.folder.id)
 
+    # relating needs each document's own map, which the forward read does not
+    # build — a folder can be fully stepped and still have nothing to relate
+    {:ok, view, html} = live(ctx.conn, ~p"/stacks/#{ctx.folder.id}")
+    assert html =~ "Read each document"
+    refute html =~ "Relate the documents"
+
+    for w <- Works.list_works(ctx.user.id), do: Works.set_status(w, "read")
+
     {:ok, view, html} = live(ctx.conn, ~p"/stacks/#{ctx.folder.id}")
     assert html =~ "Relate the documents"
     assert html =~ "0 related"
