@@ -61,6 +61,7 @@ defmodule MarginaliaWeb.ImportLive do
        shown: [],
        chosen: MapSet.new(),
        commits: true,
+       files: true,
        number: false,
        folder: "",
        working: false,
@@ -205,6 +206,7 @@ defmodule MarginaliaWeb.ImportLive do
      assign(socket,
        folder: params["folder"] || socket.assigns.folder,
        commits: params["commits"] == "true",
+       files: params["files"] == "true",
        number: params["number"] == "true"
      )}
   end
@@ -232,6 +234,7 @@ defmodule MarginaliaWeb.ImportLive do
         user_id = socket.assigns.current_scope.user.id
         token = socket.assigns.token
         commits = socket.assigns.commits
+        files = socket.assigns.files
         finder = api()
 
         opts = [
@@ -252,6 +255,7 @@ defmodule MarginaliaWeb.ImportLive do
            %{documents: docs, failed: failed} =
              finder.documents(picked, token,
                commits: commits,
+               files: files,
                on_item: fn _c, total -> send(lv, {:tick, :fetching, total}) end
              )
 
@@ -633,6 +637,16 @@ defmodule MarginaliaWeb.ImportLive do
                 <span>
                   <b>Include the commit trail.</b>
                   The description argues; the commits are what was done. One more request each.
+                </span>
+              </label>
+
+              <label class="im-check">
+                <input type="hidden" name="files" value="false" />
+                <input type="checkbox" name="files" value="true" checked={@files} />
+                <span>
+                  <b>Include the files changed.</b>
+                  Paths and line counts, not diffs — what the change is about, in one glance.
+                  One more request each.
                 </span>
               </label>
 

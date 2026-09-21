@@ -71,6 +71,39 @@ defmodule Marginalia.Import.GitHub do
     end
   end
 
+  # What a pull request touched, which is a different fact from what its
+  # author says it did and cheaper to check than either the diff or the
+  # commits. One request; the count comes off the pull request itself, so a
+  # listing capped at a hundred can still say how many there really were.
+  #
+  # The response carries `patch` — the actual diff hunks — for every file,
+  # and it is dropped here on purpose. A draft is something somebody reads
+  # and argues with in the margin, and forty files of unified diff in it is
+  # not that. The paths are the shape of the change; the hunks are the
+  # change, and they belong in the repository.
+  @file_cap 100
+
+  defp with_files(item, owner, repo, token) do
+    case get("/repos/#{owner}/#{repo}/pulls/#{item.number}/files?per_page=#{@file_cap}", token) do
+      {:ok, files} when is_list(files) ->
+        Map.put(item, :files, Enum.map(files, &to_file/1))
+
+      other ->
+        Logger.warning("marginalia: files for ##{item.number} failed: #{inspect(other)}")
+        Map.put(item, :files, {:error, other})
+    end
+  end
+
+  defp to_file(f) do
+    %{
+      path: f["filename"],
+      was: f["previous_filename"],
+      status: f["status"],
+      added: f["additions"] || 0,
+      removed: f["deletions"] || 0
+    }
+  end
+
   defp to_commit(c) do
     %{
       sha: String.slice(c["sha"] || "", 0, 8),
@@ -251,13 +284,14 @@ defmodule Marginalia.Import.GitHub do
   """
   def documents(candidates, token, opts \\ []) do
     commits? = Keyword.get(opts, :commits, true)
+    files? = Keyword.get(opts, :files, true)
     total = length(candidates)
 
     candidates
     |> Task.async_stream(
       fn c ->
         out =
-          case one_document(c, token, commits?) do
+          case one_document(c, token, commits?, files?) do
             {:ok, doc} -> {:ok, doc}
             {:error, reason} -> {:error, {c, reason}}
           end
@@ -287,7 +321,7 @@ defmodule Marginalia.Import.GitHub do
     end)
   end
 
-  defp one_document(%{repo: repo, number: number} = c, token, commits?) do
+  defp one_document(%{repo: repo, number: number} = c, token, commits?, files?) do
     with [owner, name] <- String.split(repo || "", "/", parts: 2),
          :ok <- check_name(owner),
          :ok <- check_name(name),
@@ -298,9 +332,11 @@ defmodule Marginalia.Import.GitHub do
           number: number,
           title: full["title"] || c.title,
           body: full["body"] || "",
-          url: full["html_url"] || c.url
+          url: full["html_url"] || c.url,
+          changed_files: full["changed_files"]
         }
         |> then(fn i -> if commits?, do: with_commits(i, owner, name, token), else: i end)
+        |> then(fn i -> if files?, do: with_files(i, owner, name, token), else: i end)
 
       {:ok,
        %{
@@ -445,8 +481,52 @@ defmodule Marginalia.Import.GitHub do
         text -> text
       end
 
-    writeup <> commit_trail(Map.get(item, :commits, []))
+    writeup <> file_list(item) <> commit_trail(Map.get(item, :commits, []))
   end
+
+  # Between the argument and the commits. The paths answer "what is this
+  # actually about" in one glance, which the writeup sometimes does not and
+  # a hundred commit subjects never do.
+  @files_shown 60
+
+  defp file_list(item) do
+    case Map.get(item, :files, []) do
+      [] ->
+        ""
+
+      {:error, reason} ->
+        "\n\n---\n\n## Files changed\n\n_The file list could not be fetched " <>
+          "(#{inspect(reason)}), so this says nothing about what was touched._\n"
+
+      files ->
+        total = Map.get(item, :changed_files) || length(files)
+        shown = Enum.take(files, @files_shown)
+
+        # Two separate caps can bite: GitHub pages the response at 100, and
+        # this lists 60 of whatever came back. The header counts what is on
+        # the page against what the pull request says it touched, so either
+        # one being hit reads the same and neither is silent.
+        head =
+          if length(shown) < total,
+            do: "#{total}, the first #{length(shown)} listed",
+            else: "#{total}"
+
+        "\n\n---\n\n## Files changed (#{head})\n\n" <>
+          Enum.map_join(shown, "\n", &file_line/1)
+    end
+  end
+
+  defp file_line(%{status: "renamed", path: path, was: was} = f),
+    do: "- `#{was}` → `#{path}`#{counts(f)}"
+
+  defp file_line(%{status: "added", path: path} = f), do: "- `#{path}`#{counts(f)} — new"
+  defp file_line(%{status: "removed", path: path} = f), do: "- `#{path}`#{counts(f)} — deleted"
+  defp file_line(%{path: path} = f), do: "- `#{path}`#{counts(f)}"
+
+  defp counts(%{added: 0, removed: 0}), do: ""
+  defp counts(%{added: a, removed: 0}), do: " +#{a}"
+  defp counts(%{added: 0, removed: r}), do: " −#{r}"
+  defp counts(%{added: a, removed: r}), do: " +#{a} −#{r}"
 
   # Bounded, and after the writeup, so that a chapter with a long history can
   # never push its own argument out of the window `Stacks.text_of/1` reads.

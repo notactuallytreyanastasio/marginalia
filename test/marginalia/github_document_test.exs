@@ -25,6 +25,9 @@ defmodule Marginalia.GitHubDocumentTest do
     )
   end
 
+  defp file(path, status \\ "modified", added \\ 3, removed \\ 1),
+    do: %{path: path, was: nil, status: status, added: added, removed: removed}
+
   defp commit(subject, detail \\ "") do
     %{sha: "abc12345", message: if(detail == "", do: subject, else: "#{subject}\n\n#{detail}")}
   end
@@ -96,5 +99,89 @@ defmodule Marginalia.GitHubDocumentTest do
     doc = GitHub.document(pr(%{body: argument, commits: many}))
 
     assert doc =~ argument
+  end
+
+  describe "the files it touched" do
+    test "paths and line counts, between the argument and the commits" do
+      doc =
+        GitHub.document(
+          pr(%{
+            files: [file("lib/a.ex"), file("lib/b.ex", "added", 96, 0)],
+            changed_files: 2,
+            commits: [commit("narrow the guard")]
+          })
+        )
+
+      assert doc =~ "## Files changed (2)"
+      assert doc =~ "- `lib/a.ex` +3 −1"
+      assert doc =~ "- `lib/b.ex` +96 — new"
+
+      order = fn needle -> :binary.match(doc, needle) |> elem(0) end
+
+      assert order.("The guard was too wide") < order.("## Files changed"),
+             "the argument still comes first"
+
+      assert order.("## Files changed") < order.("## Commits"),
+             "the paths are an index; the commits are the story"
+    end
+
+    test "no diff hunks, however the response arrived" do
+      doc = GitHub.document(pr(%{files: [file("lib/a.ex")], changed_files: 1}))
+
+      refute doc =~ "@@"
+      refute doc =~ "+++"
+      refute doc =~ "patch"
+    end
+
+    test "a rename reads as one, not as two files" do
+      renamed = %{
+        path: "test/cases_test.exs",
+        was: "test/case_test.exs",
+        status: "renamed",
+        added: 2,
+        removed: 2
+      }
+
+      doc = GitHub.document(pr(%{files: [renamed], changed_files: 1}))
+
+      assert doc =~ "- `test/case_test.exs` → `test/cases_test.exs` +2 −2"
+    end
+
+    test "a file with no line changes says nothing about lines" do
+      doc = GitHub.document(pr(%{files: [file(".formatter.exs", "modified", 0, 0)]}))
+
+      assert doc =~ "- `.formatter.exs`\n" or String.ends_with?(doc, "- `.formatter.exs`")
+      refute doc =~ "+0"
+    end
+
+    test "a deleted file is not reported as three added lines" do
+      doc = GitHub.document(pr(%{files: [file("lib/gone.ex", "removed", 0, 40)]}))
+
+      assert doc =~ "- `lib/gone.ex` −40 — deleted"
+    end
+
+    test "the header counts what the pull request touched, not what fitted" do
+      many = for i <- 1..80, do: file("lib/f#{i}.ex")
+
+      doc = GitHub.document(pr(%{files: many, changed_files: 326}))
+
+      assert doc =~ "## Files changed (326, the first 60 listed)"
+      assert doc =~ "`lib/f60.ex`"
+      refute doc =~ "`lib/f61.ex`"
+    end
+
+    test "a pull request with no file list is a document without the section" do
+      doc = GitHub.document(pr(%{commits: [commit("x")]}))
+
+      refute doc =~ "Files changed"
+    end
+
+    test "a fetch that failed says so rather than looking like no files" do
+      doc = GitHub.document(pr(%{files: {:error, :forbidden}}))
+
+      assert doc =~ "## Files changed"
+      assert doc =~ "could not be fetched"
+      assert doc =~ "forbidden"
+    end
   end
 end
