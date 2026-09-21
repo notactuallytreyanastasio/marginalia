@@ -9,7 +9,7 @@ defmodule MarginaliaWeb.ReadingLive.Step do
   """
   use MarginaliaWeb, :live_view
 
-  alias Marginalia.{Folders, Markdown, Stacks}
+  alias Marginalia.{Folders, Markdown, Stacks, Works}
 
   @impl true
   def mount(%{"slug" => slug, "ordinal" => ordinal}, _session, socket) do
@@ -23,7 +23,12 @@ defmodule MarginaliaWeb.ReadingLive.Step do
          folder: folder,
          entry: entry,
          count: length(guide),
-         story: Stacks.get_story(folder.id)
+         story: Stacks.get_story(folder.id),
+         # The document this step was read out of, and only for the writer.
+         # `get_work/2` is the owner-scoped lookup, so a visitor gets nil
+         # rather than a link — a draft's slug is the permission to read it,
+         # and this page is public.
+         source: source(entry, socket.assigns[:current_scope])
        )}
     else
       _ ->
@@ -45,6 +50,11 @@ defmodule MarginaliaWeb.ReadingLive.Step do
 
         <span class="n">Step {@entry.step.ordinal} of {@count}</span>
         <h1>{@entry.step.capability}</h1>
+
+        <p :if={@source} class="mg-meta st-yours">
+          Read out of <.link navigate={~p"/works/#{@source.slug}?view=read"}>{@source.title}</.link>,
+          which is yours to edit.
+        </p>
 
         <section :if={@entry.step.lesson}>
           <h2 class="mg-label">What to do</h2>
@@ -110,4 +120,9 @@ defmodule MarginaliaWeb.ReadingLive.Step do
     </Layouts.app>
     """
   end
+
+  defp source(%{step: %{work_id: work_id}}, %{user: %{id: user_id}}) when not is_nil(work_id),
+    do: Works.get_work(user_id, work_id)
+
+  defp source(_entry, _scope), do: nil
 end

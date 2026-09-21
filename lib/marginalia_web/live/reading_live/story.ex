@@ -25,7 +25,12 @@ defmodule MarginaliaWeb.ReadingLive.Story do
          folder: folder,
          story: story,
          steps: Map.new(steps, &{&1.ordinal, &1}),
-         count: length(steps)
+         count: length(steps),
+         # A published reading is a page anybody can open, and the documents
+         # behind it are not. The way back to them is shown only to the
+         # writer, because a draft's slug *is* the permission to read it and
+         # printing one on a public page gives it away.
+         mine?: mine?(folder, socket.assigns[:current_scope])
        )}
     else
       _ ->
@@ -46,6 +51,11 @@ defmodule MarginaliaWeb.ReadingLive.Story do
 
         <p class="mg-meta">
           {@count} documents, read forwards. {@folder.name}
+        </p>
+
+        <p :if={@mine?} class="mg-meta st-yours">
+          Yours. <.link navigate={~p"/stacks/#{@folder.id}"}>Open the folder</.link>
+          to read it forwards again, compose it again, or get at any of the {@count} drafts.
         </p>
 
         <div class="lede md st-md">{Markdown.to_html(@story.opening)}</div>
@@ -76,6 +86,9 @@ defmodule MarginaliaWeb.ReadingLive.Story do
     </Layouts.app>
     """
   end
+
+  defp mine?(%{user_id: uid}, %{user: %{id: uid}}) when not is_nil(uid), do: true
+  defp mine?(_folder, _scope), do: false
 
   defp cap(steps, n) do
     case Map.get(steps, n) do

@@ -241,6 +241,83 @@ defmodule MarginaliaWeb.LandingFeaturesTest do
            "two top-level rules for the same class in one stylesheet: #{inspect(duplicated)}"
   end
 
+  describe "the import pipeline" do
+    test "the section is there, with every stage", %{html: html} do
+      assert html =~ "Forty pull requests in, one edited draft out"
+
+      for {stage, n} <- Enum.with_index(~w(find narrow land read compose edit condense compare), 1) do
+        assert html =~ "<b>#{n}</b> #{stage}",
+               "stage #{n} (#{stage}) is missing from the pipeline"
+      end
+    end
+
+    test "every qualifier it shows is one Import.Query actually accepts", %{html: html} do
+      # The page prints a query as if you could type it. If the parser stops
+      # knowing one of these words, the homepage is teaching a syntax error.
+      source = File.read!("lib/marginalia/import/query.ex")
+      [_, known] = Regex.run(~r/@qualifiers ~w\(([^)]+)\)/, source)
+      known = String.split(known)
+
+      shown =
+        Regex.scan(~r/<code[^>]*>([a-z]+):/, html)
+        |> Enum.map(fn [_, q] -> q end)
+        |> Enum.uniq()
+
+      refute shown == [], "the pipeline shows no query at all"
+
+      # `stat:` is on the page on purpose — it is the typo whose refusal the
+      # section is demonstrating. It has to stay unknown for that to mean
+      # anything, so it is asserted from both sides rather than skipped.
+      assert "stat" in shown, "the worked example of a refused qualifier is gone"
+      refute "stat" in known, "`stat` became real and the page now demonstrates nothing"
+
+      for q <- shown -- ["stat"] do
+        assert q in known,
+               "the homepage shows `#{q}:` as if you could type it, and Import.Query does not know it"
+      end
+    end
+
+    test "the query it prints really does what the page says it does" do
+      # `state:closed -Bump keeps the regex engine and drops the dependency
+      # bumps` is a claim about a parser, so it is checked against the parser.
+      row = fn n, title, state ->
+        %{
+          title: title,
+          state: state,
+          draft: false,
+          number: n,
+          base: "main",
+          head: "x",
+          repo: "notactuallytreyanastasio/temper-blimp",
+          created_at: ~U[2026-09-01 00:00:00Z],
+          updated_at: ~U[2026-09-02 00:00:00Z],
+          merged_at: nil
+        }
+      end
+
+      rows = [row.(3, "Bump deps", "closed"), row.(74, "A regex engine", "closed")]
+
+      assert {:ok, [%{title: "A regex engine"}]} =
+               Marginalia.Import.Query.filter(rows, "state:closed -Bump")
+
+      assert {:error, msg} = Marginalia.Import.Query.filter(rows, "stat:closed")
+      assert msg =~ "stat", "the page promises the error names the word it did not know"
+    end
+
+    test "@today is claimed as the thing GitHub cannot do, and it parses", %{html: html} do
+      assert html =~ "@today"
+      assert html =~ "no relative dates"
+
+      assert {:ok, _} =
+               Marginalia.Import.Query.filter([], "created:>@today-30d")
+    end
+
+    test "the import route it points at is real and reachable without an account", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/import")
+      assert html =~ "Find"
+    end
+  end
+
   describe "the anchors" do
     # A link to a feature is something somebody pastes into a message and
     # then cannot re-send when it breaks. So the ids are named for the

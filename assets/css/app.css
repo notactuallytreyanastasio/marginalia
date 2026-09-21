@@ -5135,3 +5135,14 @@ details.cs-how > summary:hover .mg-label { color: var(--mg-ink); }
 .fl-edit:focus-visible { opacity: 1; }
 .fl-edit:hover { color: var(--mg-accent); background: var(--mg-margin); }
 .fl-col.other .fl-edit { left: auto; right: -2.2rem; }
+
+/* The writer's own way back into a published reading. Only they see it:
+   the page is public and a draft's slug is the permission to read it. */
+.st-yours {
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  border-left: 2px solid var(--mg-rule);
+  background: var(--mg-margin);
+  border-radius: 0 3px 3px 0;
+}
+.st-yours a { color: var(--mg-accent); }

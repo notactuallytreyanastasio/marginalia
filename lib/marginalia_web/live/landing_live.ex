@@ -354,6 +354,19 @@ defmodule MarginaliaWeb.LandingLive do
       .fx.stack .d-move strong{font-family:var(--mg-serif); font-weight:600; font-size:0.85rem}
       .fx.stack .d-revised{margin-top:0.6rem; color:var(--mg-accent); font-size:0.72rem}
 
+      /* The pipeline. Label over detail rather than a grid, so a narrow
+         screen wraps instead of squeezing eight rows into two columns. */
+      .fx.pipe .d-stage{padding:0.38rem 0; border-top:1px solid var(--mg-rule)}
+      .fx.pipe .d-stage:first-of-type{border-top:0}
+      .fx.pipe .d-what{display:block; font-family:var(--mg-sans); font-size:0.62rem;
+        text-transform:uppercase; letter-spacing:0.07em; color:var(--mg-accent)}
+      .fx.pipe .d-what b{font-weight:600; color:var(--mg-dim); margin-right:0.45rem}
+      .fx.pipe .d-detail{display:block; font-family:var(--mg-serif); font-size:0.84rem;
+        line-height:1.5; margin-top:0.1rem}
+      .fx.pipe code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:0.76rem;
+        background:var(--mg-margin); padding:0 0.2rem; border-radius:2px}
+      .fx.pipe{min-height:20rem}
+
       /* Nothing above is hidden until the script says it is safe to hide it. */
       .reveal-ready .fx [data-step]{opacity:0; transform:translateY(5px);
         transition:opacity .45s ease, transform .45s ease}
@@ -1168,6 +1181,121 @@ defmodule MarginaliaWeb.LandingLive do
             "Four essays you thought were separate are one argument with three introductions" is
             the same discovery the stacks section describes two sections down, arrived at from the
             other end. One of them should point at the other.
+          </div>
+        </aside>
+      </section>
+
+      <section class="sec head" id="import">
+        <div class="sec-title">
+          <h2>Forty pull requests in, one edited draft out</h2>
+        </div>
+        <div class="sec-leader"></div>
+        <div class="sec-main">
+          <p>
+            The expensive and irreversible half of a bulk import is creating sixty documents, and
+            the question that decides whether it is the right sixty — <em>which of these do I
+            mean?</em> — cannot be answered until the listing is on the screen. So finding and
+            importing are separate steps with the choosing in between, and nothing is created
+            until a list has been looked at.
+          </p>
+          <p>
+            There are two search boxes and they are not the same box. The first is GitHub's and
+            decides what is <em>fetched</em>. The second runs over the rows already in hand,
+            spends no request, and decides what is <em>kept</em>. Both speak the same query
+            language, plus one word GitHub does not have: <code phx-no-curly-interpolation>@today</code>. GitHub has no relative
+            dates at all, which is why every saved search anybody writes goes stale the week
+            after they write it.
+          </p>
+
+          <div class="fx pipe" data-demo data-interval="430">
+            <div class="cap">a repository, to a draft held against its own summary</div>
+
+            <div class="d-stage" data-step="1">
+              <span class="d-what"><b>1</b> find</span>
+              <span class="d-detail">
+                <code phx-no-curly-interpolation>owner/repo</code>, or a search across repositories. One request, no bodies and
+                no commits — the listing step is cheap on purpose.
+              </span>
+            </div>
+            <div class="d-stage" data-step="2">
+              <span class="d-what"><b>2</b> narrow</span>
+              <span class="d-detail">
+                <code phx-no-curly-interpolation>state:closed -Bump</code> keeps the regex engine and drops the dependency
+                bumps. A typo is refused by name: <code phx-no-curly-interpolation>stat:closed</code> says which word it was,
+                rather than silently matching everything.
+              </span>
+            </div>
+            <div class="d-stage" data-step="3">
+              <span class="d-what"><b>3</b> land</span>
+              <span class="d-detail">
+                A batch of forty with three empty ones imports thirty-seven and names the three.
+                One bad file rolling back thirty-nine good ones is what makes people import in
+                batches of one.
+              </span>
+            </div>
+            <div class="d-stage" data-step="4">
+              <span class="d-what"><b>4</b> read</span>
+              <span class="d-detail">
+                Each document read knowing only what the ones before it established — which is
+                what makes the order load-bearing rather than incidental.
+              </span>
+            </div>
+            <div class="d-stage" data-step="5">
+              <span class="d-what"><b>5</b> compose</span>
+              <span class="d-detail">
+                An opening, the movements, a closing — and the list of steps that found
+                <em>no</em> place in the telling, which is the part worth reading.
+              </span>
+            </div>
+            <div class="d-stage" data-step="6">
+              <span class="d-what"><b>6</b> edit</span>
+              <span class="d-detail">
+                The telling becomes an ordinary draft. Each movement is a <code phx-no-curly-interpolation>##</code>, so it
+                is a section, so a note lands on the movement it is about.
+              </span>
+            </div>
+            <div class="d-stage" data-step="7">
+              <span class="d-what"><b>7</b> condense</span>
+              <span class="d-detail">
+                The section summaries become a draft of their own, which records what it was
+                derived from rather than matching on a title somebody will rename.
+              </span>
+            </div>
+            <div class="d-stage" data-step="8">
+              <span class="d-what"><b>8</b> compare</span>
+              <span class="d-detail">
+                The two side by side, with the relations drawn between them: this paragraph is
+                what those four became, and that promise in the long version has nothing
+                answering it in the short one.
+              </span>
+            </div>
+          </div>
+
+          <p>
+            The last three are the point. A summary read on its own is a claim about a document
+            you are no longer looking at; held against the original with the edges drawn, it is
+            something you can check. Neither the telling nor its condensation is filed into the
+            folder it came from — a draft sitting in there becomes document 112 of 111, re-read
+            as a chapter of the series it is a summary of.
+          </p>
+
+          <div class="ctas">
+            <.link navigate={~p"/import"} class="cta">Bring in a repository →</.link>
+          </div>
+        </div>
+        <aside class="sec-aside">
+          <div class="note" data-reveal style="--i:0">
+            <span class="who">note</span>
+            Eight stages is a lot to put on one page. The first three are a single screen in the
+            product; the last five are a different afternoon's work. Splitting them would be
+            more honest and would cost the diagram.
+          </div>
+          <div class="note act" data-reveal style="--i:1">
+            <span class="who">tension</span>
+            The section above promises the machine never writes your prose. This one ends with
+            the machine composing nineteen thousand words and handing them to you to edit. Both
+            are true — nothing here goes into a draft you wrote — but the turn needs a sentence
+            it does not have.
           </div>
         </aside>
       </section>
