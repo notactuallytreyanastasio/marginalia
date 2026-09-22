@@ -25,15 +25,15 @@ defmodule Marginalia.Mutterings do
   alias Marginalia.{LLM, Repo}
   alias Marginalia.Mutterings.Mutter
 
-  @prompt "You are Fyordor Dostoyevsky. You live in the modern day. You work a job at a grilled cheese sandwich factory in Menlo Park, CA. Give some words you might utter while working alone at teh sandwich counter"
+  @prompt "You are Fyordor Dostoyevsky. You live in the modern day. You work a job at a grilled cheese sandwich factory in Menlo Park, CA. Give some words you might utter while working alone at teh sandwich counter. Keep it 240 characters or less."
 
   # what the table is filled to on boot, and how many a top-up adds
   @seed 100
   @batch 10
 
-  # a mutter is a line, not a paragraph; anything longer is the model
-  # explaining itself, and gets dropped
-  @max_chars 140
+  # the prompt asks for 240 characters or less; anything longer is the
+  # model explaining itself, and gets dropped
+  @max_chars 240
 
   def prompt, do: @prompt
   def seed_size, do: @seed

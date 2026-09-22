@@ -113,6 +113,19 @@ defmodule Marginalia.RewriteTest do
       assert Enum.any?(d, fn {k, t} -> k == :same and t =~ "A third." end)
     end
 
+    test "a shared word that ends one side does not swallow the next word on the other" do
+      a = "the cheese knows and waits"
+      b = "nobody knows"
+      d = Rewrite.diff(a, b)
+      old_side = d |> Enum.reject(&(elem(&1, 0) == :ins)) |> Enum.map_join(&elem(&1, 1))
+      assert String.split(old_side) == String.split(a)
+
+      assert d
+             |> Enum.reject(&(elem(&1, 0) == :del))
+             |> Enum.map_join(&elem(&1, 1))
+             |> String.split() == String.split(b)
+    end
+
     test "a word is the same word whatever whitespace followed it" do
       d = Rewrite.diff("a b\nc", "a b c")
       assert Enum.all?(d, &match?({:same, _}, &1))

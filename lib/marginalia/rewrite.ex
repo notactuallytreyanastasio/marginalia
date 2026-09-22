@@ -522,12 +522,26 @@ defmodule Marginalia.Rewrite do
   # comes back from the original lists as the script is walked.
   defp attach([], _aw, _bw, acc), do: Enum.reverse(acc)
 
+  # A shared word is rendered on both sides, so it has to carry whitespace
+  # that is right for both. Take the new side's, and when the new side has
+  # none, because the word ends its paragraph there, take the old side's:
+  # otherwise the old side reads "word38only118" where two words met.
   defp attach([{:eq, ws} | rest], aw, bw, acc) do
     n = length(ws)
-    {_, aw} = Enum.split(aw, n)
-    {taken, bw} = Enum.split(bw, n)
-    attach(rest, aw, bw, Enum.reduce(taken, acc, &[{:same, &1} | &2]))
+    {from_a, aw} = Enum.split(aw, n)
+    {from_b, bw} = Enum.split(bw, n)
+
+    acc =
+      Enum.zip(from_a, from_b)
+      |> Enum.reduce(acc, fn {ta, tb}, acc ->
+        token = if String.trim_trailing(tb) == tb, do: String.trim(tb) <> trailing(ta), else: tb
+        [{:same, token} | acc]
+      end)
+
+    attach(rest, aw, bw, acc)
   end
+
+  defp trailing(token), do: String.slice(token, String.length(String.trim_trailing(token))..-1//1)
 
   defp attach([{:del, ws} | rest], aw, bw, acc) do
     {taken, aw} = Enum.split(aw, length(ws))

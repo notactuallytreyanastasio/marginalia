@@ -38,6 +38,12 @@ defmodule Marginalia.MutteringsTest do
       assert Mutterings.parse(text) == ["The cheese knows."]
     end
 
+    test "a line of exactly 240 characters is kept, one more is not" do
+      kept = String.duplicate("a", 240)
+      dropped = String.duplicate("b", 241)
+      assert Mutterings.parse(kept <> "\n" <> dropped) == [kept]
+    end
+
     test "duplicates collapse, and nil is nothing" do
       assert Mutterings.parse("Same.\nSame.\nOther.") == ["Same.", "Other."]
       assert Mutterings.parse(nil) == []
@@ -101,6 +107,6 @@ defmodule Marginalia.MutteringsTest do
 
   test "the prompt is Bobby's, verbatim" do
     assert Mutterings.prompt() ==
-             "You are Fyordor Dostoyevsky. You live in the modern day. You work a job at a grilled cheese sandwich factory in Menlo Park, CA. Give some words you might utter while working alone at teh sandwich counter"
+             "You are Fyordor Dostoyevsky. You live in the modern day. You work a job at a grilled cheese sandwich factory in Menlo Park, CA. Give some words you might utter while working alone at teh sandwich counter. Keep it 240 characters or less."
   end
 end
