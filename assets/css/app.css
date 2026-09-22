@@ -1435,6 +1435,11 @@ body {
 @keyframes mg-fade { from { opacity: 0; } to { opacity: 1; } }
 
 .mg-dots { display: flex; gap: 0.3rem; align-items: center; padding: 0.7rem 0; }
+/* the line in front of the dots: a model's, in character, held for the wait */
+.mg-mutter {
+  font-family: var(--mg-serif); font-style: italic; font-size: 0.84rem; line-height: 1.4;
+  color: var(--mg-dim); margin-right: 0.35rem;
+}
 
 .mg-rw-list { display: flex; flex-direction: column; gap: 0.3rem; }
 .mg-rw {

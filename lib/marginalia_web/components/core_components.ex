@@ -496,4 +496,28 @@ defmodule MarginaliaWeb.CoreComponents do
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
+
+  @doc """
+  The wait, with a few words in front of it.
+
+  Three pulsing dots said only that a model was busy. The words come from
+  `Marginalia.Mutterings`, a table of lines a cheap model wrote in
+  character, one picked at random when the wait began and held for its
+  length. `text` nil, as it is on a fresh install before the table has
+  been seeded, leaves the dots standing alone.
+  """
+  attr :text, :string, default: nil
+  attr :label, :string, default: "thinking"
+  attr :class, :any, default: nil
+
+  def mutter(assigns) do
+    ~H"""
+    <div class={["mg-dots", @class]} aria-label={@label}>
+      <span :if={@text} class="mg-mutter">{@text}</span>
+      <span class="mg-dot"></span>
+      <span class="mg-dot" style="animation-delay:.18s"></span>
+      <span class="mg-dot" style="animation-delay:.36s"></span>
+    </div>
+    """
+  end
 end

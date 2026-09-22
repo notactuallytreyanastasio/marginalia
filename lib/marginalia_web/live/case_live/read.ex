@@ -46,6 +46,7 @@ defmodule MarginaliaWeb.CaseLive.Read do
            walk: [],
            chat_open: false,
            chat_thinking: false,
+           chat_mutter: nil,
            chat_history: [],
            chat_cited: []
          )
@@ -124,7 +125,12 @@ defmodule MarginaliaWeb.CaseLive.Read do
 
       {:noreply,
        socket
-       |> assign(chat_history: history, chat_thinking: true, chat_cited: [])
+       |> assign(
+         chat_history: history,
+         chat_thinking: true,
+         chat_mutter: Marginalia.Mutterings.one(),
+         chat_cited: []
+       )
        |> start_async(:chat, fn -> CaseChat.ask(reading, history, cited: cited) end)}
     end
   end
@@ -189,6 +195,7 @@ defmodule MarginaliaWeb.CaseLive.Read do
         open={@chat_open}
         history={@chat_history}
         thinking={@chat_thinking}
+        mutter={@chat_mutter}
         count={length(@chat_history)}
         cited={cited_edges(@reading, @chat_cited)}
         title="About this case"
@@ -232,62 +239,62 @@ defmodule MarginaliaWeb.CaseLive.Read do
 
       <div :if={@reading} class="cr">
         <div class="cr-bar">
-         <div class="cr-bar-in">
-          <div class="cr-who">
-            <span class="mg-label">Reading…</span>
-            <details class="cr-pick">
-              <summary>
-                <span class="t">{@reading.lead.title}</span>
-                <span class="n">{length(@case.works)}</span>
-              </summary>
-              <div class="cr-pick-menu">
-                <.link
-                  :for={w <- @case.works}
-                  patch={~p"/cases/#{@case.slug}/read/#{w.slug}"}
-                  class={["row", w.id == @reading.lead.id && "here"]}
-                >
-                  <span class="t">{w.title}</span>
-                  <span class="r">{w.collection_role}</span>
-                </.link>
-              </div>
-            </details>
-          </div>
+          <div class="cr-bar-in">
+            <div class="cr-who">
+              <span class="mg-label">Reading…</span>
+              <details class="cr-pick">
+                <summary>
+                  <span class="t">{@reading.lead.title}</span>
+                  <span class="n">{length(@case.works)}</span>
+                </summary>
+                <div class="cr-pick-menu">
+                  <.link
+                    :for={w <- @case.works}
+                    patch={~p"/cases/#{@case.slug}/read/#{w.slug}"}
+                    class={["row", w.id == @reading.lead.id && "here"]}
+                  >
+                    <span class="t">{w.title}</span>
+                    <span class="r">{w.collection_role}</span>
+                  </.link>
+                </div>
+              </details>
+            </div>
 
-          <%!-- Which documents are speaking, and how loudly. The count is
+            <%!-- Which documents are speaking, and how loudly. The count is
                 the useful half: it says which of the other documents this
                 one is actually arguing with. --%>
-          <div class="cr-srcs">
-            <span class="mg-label">Against…</span>
-            <button
-              :for={{w, n} <- source_counts(@reading)}
-              class={[
-                "cr-chip",
-                "s#{rank(w)}",
-                w.collection != @case.name && "far",
-                @source == to_string(w.id) && "on"
-              ]}
-              phx-click="source"
-              phx-value-w={w.id}
-              title={w.title}
-            >
-              <span class="t">{chip(w, @case.name)}</span>
-              <span class="n">{n}</span>
-            </button>
-          </div>
+            <div class="cr-srcs">
+              <span class="mg-label">Against…</span>
+              <button
+                :for={{w, n} <- source_counts(@reading)}
+                class={[
+                  "cr-chip",
+                  "s#{rank(w)}",
+                  w.collection != @case.name && "far",
+                  @source == to_string(w.id) && "on"
+                ]}
+                phx-click="source"
+                phx-value-w={w.id}
+                title={w.title}
+              >
+                <span class="t">{chip(w, @case.name)}</span>
+                <span class="n">{n}</span>
+              </button>
+            </div>
 
-          <div class="cr-kinds">
-            <button
-              :for={{k, n} <- kind_counts(@reading)}
-              class={["cr-chip", "k-#{k}", @only == k && "on"]}
-              phx-click="only"
-              phx-value-k={k}
-            >
-              <span class="t">{String.replace(k, "_", " ")}</span>
-              <span class="n">{n}</span>
-            </button>
-            <button :if={@only || @source} class="cr-clear" phx-click="clear">clear</button>
+            <div class="cr-kinds">
+              <button
+                :for={{k, n} <- kind_counts(@reading)}
+                class={["cr-chip", "k-#{k}", @only == k && "on"]}
+                phx-click="only"
+                phx-value-k={k}
+              >
+                <span class="t">{String.replace(k, "_", " ")}</span>
+                <span class="n">{n}</span>
+              </button>
+              <button :if={@only || @source} class="cr-clear" phx-click="clear">clear</button>
+            </div>
           </div>
-         </div>
         </div>
 
         <div class="cr-grid">
@@ -413,7 +420,9 @@ defmodule MarginaliaWeb.CaseLive.Read do
     ordered =
       notes
       |> Enum.group_by(& &1.from_work)
-      |> Enum.sort_by(fn {work, _} -> Enum.find_index(Enum.map(notes, & &1.from_work), &(&1 == work)) end)
+      |> Enum.sort_by(fn {work, _} ->
+        Enum.find_index(Enum.map(notes, & &1.from_work), &(&1 == work))
+      end)
       |> Enum.map(fn {_work, ns} -> ns end)
       |> interleave()
 
@@ -477,7 +486,9 @@ defmodule MarginaliaWeb.CaseLive.Read do
 
   # the case a note came from, when that is not the one being read
   defp elsewhere(r, note) do
-    Enum.find_value(r.sources, fn s -> s.elsewhere && s.work.id == note.from_work && s.elsewhere end)
+    Enum.find_value(r.sources, fn s ->
+      s.elsewhere && s.work.id == note.from_work && s.elsewhere
+    end)
   end
 
   # inside the case, the document's own name is enough; from outside, the

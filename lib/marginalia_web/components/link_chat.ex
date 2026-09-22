@@ -17,6 +17,7 @@ defmodule MarginaliaWeb.LinkChat do
   attr :open, :boolean, default: false
   attr :history, :list, default: []
   attr :thinking, :boolean, default: false
+  attr :mutter, :string, default: nil
   attr :count, :integer, default: 0
   attr :cited, :list, default: []
   attr :title, :string, default: "About this pair"
@@ -80,11 +81,7 @@ defmodule MarginaliaWeb.LinkChat do
             </div>
           </div>
 
-          <div :if={@thinking} class="mg-dots" aria-label="reading">
-            <span class="mg-dot"></span>
-            <span class="mg-dot" style="animation-delay:.18s"></span>
-            <span class="mg-dot" style="animation-delay:.36s"></span>
-          </div>
+          <.mutter :if={@thinking} text={@mutter} label="reading" />
         </div>
 
         <%!-- what the reader pointed at. Both passages go to the model in

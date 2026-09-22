@@ -16,6 +16,7 @@ defmodule Marginalia.Application do
       Marginalia.Cache,
       # work that has to outlive the page that started it
       Marginalia.Runs,
+      Marginalia.Mutterings.Clock,
       # Start a worker by calling: Marginalia.Worker.start_link(arg)
       # {Marginalia.Worker, arg},
       # Start to serve requests, typically the last entry
