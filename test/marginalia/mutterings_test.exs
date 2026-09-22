@@ -7,7 +7,11 @@ defmodule Marginalia.MutteringsTest do
 
   alias Marginalia.Mutterings
 
-  defp lines(n), do: {:ok, Enum.map_join(1..n, "\n", &"Line #{&1} of cheese.")}
+  # a fresh batch every call: the table refuses a line it already holds
+  defp lines(n) do
+    tag = System.unique_integer([:positive])
+    {:ok, Enum.map_join(1..n, "\n", &"Line #{&1} of batch #{tag}.")}
+  end
 
   describe "parse/1" do
     test "bare lines come back as they are" do
@@ -108,6 +112,67 @@ defmodule Marginalia.MutteringsTest do
     end
   end
 
+  describe "some/1 across a page's waits" do
+    test "the next pick avoids what this process was shown, until it has seen nearly everything" do
+      {:ok, _} = Mutterings.generate(20, call: &lines/1)
+      first = Mutterings.some(8)
+      second = Mutterings.some(8)
+      assert first -- second == first
+      third = Mutterings.some(8)
+      assert length(third) == 4
+      assert (first ++ second) -- third == first ++ second
+      fourth = Mutterings.some(8)
+      assert length(fourth) == 8
+    end
+
+    test "another process has its own memory" do
+      {:ok, _} = Mutterings.generate(8, call: &lines/1)
+      mine = Mutterings.some(8)
+      parent = self()
+
+      Task.await(
+        Task.async(fn ->
+          Ecto.Adapters.SQL.Sandbox.allow(Marginalia.Repo, parent, self())
+          send(parent, {:theirs, Mutterings.some(8)})
+        end)
+      )
+
+      assert_received {:theirs, theirs}
+      assert length(theirs) == 8
+      assert length(mine) == 8
+    end
+  end
+
+  describe "duplicates" do
+    test "a line the table already has is skipped, not stored twice and not an error" do
+      same = fn _ -> {:ok, "One.\nTwo.\nThree.\nFour.\nFive."} end
+      assert {:ok, 5} = Mutterings.generate(5, call: same)
+      assert {:ok, 0} = Mutterings.generate(5, call: same)
+      assert Mutterings.count() == 5
+    end
+
+    test "seed keeps asking when the model comes up short, and stops when full" do
+      parent = self()
+
+      call = fn n ->
+        send(parent, {:asked, n})
+        {:ok, Enum.map_join(1..min(n, 57), "\n", fn i -> "Round #{n} line #{i}." end)}
+      end
+
+      assert {:ok, 100} = Mutterings.seed(call: call)
+      assert Mutterings.count() == 100
+      assert_received {:asked, 100}
+      assert_received {:asked, 43}
+      refute_received {:asked, _}
+    end
+
+    test "seed gives up after four short answers and reports what it added" do
+      call = fn _ -> {:ok, "The same line every time."} end
+      assert {:ok, 1} = Mutterings.seed(call: call)
+      assert Mutterings.count() == 1
+    end
+  end
+
   describe "one/0" do
     test "nil while the table is empty, so the dots stand alone" do
       assert Mutterings.one() == nil
@@ -115,7 +180,7 @@ defmodule Marginalia.MutteringsTest do
 
     test "a stored line once there are some" do
       {:ok, _} = Mutterings.generate(5, call: &lines/1)
-      assert Mutterings.one() =~ ~r/^Line \d of cheese\.$/
+      assert Mutterings.one() =~ ~r/^Line \d of batch \d+\.$/
     end
   end
 

@@ -13,7 +13,10 @@ defmodule Marginalia.Mutterings.ClockTest do
     :ok
   end
 
-  defp lines(n), do: {:ok, Enum.map_join(1..n, "\n", &"Tick #{&1}.")}
+  defp lines(n) do
+    tag = System.unique_integer([:positive])
+    {:ok, Enum.map_join(1..n, "\n", &"Tick #{&1} of #{tag}.")}
+  end
 
   defp wait_until(fun, tries \\ 100) do
     cond do

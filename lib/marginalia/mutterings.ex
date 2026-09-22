@@ -47,9 +47,44 @@ defmodule Marginalia.Mutterings do
     end
   end
 
-  @doc "Up to `n` random lines, no two the same. `[]` when there are none yet."
+  # how many recently shown lines a process keeps out of its next pick
+  @remember 40
+
+  @doc """
+  Up to `n` random lines, none of them shown by this process recently.
+  `[]` when there are none yet.
+
+  "Recently" lives in the calling process's dictionary. The caller is a
+  LiveView, one process per open page, and what it has shown is state
+  about that page; the alternative was an assign threaded through ten
+  call sites in four modules to reach a query. A page that has seen most
+  of the table forgets, rather than getting an empty pick.
+  """
   def some(n) when is_integer(n) and n > 0 do
-    Repo.all(from m in Mutter, order_by: fragment("random()"), limit: ^n, select: m.text)
+    seen = Process.get(:mutterings_seen, [])
+
+    lines =
+      case pick(n, seen) do
+        [] when seen != [] ->
+          Process.put(:mutterings_seen, [])
+          pick(n, [])
+
+        lines ->
+          lines
+      end
+
+    Process.put(:mutterings_seen, Enum.take(lines ++ seen, @remember))
+    lines
+  end
+
+  defp pick(n, except) do
+    Repo.all(
+      from m in Mutter,
+        where: m.text not in ^except,
+        order_by: fragment("random()"),
+        limit: ^n,
+        select: m.text
+    )
   end
 
   def count, do: Repo.aggregate(Mutter, :count)
@@ -59,10 +94,26 @@ defmodule Marginalia.Mutterings do
 
   Runs at every boot and is cheap when nothing is missing: one count.
   """
-  def seed(opts \\ []) do
+  #
+  # The model gives fewer lines than it is asked for, fifty-seven of a
+  # hundred the first time, and some of what it gives is already in the
+  # table. So this asks again, up to four times in one go, and stops when
+  # the table is full or a call fails.
+  def seed(opts \\ []), do: seed(opts, 4, 0)
+
+  defp seed(_opts, 0, added), do: {:ok, added}
+
+  defp seed(opts, tries, added) do
     case @seed - count() do
-      missing when missing > 0 -> generate(missing, Keyword.put(opts, :source, "seed"))
-      _ -> {:ok, 0}
+      missing when missing > 0 ->
+        case generate(missing, Keyword.put(opts, :source, "seed")) do
+          {:ok, n} -> seed(opts, tries - 1, added + n)
+          {:error, _} = err when added == 0 -> err
+          {:error, _} -> {:ok, added}
+        end
+
+      _ ->
+        {:ok, added}
     end
   end
 
@@ -93,7 +144,10 @@ defmodule Marginalia.Mutterings do
           {:error, :nothing_usable}
 
         rows ->
-          {count, _} = Repo.insert_all(Mutter, rows)
+          # a line the table already has is not an error and not a row
+          {count, _} =
+            Repo.insert_all(Mutter, rows, on_conflict: :nothing, conflict_target: :text)
+
           {:ok, count}
       end
     end

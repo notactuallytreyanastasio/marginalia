@@ -773,6 +773,12 @@ body {
 }
 .mg-read-body mark.lit { background: #f7d774; }
 
+/* A selection in the prose is the start of a question, and the browser's
+   default paints it in a blue that the ink disappears into. The mark colour,
+   which the page already uses for a highlighted line, keeps the words legible. */
+.mg-read-body ::selection { background: #f7d774; color: var(--mg-ink); }
+.mg-read-body ::-moz-selection { background: #f7d774; color: var(--mg-ink); }
+
 /* the note, as a bubble with a tail pointing back at the line */
 .mg-note {
   display: block;
