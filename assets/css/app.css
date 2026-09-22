@@ -1439,7 +1439,11 @@ body {
 .mg-mutter {
   font-family: var(--mg-serif); font-style: italic; font-size: 0.84rem; line-height: 1.4;
   color: var(--mg-dim); margin-right: 0.35rem;
+  animation: mg-mutter-in 0.32s ease-out;
+  transition: opacity 0.32s ease-in-out;
 }
+.mg-mutter.out { opacity: 0; }
+@keyframes mg-mutter-in { from { opacity: 0; } to { opacity: 1; } }
 
 .mg-rw-list { display: flex; flex-direction: column; gap: 0.3rem; }
 .mg-rw {

@@ -541,8 +541,6 @@ defmodule Marginalia.Rewrite do
     attach(rest, aw, bw, acc)
   end
 
-  defp trailing(token), do: String.slice(token, String.length(String.trim_trailing(token))..-1//1)
-
   defp attach([{:del, ws} | rest], aw, bw, acc) do
     {taken, aw} = Enum.split(aw, length(ws))
     attach(rest, aw, bw, Enum.reduce(taken, acc, &[{:del, &1} | &2]))
@@ -552,6 +550,8 @@ defmodule Marginalia.Rewrite do
     {taken, bw} = Enum.split(bw, length(ws))
     attach(rest, aw, bw, Enum.reduce(taken, acc, &[{:ins, &1} | &2]))
   end
+
+  defp trailing(token), do: String.slice(token, String.length(String.trim_trailing(token))..-1//1)
 
   defp merge(parts) do
     parts

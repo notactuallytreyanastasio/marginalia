@@ -46,7 +46,7 @@ defmodule MarginaliaWeb.CaseLive.Read do
            walk: [],
            chat_open: false,
            chat_thinking: false,
-           chat_mutter: nil,
+           chat_mutter: [],
            chat_history: [],
            chat_cited: []
          )
@@ -128,7 +128,7 @@ defmodule MarginaliaWeb.CaseLive.Read do
        |> assign(
          chat_history: history,
          chat_thinking: true,
-         chat_mutter: Marginalia.Mutterings.one(),
+         chat_mutter: Marginalia.Mutterings.some(8),
          chat_cited: []
        )
        |> start_async(:chat, fn -> CaseChat.ask(reading, history, cited: cited) end)}

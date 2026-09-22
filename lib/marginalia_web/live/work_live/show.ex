@@ -67,7 +67,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
            open_thread: nil,
            rewrite: nil,
            rewriting: false,
-           mutter: nil,
+           mutter: [],
            revision_count: Works.revision_count(work.id),
            diff_rows: [],
            summarising: MapSet.new(),
@@ -469,7 +469,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
         {:noreply,
          assign(socket,
            rewriting: true,
-           mutter: Marginalia.Mutterings.one(),
+           mutter: Marginalia.Mutterings.some(8),
            rewrite: nil,
            preview: nil,
            steer: nil,
@@ -491,7 +491,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
          socket
          |> assign(
            rewriting: true,
-           mutter: Marginalia.Mutterings.one(),
+           mutter: Marginalia.Mutterings.some(8),
            rewrite: nil,
            preview: nil,
            steer: nil,
@@ -524,7 +524,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
         {:noreply,
          assign(socket,
            rewriting: true,
-           mutter: Marginalia.Mutterings.one(),
+           mutter: Marginalia.Mutterings.some(8),
            rewrite: nil,
            preview: nil
          )}
@@ -541,7 +541,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
          socket
          |> assign(
            rewriting: true,
-           mutter: Marginalia.Mutterings.one(),
+           mutter: Marginalia.Mutterings.some(8),
            rewrite: nil,
            preview: nil,
            steer: steer
@@ -842,7 +842,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
          assign(socket,
            thread_history: a.thread_history ++ [%{"role" => "user", "content" => text}],
            thread_loading: true,
-           mutter: Marginalia.Mutterings.one()
+           mutter: Marginalia.Mutterings.some(8)
          )}
 
       not Chat.allowed?(a.current_scope.user) ->
@@ -865,7 +865,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
          |> assign(
            thread_history: history,
            thread_loading: true,
-           mutter: Marginalia.Mutterings.one(),
+           mutter: Marginalia.Mutterings.some(8),
            quota: Chat.remaining(a.current_scope.user),
            block_threads: Chat.threads_by_block(work.id)
          )
@@ -1016,7 +1016,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
            history: history,
            draft: "",
            loading: true,
-           mutter: Marginalia.Mutterings.one(),
+           mutter: Marginalia.Mutterings.some(8),
            chat_open: true
          )
          |> push_event("chat:clear", %{})
@@ -1879,7 +1879,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :open_thread, :map, default: nil
   attr :thread_history, :list, default: []
   attr :thread_loading, :boolean, default: false
-  attr :mutter, :string, default: nil
+  attr :mutter, :list, default: []
   attr :rewrite, :map, default: nil
   attr :rewriting, :boolean, default: false
   attr :rewrite_ref, :string, default: nil
@@ -2386,7 +2386,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
   attr :rewrite, :map, default: nil
   attr :working, :boolean, default: false
-  attr :mutter, :string, default: nil
+  attr :mutter, :list, default: []
   attr :block_ref, :string, default: nil
   attr :steer, :string, default: nil
   attr :span, :string, default: nil
@@ -2564,7 +2564,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
       <%!-- an empty box that fills in, rather than a spinner standing where
             the answer will be: the shape of the thing arrives first --%>
       <div :if={@working} class="mg-rewrite-body">
-        <.mutter text={@mutter} label="reading it" />
+        <.mutter lines={@mutter} label="reading it" />
       </div>
 
       <div :if={@rewrite} class="mg-rewrite-body">
@@ -2651,7 +2651,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :thread, :map, required: true
   attr :history, :list, default: []
   attr :loading, :boolean, default: false
-  attr :mutter, :string, default: nil
+  attr :mutter, :list, default: []
   attr :mine?, :boolean, default: true
   attr :modes, :list, default: []
 
@@ -2700,7 +2700,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
           <% end %>
         <% end %>
 
-        <.mutter :if={@loading} text={@mutter} class="py-0.5" />
+        <.mutter :if={@loading} lines={@mutter} class="py-0.5" />
       </div>
 
       <div :if={@mine?} class="mg-thread-foot">
@@ -2901,7 +2901,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :open_thread, :map, default: nil
   attr :thread_history, :list, default: []
   attr :thread_loading, :boolean, default: false
-  attr :mutter, :string, default: nil
+  attr :mutter, :list, default: []
   attr :mine?, :boolean, default: true
   attr :modes, :list, default: []
   attr :rewrite, :map, default: nil
@@ -4269,7 +4269,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
   attr :history, :list, required: true
   attr :loading, :boolean, required: true
-  attr :mutter, :string, default: nil
+  attr :mutter, :list, default: []
   attr :status, :string, required: true
   attr :llm_ready, :boolean, required: true
   attr :mode, :string, required: true
@@ -4358,7 +4358,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
             <% end %>
         <% end %>
 
-        <.mutter :if={@loading} text={@mutter} class="py-1" />
+        <.mutter :if={@loading} lines={@mutter} class="py-1" />
       </div>
 
       <%= if not @mine? do %>

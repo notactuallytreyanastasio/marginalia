@@ -37,7 +37,7 @@ defmodule MarginaliaWeb.LinkLive.Read do
            page_robots: "noindex, nofollow",
            chat_open: false,
            chat_thinking: false,
-           chat_mutter: nil,
+           chat_mutter: [],
            chat_history: [],
            chat_cited: [],
            walk: []
@@ -193,7 +193,7 @@ defmodule MarginaliaWeb.LinkLive.Read do
        |> assign(
          chat_history: history,
          chat_thinking: true,
-         chat_mutter: Marginalia.Mutterings.one(),
+         chat_mutter: Marginalia.Mutterings.some(8),
          chat_cited: []
        )
        |> start_async(:chat, fn -> LinkChat.ask(link, history, cited: cited) end)}

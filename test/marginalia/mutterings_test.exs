@@ -94,6 +94,20 @@ defmodule Marginalia.MutteringsTest do
     end
   end
 
+  describe "some/1" do
+    test "nothing while the table is empty" do
+      assert Mutterings.some(8) == []
+    end
+
+    test "up to n distinct lines, fewer when there are fewer" do
+      {:ok, _} = Mutterings.generate(5, call: &lines/1)
+      got = Mutterings.some(8)
+      assert length(got) == 5
+      assert Enum.uniq(got) == got
+      assert length(Mutterings.some(2)) == 2
+    end
+  end
+
   describe "one/0" do
     test "nil while the table is empty, so the dots stand alone" do
       assert Mutterings.one() == nil

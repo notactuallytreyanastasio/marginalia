@@ -502,22 +502,60 @@ defmodule MarginaliaWeb.CoreComponents do
 
   Three pulsing dots said only that a model was busy. The words come from
   `Marginalia.Mutterings`, a table of lines a cheap model wrote in
-  character, one picked at random when the wait began and held for its
-  length. `text` nil, as it is on a fresh install before the table has
-  been seeded, leaves the dots standing alone.
+  character. A handful are picked when the wait begins and the page
+  cycles through them itself, three seconds each with a fade between,
+  so nothing crosses the socket while the model works. `lines` empty, as
+  it is on a fresh install before the table has been seeded, leaves the
+  dots standing alone.
+
+  The span is `phx-update="ignore"` because the hook owns its text: a
+  patch from the server would put the first line back mid-rotation.
   """
-  attr :text, :string, default: nil
+  attr :lines, :list, default: []
   attr :label, :string, default: "thinking"
   attr :class, :any, default: nil
 
   def mutter(assigns) do
+    assigns = assign(assigns, :id, "mutter-#{:erlang.phash2(assigns.lines)}")
+
     ~H"""
     <div class={["mg-dots", @class]} aria-label={@label}>
-      <span :if={@text} class="mg-mutter">{@text}</span>
+      <span
+        :if={@lines != []}
+        id={@id}
+        class="mg-mutter"
+        phx-hook=".Rotate"
+        phx-update="ignore"
+        data-lines={Jason.encode!(@lines)}
+      >
+        {hd(@lines)}
+      </span>
       <span class="mg-dot"></span>
       <span class="mg-dot" style="animation-delay:.18s"></span>
       <span class="mg-dot" style="animation-delay:.36s"></span>
     </div>
+    <script :type={Phoenix.LiveView.ColocatedHook} name=".Rotate">
+      // Three seconds a line, then out, swap, in. One line never rotates.
+      export default {
+        mounted() {
+          this.lines = JSON.parse(this.el.dataset.lines || "[]");
+          this.i = 0;
+          if (this.lines.length < 2) return;
+          this.timer = setInterval(() => {
+            this.el.classList.add("out");
+            this.swap = setTimeout(() => {
+              this.i = (this.i + 1) % this.lines.length;
+              this.el.textContent = this.lines[this.i];
+              this.el.classList.remove("out");
+            }, 320);
+          }, 3000);
+        },
+        destroyed() {
+          clearInterval(this.timer);
+          clearTimeout(this.swap);
+        },
+      };
+    </script>
     """
   end
 end

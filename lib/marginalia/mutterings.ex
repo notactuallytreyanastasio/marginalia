@@ -47,6 +47,11 @@ defmodule Marginalia.Mutterings do
     end
   end
 
+  @doc "Up to `n` random lines, no two the same. `[]` when there are none yet."
+  def some(n) when is_integer(n) and n > 0 do
+    Repo.all(from m in Mutter, order_by: fragment("random()"), limit: ^n, select: m.text)
+  end
+
   def count, do: Repo.aggregate(Mutter, :count)
 
   @doc """
