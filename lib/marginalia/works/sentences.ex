@@ -71,13 +71,19 @@ defmodule Marginalia.Works.Sentences do
       not prose?(block) ->
         block
 
+      # A quote can hold paragraphs of its own, separated by a bare ">"
+      # line, so the stripped text goes through the whole reflow and not
+      # one block's worth; the bare line comes back as a bare ">".
       quoted?(block) ->
         block
         |> String.split("\n")
         |> Enum.map_join("\n", &String.replace(&1, ~r/^\s*>\s?/, ""))
-        |> reflow_block()
+        |> reflow()
         |> String.split("\n")
-        |> Enum.map_join("\n", &("> " <> &1))
+        |> Enum.map_join("\n", fn
+          "" -> ">"
+          line -> "> " <> line
+        end)
 
       true ->
         block
@@ -115,13 +121,20 @@ defmodule Marginalia.Works.Sentences do
   defp prose?(block) do
     first = block |> String.split("\n", parts: 2) |> hd() |> String.trim_leading()
     lines = String.split(block, "\n")
+    second = Enum.at(lines, 1, "") |> String.trim()
 
     cond do
+      # setext heading ("Title" over a line of = or -), and a table whose
+      # rows have no leading pipe (a delimiter row on line two gives it away)
+      Regex.match?(~r/^(=+|-+)$/, second) -> false
+      Regex.match?(~r/^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?$/, second) -> false
       Regex.match?(~r/^(`{3,}|~{3,})/, first) -> false
       Regex.match?(~r/^\#{1,6}\s/, first) -> false
       Regex.match?(~r/^(\s{4,}|\t)/, block) -> false
       Regex.match?(~r/^[-*+]\s|^\d+[.)]\s/, first) -> false
       Regex.match?(~r/^<[a-zA-Z!\/]/, first) -> false
+      # a lone image or link: the "sentence" inside the brackets is a caption
+      Regex.match?(~r/^!?\[[^\]]*\]\([^)]*\)\s*$/, block) -> false
       Regex.match?(~r/^(-{3,}|\*{3,}|_{3,})\s*$/, first) -> false
       Enum.all?(lines, &String.starts_with?(String.trim_leading(&1), "|")) -> false
       true -> true

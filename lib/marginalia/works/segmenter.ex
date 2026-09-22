@@ -131,11 +131,17 @@ defmodule Marginalia.Works.Segmenter do
 
   # --- 3. paragraph windows ------------------------------------------------
 
+  # Reflowed before the title is derived: the title is the first line, and
+  # as the text arrived the first line could be two words of a wrapped
+  # sentence, too short to be a title, so the section was "Section 1".
   defp by_windows(text) do
     text
     |> window()
     |> Enum.with_index(1)
-    |> Enum.map(fn {body, i} -> %{title: derive_title(body, i), body: body} end)
+    |> Enum.map(fn {body, i} ->
+      body = Marginalia.Works.Sentences.reflow(body)
+      %{title: derive_title(body, i), body: body}
+    end)
     |> finish()
   end
 
