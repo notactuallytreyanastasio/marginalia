@@ -20,7 +20,11 @@ defmodule Marginalia.ImportBulkTest do
   end
 
   defp doc(title, body \\ nil) do
-    %{title: title, body: body || "# #{title}\n\n" <> String.duplicate("word ", 80), source_url: nil}
+    %{
+      title: title,
+      body: body || "# #{title}\n\n" <> String.duplicate("word ", 80),
+      source_url: nil
+    }
   end
 
   test "each document becomes a draft in the folder", %{user: user} do
@@ -148,6 +152,53 @@ defmodule Marginalia.ImportBulkTest do
       long = cand(String.duplicate("a", 100_000) <> "needle")
 
       assert {:ok, []} = Bulk.by_title([long], "needle")
+    end
+  end
+
+  describe "folder_name_for/2" do
+    test "files that share a stem are named for it" do
+      titles = ~w(chapter-01 chapter-02 chapter-03 chapter-07)
+      assert Bulk.folder_name_for(titles) == "chapter"
+      assert Bulk.folder_name_for(["Part 1", "Part 2"]) == "Part"
+      assert Bulk.folder_name_for(["notes_2024.1", "notes_2024.2"]) == "notes"
+    end
+
+    test "files with nothing in common are named for the moment" do
+      now = ~U[2026-09-22 14:54:46Z]
+      assert Bulk.folder_name_for(["alpha", "omega"], now) == "Imported 2026-09-22 14:54"
+      assert Bulk.folder_name_for([], now) == "Imported 2026-09-22 14:54"
+    end
+
+    test "a stem too short to mean anything is not a name" do
+      assert Bulk.folder_name_for(["a1", "a2"], ~U[2026-01-01 00:00:00Z]) ==
+               "Imported 2026-01-01 00:00"
+    end
+
+    test "one file is its own folder" do
+      assert Bulk.folder_name_for(["chapter-01"]) == "chapter"
+    end
+  end
+
+  describe "in_name_order/1" do
+    test "the order the names say, whatever order they arrived in" do
+      docs = for t <- ~w(chapter-07 chapter-01 chapter-10 chapter-02), do: doc(t)
+
+      assert Bulk.in_name_order(docs) |> Enum.map(& &1.title) ==
+               ~w(chapter-01 chapter-02 chapter-07 chapter-10)
+    end
+
+    test "digits compare as numbers and case does not matter" do
+      docs = for t <- ["Part 10", "part 9", "Part 1"], do: doc(t)
+      assert Bulk.in_name_order(docs) |> Enum.map(& &1.title) == ["Part 1", "part 9", "Part 10"]
+    end
+
+    test "numbering then follows the names" do
+      docs = for t <- ~w(chapter-02 chapter-01), do: doc(t)
+
+      %{created: made} =
+        Bulk.land(user_fixture().id, Bulk.in_name_order(docs), folder: "chapter", number: true)
+
+      assert Enum.map(made, & &1.title) == ["1. chapter-01", "2. chapter-02"]
     end
   end
 end
