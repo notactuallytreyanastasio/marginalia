@@ -137,4 +137,33 @@ defmodule Marginalia.RevisionsTest do
       assert Works.baseline(work) == work.baseline_body
     end
   end
+
+  test "an edit is stored one sentence per line, and the replay still holds", %{
+    work: work,
+    section: section
+  } do
+    b = block(section, "ALPHA")
+
+    typed =
+      "ALPHA was rewritten. It came back\nwrapped, as pasted text does. Two sentences became three."
+
+    {:ok, %{section: section}} = Works.replace_block(section, b, typed)
+
+    assert section.body =~
+             "ALPHA was rewritten.\nIt came back wrapped, as pasted text does.\nTwo sentences became three."
+
+    [rev] = Works.revisions(work.id)
+
+    assert rev.after ==
+             "ALPHA was rewritten.\nIt came back wrapped, as pasted text does.\nTwo sentences became three."
+
+    work = Works.get_work(work.user_id, work.id)
+
+    replayed =
+      Enum.reduce(Works.revisions(work.id), Works.baseline(work), fn r, body ->
+        String.replace(body, r.before, r.after, global: false)
+      end)
+
+    assert replayed == work.body
+  end
 end

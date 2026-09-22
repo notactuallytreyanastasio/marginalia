@@ -3,7 +3,9 @@ defmodule Marginalia.Works.SegmenterTest do
   alias Marginalia.Works.Segmenter
 
   test "a blog post with no structure is one section" do
-    text = Enum.map_join(1..4, "\n\n", fn i -> "Paragraph #{i}. " <> String.duplicate("word ", 40) end)
+    text =
+      Enum.map_join(1..4, "\n\n", fn i -> "Paragraph #{i}. " <> String.duplicate("word ", 40) end)
+
     assert [%{body: body}] = Segmenter.split(text)
     assert body =~ "Paragraph 1"
     assert body =~ "Paragraph 4"
@@ -113,6 +115,7 @@ defmodule Marginalia.Works.SegmenterTest do
 
       for {p, i} <- Enum.with_index(paras, 1) do
         assert String.contains?(rejoined, "p#{i} "), "lost paragraph #{i}"
+
         assert Enum.any?(sections, &String.contains?(&1.body, String.trim(p))),
                "paragraph #{i} was split across sections"
       end
@@ -129,8 +132,9 @@ defmodule Marginalia.Works.SegmenterTest do
   # A derived title goes into a contents list and a minimap, neither of
   # which renders markdown; the asterisks were showing up in both.
   test "a derived title carries no markdown syntax" do
-    text = "**JUSTICE GORSUCH:** Counsel, what is the limiting principle here?\n\n" <>
-             String.duplicate("word ", 400)
+    text =
+      "**JUSTICE GORSUCH:** Counsel, what is the limiting principle here?\n\n" <>
+        String.duplicate("word ", 400)
 
     assert [only] = Segmenter.split(text)
     assert only.title =~ "JUSTICE GORSUCH: Counsel"
@@ -151,5 +155,17 @@ defmodule Marginalia.Works.SegmenterTest do
     assert Segmenter.split("") == []
     assert Segmenter.split("   \n\n  ") == []
     assert Segmenter.split(nil) == []
+  end
+
+  test "prose arrives one sentence per line, paragraphs intact, code untouched" do
+    text =
+      "First sentence of the opening. Second one,\nwrapped by an editor. Third.\n\n" <>
+        "```\nx = 1. y = 2.\n```\n\n" <> "Last paragraph. Done."
+
+    assert [%{body: body}] = Segmenter.split(text)
+
+    assert body ==
+             "First sentence of the opening.\nSecond one, wrapped by an editor.\nThird.\n\n" <>
+               "```\nx = 1. y = 2.\n```\n\n" <> "Last paragraph.\nDone."
   end
 end

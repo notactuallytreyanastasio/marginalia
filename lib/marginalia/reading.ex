@@ -310,7 +310,9 @@ defmodule Marginalia.Reading do
           text
       end
 
-    {:safe, html} = Marginalia.Markdown.to_html(source)
+    # A draft, not a reply: a newline inside a paragraph is a sentence end,
+    # not a line break the writer wants on the page.
+    {:safe, html} = Marginalia.Markdown.to_html(source, breaks: :soft)
 
     html
     |> IO.iodata_to_binary()

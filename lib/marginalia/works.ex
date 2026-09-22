@@ -637,7 +637,14 @@ defmodule Marginalia.Works do
   """
   def replace_block(%Section{} = section, old_block, new_text, opts \\ []) do
     old_block = to_string(old_block)
-    new_text = new_text |> to_string() |> String.trim_trailing()
+
+    # The draft arrived one sentence per line (see `Works.Sentences`), and
+    # an edit is the one way that form could drift: a paragraph typed or
+    # pasted into the editor comes back as one line, or hard-wrapped. It is
+    # reflowed here, before the comparison below, so the revision records
+    # exactly what was stored and the replay still reproduces the body.
+    new_text =
+      new_text |> to_string() |> String.trim_trailing() |> Marginalia.Works.Sentences.reflow()
 
     cond do
       String.trim(new_text) == "" ->

@@ -37,12 +37,21 @@ defmodule Marginalia.Works.Segmenter do
   def split(text) when is_binary(text) do
     text = normalize(text)
 
-    cond do
-      text == "" -> []
-      chunks = by_markdown(text) -> chunks
-      chunks = by_marker(text) -> chunks
-      true -> by_windows(text)
-    end
+    chunks =
+      cond do
+        text == "" -> []
+        chunks = by_markdown(text) -> chunks
+        chunks = by_marker(text) -> chunks
+        true -> by_windows(text)
+      end
+
+    # One sentence per line inside every prose paragraph, so a draft is in
+    # that form before its sections and its baseline are captured. After the
+    # split, not before: a chapter marker sits on the line above its first
+    # sentence with no blank line between, and reflowing first would fold
+    # "Chapter 2" into the paragraph and lose the boundary it marks. See
+    # `Marginalia.Works.Sentences` for why, and for what it leaves alone.
+    Enum.map(chunks, fn c -> %{c | body: Marginalia.Works.Sentences.reflow(c.body)} end)
   end
 
   def split(_), do: []
@@ -110,10 +119,13 @@ defmodule Marginalia.Works.Segmenter do
         end
       end)
 
-    (if current, do: [current | chunks], else: chunks)
+    if(current, do: [current | chunks], else: chunks)
     |> Enum.reverse()
     |> Enum.map(fn c ->
-      %{title: blank_to_untitled(c.title), body: c.lines |> Enum.reverse() |> Enum.join("\n") |> String.trim()}
+      %{
+        title: blank_to_untitled(c.title),
+        body: c.lines |> Enum.reverse() |> Enum.join("\n") |> String.trim()
+      }
     end)
   end
 
