@@ -473,69 +473,70 @@ defmodule Marginalia.Rewrite do
   def diff(a, b) do
     aw = words(a)
     bw = words(b)
-    walk(aw, bw, lcs_table(aw, bw), [])
+    ak = Enum.map(aw, &String.trim/1)
+    bk = Enum.map(bw, &String.trim/1)
+
+    if unrelated?(ak, bk) do
+      merge(Enum.map(aw, &{:del, &1}) ++ Enum.map(bw, &{:ins, &1}))
+    else
+      ak
+      |> List.myers_difference(bk)
+      |> attach(aw, bw, [])
+      |> merge()
+    end
   end
+
+  # Myers is linear when two texts are alike and quadratic when they share
+  # nothing, and two long spans that share nothing is the one case where a
+  # word diff says nothing anyway: every word deleted, every word inserted,
+  # in alternating specks. Shown as one deletion and one insertion instead,
+  # decided by vocabulary, which costs one pass over each side.
+  @unrelated_from 200
+  @unrelated_below 0.05
+
+  defp unrelated?(ak, bk) when length(ak) >= @unrelated_from and length(bk) >= @unrelated_from do
+    a = MapSet.new(ak)
+    b = MapSet.new(bk)
+    shared = MapSet.size(MapSet.intersection(a, b))
+    shared < @unrelated_below * min(MapSet.size(a), MapSet.size(b))
+  end
+
+  defp unrelated?(_ak, _bk), do: false
 
   defp words(nil), do: []
   defp words(t), do: Regex.scan(~r/\S+\s*/, t) |> Enum.map(&hd/1)
 
-  # A plain longest-common-subsequence table, built bottom-up. The spans are
-  # a sentence or two, so this is cheap, and it is deterministic — the same
-  # pair always diffs the same way, which matters more here than speed.
-  defp lcs_table(a, b) do
-    n = length(a)
-    m = length(b)
-    av = List.to_tuple(a)
-    bv = List.to_tuple(b)
+  # `List.myers_difference/2` rather than a longest-common-subsequence table
+  # of our own. The table was a Map with one entry per pair of words, built
+  # bottom-up, and the spans it was written for are a sentence or two, where
+  # that is nothing. The revision log then started diffing whole sections:
+  # a 2,000-word section against its rewrite is four million Map writes,
+  # about a second and a half each, and a draft with five such revisions
+  # took thirteen seconds to render. LiveView renders twice, once for the
+  # HTML and once when the socket connects, so the page never connected at
+  # all. Myers is O((n+m)·d): the same twelve revisions take two hundred
+  # milliseconds, and the result is just as deterministic.
+  #
+  # Myers compares the trimmed words, so a word is the same word whatever
+  # whitespace followed it, and the whitespace each word actually carried
+  # comes back from the original lists as the script is walked.
+  defp attach([], _aw, _bw, acc), do: Enum.reverse(acc)
 
-    Enum.reduce((n - 1)..0//-1, %{}, fn i, table ->
-      Enum.reduce((m - 1)..0//-1, table, fn j, table ->
-        value =
-          if same?(elem(av, i), elem(bv, j)) do
-            1 + Map.get(table, {i + 1, j + 1}, 0)
-          else
-            max(Map.get(table, {i + 1, j}, 0), Map.get(table, {i, j + 1}, 0))
-          end
-
-        Map.put(table, {i, j}, value)
-      end)
-    end)
+  defp attach([{:eq, ws} | rest], aw, bw, acc) do
+    n = length(ws)
+    {_, aw} = Enum.split(aw, n)
+    {taken, bw} = Enum.split(bw, n)
+    attach(rest, aw, bw, Enum.reduce(taken, acc, &[{:same, &1} | &2]))
   end
 
-  defp same?(x, y), do: String.trim(x) == String.trim(y)
-
-  defp walk(a, b, _table, _acc) when a == [] and b == [], do: []
-
-  defp walk(a, b, table, _acc) do
-    av = List.to_tuple(a)
-    bv = List.to_tuple(b)
-    n = length(a)
-    m = length(b)
-
-    step(av, bv, n, m, table, 0, 0, [])
-    |> Enum.reverse()
-    |> merge()
+  defp attach([{:del, ws} | rest], aw, bw, acc) do
+    {taken, aw} = Enum.split(aw, length(ws))
+    attach(rest, aw, bw, Enum.reduce(taken, acc, &[{:del, &1} | &2]))
   end
 
-  defp step(_av, bv, n, m, _table, i, j, acc) when i >= n do
-    Enum.reduce(j..(m - 1)//1, acc, fn k, acc -> [{:ins, elem(bv, k)} | acc] end)
-  end
-
-  defp step(av, _bv, n, m, _table, i, j, acc) when j >= m do
-    Enum.reduce(i..(n - 1)//1, acc, fn k, acc -> [{:del, elem(av, k)} | acc] end)
-  end
-
-  defp step(av, bv, n, m, table, i, j, acc) do
-    cond do
-      same?(elem(av, i), elem(bv, j)) ->
-        step(av, bv, n, m, table, i + 1, j + 1, [{:same, elem(bv, j)} | acc])
-
-      Map.get(table, {i, j + 1}, 0) >= Map.get(table, {i + 1, j}, 0) ->
-        step(av, bv, n, m, table, i, j + 1, [{:ins, elem(bv, j)} | acc])
-
-      true ->
-        step(av, bv, n, m, table, i + 1, j, [{:del, elem(av, i)} | acc])
-    end
+  defp attach([{:ins, ws} | rest], aw, bw, acc) do
+    {taken, bw} = Enum.split(bw, length(ws))
+    attach(rest, aw, bw, Enum.reduce(taken, acc, &[{:ins, &1} | &2]))
   end
 
   defp merge(parts) do

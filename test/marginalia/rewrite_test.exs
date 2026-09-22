@@ -102,6 +102,53 @@ defmodule Marginalia.RewriteTest do
     test "an empty original is all insertion" do
       assert [{:ins, "new text"}] = Rewrite.diff("", "new text")
     end
+
+    test "each side's whitespace, newlines included, comes back with its words" do
+      a = "One sentence.\nAnother  sentence.\nA third."
+      b = "One sentence.\nA different sentence.\nA third."
+      d = Rewrite.diff(a, b)
+
+      assert d |> Enum.reject(&(elem(&1, 0) == :ins)) |> Enum.map_join(&elem(&1, 1)) == a
+      assert d |> Enum.reject(&(elem(&1, 0) == :del)) |> Enum.map_join(&elem(&1, 1)) == b
+      assert Enum.any?(d, fn {k, t} -> k == :same and t =~ "A third." end)
+    end
+
+    test "a word is the same word whatever whitespace followed it" do
+      d = Rewrite.diff("a b\nc", "a b c")
+      assert Enum.all?(d, &match?({:same, _}, &1))
+    end
+
+    test "two whole sections with nothing in common are one deletion and one insertion, at once" do
+      a = Enum.map_join(1..2000, " ", &"before#{&1}")
+      b = Enum.map_join(1..2000, " ", &"after#{&1}")
+      {micros, d} = :timer.tc(fn -> Rewrite.diff(a, b) end)
+
+      assert micros < 100_000
+      assert [{:del, ^a}, {:ins, ^b}] = d
+    end
+
+    test "two whole sections that share their vocabulary get a real diff, quickly" do
+      # forty words of shared vocabulary, used a lot, among a few hundred that
+      # differ: the shape of a section and its rewrite, not of two strangers
+      common = Enum.map(1..800, &"word#{rem(&1, 40)}")
+      a = Enum.map_join(Enum.shuffle(common ++ Enum.map(1..300, &"only#{&1}")), " ", & &1)
+      b = Enum.map_join(Enum.shuffle(common ++ Enum.map(1..300, &"other#{&1}")), " ", & &1)
+      {micros, d} = :timer.tc(fn -> Rewrite.diff(a, b) end)
+
+      assert micros < 1_500_000
+      assert Enum.any?(d, &match?({:same, _}, &1))
+      assert d |> Enum.reject(&(elem(&1, 0) == :ins)) |> Enum.map_join(&elem(&1, 1)) == a
+      assert d |> Enum.reject(&(elem(&1, 0) == :del)) |> Enum.map_join(&elem(&1, 1)) == b
+    end
+
+    test "a section edited in one place is mostly the same, and fast" do
+      a = Enum.map_join(1..2000, " ", &"word#{&1}")
+      b = String.replace(a, "word1000 ", "word1000 inserted ")
+      {micros, d} = :timer.tc(fn -> Rewrite.diff(a, b) end)
+
+      assert micros < 200_000
+      assert [{:same, _}, {:ins, "inserted "}, {:same, _}] = d
+    end
   end
 
   describe "the writer's optional steer" do
