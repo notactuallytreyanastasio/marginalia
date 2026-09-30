@@ -335,11 +335,14 @@ defmodule Marginalia.Cases do
   words.
   """
   def place(%Work{} = work, collection, role) do
-    Marginalia.Cache.invalidate(:published_cases)
-
-    work
-    |> Work.changeset(%{collection: collection, collection_role: role})
-    |> Repo.update()
+    with {:ok, work} <-
+           work
+           |> Work.changeset(%{collection: collection, collection_role: role})
+           |> Repo.update() do
+      # after the write, or a page view in between caches the old answer
+      Marginalia.Cache.invalidate(:published_cases)
+      {:ok, work}
+    end
   end
 
   @doc """

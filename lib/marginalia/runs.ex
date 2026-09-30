@@ -138,7 +138,9 @@ defmodule Marginalia.Runs do
 
   def handle_call({:forget, key}, _from, refs) do
     :ets.delete(@table, key)
-    {:reply, :ok, refs}
+    # and the task's ref, or when that task finishes it deletes whatever run
+    # has since started under the same key and announces it done
+    {:reply, :ok, Map.reject(refs, fn {_ref, k} -> k == key end)}
   end
 
   @impl true

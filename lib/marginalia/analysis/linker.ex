@@ -15,7 +15,7 @@ defmodule Marginalia.Analysis.Linker do
 
   ## The rule that does the work
 
-  Every proposed edge names two ids. `Marginalia.Links.store_edges/3` keeps
+  Every proposed edge names two ids. `Marginalia.Links.replace_edges/3` keeps
   it only if both are real nodes, in the two manuscripts named by this link,
   **on opposite sides of it**. Three ways to be wrong, all caught in code:
 
@@ -150,8 +150,7 @@ defmodule Marginalia.Analysis.Linker do
         case ask_with_retry(a, b, a_nodes, b_nodes, provider) do
           {:ok, %{"edges" => edges} = out} when is_list(edges) ->
             broadcast(link, {:link, :stage, :checking})
-            Links.clear_edges(link)
-            {kept, dropped} = Links.store_edges(link, edges, @types)
+            {kept, dropped} = Links.replace_edges(link, edges, @types)
 
             Logger.info(
               "marginalia: linked #{a.id}↔#{b.id} — #{kept} edges kept, #{dropped} dropped"

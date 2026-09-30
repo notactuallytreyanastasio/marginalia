@@ -330,13 +330,37 @@ defmodule Marginalia.Links do
   end
 
   def clear_edges(%Link{} = link) do
-    Marginalia.Cache.invalidate(:public_links)
-    Marginalia.Cache.invalidate(:published_cases)
-    do_clear_edges(link)
+    result = do_clear_edges(link)
+    invalidate_public()
+    result
   end
 
   defp do_clear_edges(%Link{} = link),
     do: LinkEdge |> where([e], e.link_id == ^link.id) |> Repo.delete_all()
+
+  # After the write, never before it: invalidating first leaves a window in
+  # which a page view recomputes the old answer and caches it for the TTL.
+  defp invalidate_public do
+    Marginalia.Cache.invalidate(:public_links)
+    Marginalia.Cache.invalidate(:published_cases)
+  end
+
+  @doc """
+  Swap a link's edges for a fresh pass's, in one transaction.
+
+  Clearing and then storing as two steps left a window where the link had
+  no edges at all, and anybody reading it then saw an empty pair.
+  """
+  def replace_edges(%Link{} = link, proposed, types, max \\ @max_edges) do
+    {:ok, counts} =
+      Repo.transact(fn ->
+        do_clear_edges(link)
+        {:ok, do_store_edges(link, proposed, types, max)}
+      end)
+
+    invalidate_public()
+    counts
+  end
 
   @doc """
   Store proposed edges, keeping only those whose ends are real nodes in the
@@ -348,8 +372,12 @@ defmodule Marginalia.Links do
   inventing ids, and the graph it produced is fiction.
   """
   def store_edges(%Link{} = link, proposed, types, max \\ @max_edges) do
-    Marginalia.Cache.invalidate(:public_links)
-    Marginalia.Cache.invalidate(:published_cases)
+    counts = do_store_edges(link, proposed, types, max)
+    invalidate_public()
+    counts
+  end
+
+  defp do_store_edges(link, proposed, types, max) do
     allowed = node_side(link)
 
     {rows, dropped} =
@@ -361,21 +389,22 @@ defmodule Marginalia.Links do
         row, {rows, dropped} -> {[row | rows], dropped}
       end)
 
+    now = DateTime.utc_now(:second)
+
     rows =
       rows
       |> Enum.reverse()
       |> Enum.uniq_by(fn r -> {r.from_id, r.to_id, r.edge_type} end)
       |> Enum.take(max)
       |> Enum.with_index()
-      |> Enum.map(fn {r, i} -> Map.put(r, :ordinal, i) end)
-
-    kept =
-      Enum.count(rows, fn attrs ->
-        match?(
-          {:ok, _},
-          %LinkEdge{} |> LinkEdge.changeset(Map.put(attrs, :link_id, link.id)) |> Repo.insert()
-        )
+      |> Enum.map(fn {r, i} ->
+        Map.merge(r, %{ordinal: i, link_id: link.id, inserted_at: now, updated_at: now})
       end)
+
+    # every row has already been checked against the two graphs, so this is
+    # one statement rather than a changeset and a round trip per edge; an
+    # edge the link already holds is skipped, as the unique index said before
+    {kept, _} = Repo.insert_all(LinkEdge, rows, on_conflict: :nothing)
 
     {kept, dropped}
   end

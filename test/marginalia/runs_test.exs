@@ -161,4 +161,16 @@ defmodule Marginalia.RunsTest do
     send(worker, {:finish, {:error, :not_read}})
     assert_receive {:run, :done, :compose, {:error, :not_read}}
   end
+
+  test "a forgotten run finishing does not end the run that replaced it", %{key: key} do
+    Runs.subscribe(key)
+    old = held(key, :read)
+    :ok = Runs.forget(key)
+
+    _new = held(key, :compose)
+    send(old, {:finish, :old})
+
+    refute_receive {:run, :done, _, :old}, 200
+    assert %{kind: :compose} = Runs.get(key)
+  end
 end
