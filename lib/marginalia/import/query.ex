@@ -279,13 +279,12 @@ defmodule Marginalia.Import.Query do
       [_, sign, n, unit] ->
         n = String.to_integer(n) * if(sign == "-", do: -1, else: 1)
 
-        {:ok,
-         case unit do
-           "d" -> Date.add(today, n)
-           "w" -> Date.add(today, n * 7)
-           "m" -> shift_months(today, n)
-           "y" -> shift_months(today, n * 12)
-         end}
+        case unit do
+          "d" -> add_days(today, n)
+          "w" -> add_days(today, n * 7)
+          "m" -> shift_months(today, n)
+          "y" -> shift_months(today, n * 12)
+        end
 
       _ ->
         :error
@@ -299,13 +298,29 @@ defmodule Marginalia.Import.Query do
     end
   end
 
+  # Somebody typing @today-99999999y is asking for a date the calendar does
+  # not have. That is a query that matches nothing, not a crashed page, so
+  # both of these answer :error outside years 0..9999 rather than raising.
+  @years 0..9999
+
+  defp add_days(date, n) do
+    days = Date.to_gregorian_days(date) + n
+
+    if days in Date.to_gregorian_days(~D[0000-01-01])..Date.to_gregorian_days(~D[9999-12-31]),
+      do: {:ok, Date.add(date, n)},
+      else: :error
+  end
+
   # Calendar months, clamped: "@today-1m" on the 31st of March is the 28th of
   # February, not an error and not the 3rd of March.
   defp shift_months(date, n) do
     months = date.year * 12 + (date.month - 1) + n
-    year = div(months, 12)
-    month = rem(months, 12) + 1
-    Date.new!(year, month, min(date.day, :calendar.last_day_of_the_month(year, month)))
+    year = Integer.floor_div(months, 12)
+    month = Integer.mod(months, 12) + 1
+
+    if year in @years,
+      do: Date.new(year, month, min(date.day, :calendar.last_day_of_the_month(year, month))),
+      else: :error
   end
 
   # --- matching -------------------------------------------------------------

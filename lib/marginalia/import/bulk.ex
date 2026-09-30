@@ -68,10 +68,12 @@ defmodule Marginalia.Import.Bulk do
     have = titles_in(folder)
     total = length(docs)
 
-    {created, skipped, failed} =
+    # `have` grows as the batch lands: two documents with one title in the
+    # same batch are the same duplicate as one already in the folder
+    {created, skipped, failed, _have} =
       docs
       |> Enum.with_index(1)
-      |> Enum.reduce({[], [], []}, fn {doc, i}, {made, dup, bad} ->
+      |> Enum.reduce({[], [], [], have}, fn {doc, i}, {made, dup, bad, have} ->
         title = title_for(doc, i, opts[:number])
 
         result =
@@ -82,13 +84,18 @@ defmodule Marginalia.Import.Bulk do
         if is_function(opts[:on_item]), do: opts[:on_item].(title, i, total)
 
         case result do
-          :skipped -> {made, dup ++ [title], bad}
-          {:ok, work} -> {made ++ [work], dup, bad}
-          {:error, reason} -> {made, dup, bad ++ [{title, reason}]}
+          :skipped -> {made, [title | dup], bad, have}
+          {:ok, work} -> {[work | made], dup, bad, MapSet.put(have, title)}
+          {:error, reason} -> {made, dup, [{title, reason} | bad], have}
         end
       end)
 
-    %{folder: folder, created: created, skipped: skipped, failed: failed}
+    %{
+      folder: folder,
+      created: Enum.reverse(created),
+      skipped: Enum.reverse(skipped),
+      failed: Enum.reverse(failed)
+    }
   end
 
   defp create(user_id, folder, doc, title) do

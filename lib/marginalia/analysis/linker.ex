@@ -242,7 +242,17 @@ defmodule Marginalia.Analysis.Linker do
 
   defp side(work, nodes) do
     sections = Works.list_sections(work.id) |> Map.new(&{&1.id, &1})
-    by_type = Enum.group_by(nodes, & &1.node_type)
+
+    by_type =
+      nodes
+      |> Enum.group_by(& &1.node_type)
+      # A beat's ordinal counts from zero within its own section, so the
+      # nodes arrive as every section's first beat, then every second one.
+      # The prompt says "in document order" and asks the model to walk A's
+      # beats in order; that has to be true of what it is given.
+      |> Map.update("beat", [], fn beats ->
+        Enum.sort_by(beats, &{section_ordinal(&1, sections), &1.ordinal, &1.id})
+      end)
 
     ["beat", "spine", "thread", "question"]
     |> Enum.map_join("\n", fn type ->
@@ -251,6 +261,13 @@ defmodule Marginalia.Analysis.Linker do
         list -> "\n## #{label(type)}\n" <> Enum.map_join(list, "\n", &line(&1, sections))
       end
     end)
+  end
+
+  defp section_ordinal(%{section_id: id}, sections) do
+    case sections[id] do
+      nil -> 0
+      section -> section.ordinal
+    end
   end
 
   defp label("beat"), do: "Beats, in document order"

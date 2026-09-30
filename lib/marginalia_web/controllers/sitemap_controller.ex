@@ -23,8 +23,11 @@ defmodule MarginaliaWeb.SitemapController do
   end
 
   defp build do
+    # Not /works/new: robots.txt disallows /works/, and that page mints a
+    # guest account for every visitor, so every crawler sent there by the
+    # sitemap became a row in `users`.
     urls =
-      ["/", "/cases", "/drafts", "/linked", "/reading", "/works/new"] ++
+      ["/", "/cases", "/drafts", "/linked", "/reading"] ++
         case_urls() ++ draft_urls() ++ link_urls() ++ reading_urls()
 
     body =

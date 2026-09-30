@@ -49,6 +49,14 @@ defmodule Marginalia.ImportBulkTest do
     assert length(Works.list_works(user.id)) == 3
   end
 
+  test "the same title twice in one batch lands once", %{user: user} do
+    out = Bulk.land(user.id, [doc("One"), doc("One"), doc("Two")], folder: "Pile")
+
+    assert Enum.map(out.created, & &1.title) == ["One", "Two"]
+    assert out.skipped == ["One"]
+    assert length(Works.list_works(user.id)) == 2
+  end
+
   test "the same title in a different folder is a different document", %{user: user} do
     Bulk.land(user.id, [doc("One")], folder: "Pile")
     other = Bulk.land(user.id, [doc("One")], folder: "Other pile")

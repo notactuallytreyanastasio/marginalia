@@ -122,6 +122,12 @@ defmodule Marginalia.ImportQueryTest do
       assert Query.date("@today-3fortnights") == :error
     end
 
+    test "an offset past the end of the calendar is not a date, and does not raise" do
+      assert Query.date("@today-99999999y") == :error
+      assert Query.date("@today+99999999d") == :error
+      assert Query.date("@today-3000y", ~D[2025-08-05]) == :error
+    end
+
     test "a date that will not parse is named in the error" do
       assert {:error, why} = Query.filter([], "created:>yesterday")
       assert why =~ "yesterday"

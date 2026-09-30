@@ -41,6 +41,11 @@ defmodule MarginaliaWeb.SitemapTest do
     end
   end
 
+  test "it does not send crawlers where robots.txt tells them not to go", %{conn: conn} do
+    # /works/new is under the Disallow, and it mints a guest per visit
+    refute fetch(conn) =~ "/works/new"
+  end
+
   test "the owner's drafts are in it", %{conn: conn, mine: mine} do
     assert fetch(conn) =~ "/drafts/#{mine.slug}</loc>"
   end
