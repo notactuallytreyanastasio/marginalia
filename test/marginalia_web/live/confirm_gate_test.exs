@@ -98,4 +98,17 @@ defmodule MarginaliaWeb.ConfirmGateTest do
 
     refute html =~ "Read it —"
   end
+
+  test "a visitor holding the link cannot touch the owner's conversations", %{make: make} do
+    w = make.(2)
+    {:ok, convo} = Marginalia.Chat.get_or_create_conversation(w.id)
+    {:ok, view, _html} = live(build_conn(), ~p"/works/#{w.slug}")
+
+    render_click(view, "delete_chat", %{"id" => to_string(convo.id)})
+    render_click(view, "new_chat", %{})
+    render_click(view, "open_thread", %{"ref" => "b-1", "section" => "1", "quote" => "x"})
+
+    assert Marginalia.Repo.reload(convo)
+    assert [_] = Marginalia.Chat.list_conversations(w.id)
+  end
 end

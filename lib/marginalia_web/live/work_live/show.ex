@@ -9,6 +9,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
   """
   use MarginaliaWeb, :live_view
 
+  @owner_only ~w(build_graph start_read send set_mode set_provider new_chat delete_chat resolve_thread)
+
   alias Marginalia.{Works, Analysis, Chat, Accounts, Graph, Runs, Walkthrough, Links}
   alias Marginalia.Analysis.DecisionGraph
   alias Marginalia.Chat.Editor
@@ -297,6 +299,38 @@ defmodule MarginaliaWeb.WorkLive.Show do
   # ==========================================================================
 
   @impl true
+  # These spend model credit or write rows that belong to the draft's owner.
+  # Holding the link is permission to read, not to act, so each one is
+  # checked here, ahead of every other clause, rather than only hidden in
+  # the template — a crafted event from a visitor would otherwise run it.
+  def handle_event(event, _params, %{assigns: %{mine?: false}} = socket)
+      when event in @owner_only do
+    {:noreply,
+     put_flash(socket, :error, "This draft is someone else's. You can read it, not change it.")}
+  end
+
+  # For the owner, opening a thread creates it or narrows the quote of the
+  # one that is there. A visitor may read a thread that exists and nothing
+  # more. (The walkthrough's threads are made up and touch nothing.)
+  def handle_event(
+        "open_thread",
+        %{"ref" => ref},
+        %{assigns: %{mine?: false, demo: false}} = socket
+      ) do
+    case Chat.thread_at(socket.assigns.work.id, ref) do
+      nil ->
+        {:noreply, socket}
+
+      thread ->
+        {:noreply,
+         assign(socket,
+           open_thread: thread,
+           thread_history: Chat.history(thread.id),
+           thread_loading: false
+         )}
+    end
+  end
+
   def handle_event("set_view", %{"view" => v}, socket) do
     socket = assign(socket, view: to_view(v))
     {:noreply, push_patch(socket, to: path(socket), replace: true)}
@@ -906,16 +940,6 @@ defmodule MarginaliaWeb.WorkLive.Show do
   def handle_event("toggle_chat", _params, socket) do
     socket = assign(socket, chat_open: !socket.assigns.chat_open)
     {:noreply, push_patch(socket, to: path(socket), replace: true)}
-  end
-
-  # Everything below this line either spends model credit or changes the
-  # draft. Holding the link is permission to read, not to act, so each one is
-  # checked here rather than only hidden in the template — a crafted event
-  # from a visitor would otherwise run it anyway.
-  def handle_event(event, _params, %{assigns: %{mine?: false}} = socket)
-      when event in ~w(build_graph start_read send set_mode set_provider) do
-    {:noreply,
-     put_flash(socket, :error, "This draft is someone else's. You can read it, not change it.")}
   end
 
   def handle_event("build_graph", _params, socket) do

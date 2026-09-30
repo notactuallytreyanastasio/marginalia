@@ -222,6 +222,10 @@ defmodule Marginalia.Chat do
   conversation already there rather than starting a second one beside it —
   a margin that forgets what was said in it last week is just a text box.
   """
+  @doc "The thread already pinned to a paragraph, or nil. Creates nothing."
+  def thread_at(work_id, block_ref),
+    do: Repo.get_by(Conversation, work_id: work_id, block_ref: block_ref)
+
   def thread_for_block(work_id, section_id, block_ref, opts \\ []) do
     case Repo.get_by(Conversation, work_id: work_id, block_ref: block_ref) do
       nil ->
