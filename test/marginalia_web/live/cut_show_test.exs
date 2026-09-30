@@ -5,7 +5,6 @@ defmodule MarginaliaWeb.CutShowTest do
   """
   use MarginaliaWeb.ConnCase, async: false
 
-  import Phoenix.LiveViewTest
   import Marginalia.AccountsFixtures
 
   alias Marginalia.{Cuts, Folders, Works}
