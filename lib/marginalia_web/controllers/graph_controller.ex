@@ -12,7 +12,10 @@ defmodule MarginaliaWeb.GraphController do
     with_work(conn, id, fn work ->
       conn
       |> put_resp_content_type("application/json")
-      |> put_resp_header("content-disposition", ~s(attachment; filename="#{slug(work)}-graph.json"))
+      |> put_resp_header(
+        "content-disposition",
+        ~s(attachment; filename="#{slug(work)}-graph.json")
+      )
       |> send_resp(200, Graph.to_json(work))
     end)
   end
@@ -21,7 +24,10 @@ defmodule MarginaliaWeb.GraphController do
     with_work(conn, id, fn work ->
       conn
       |> put_resp_content_type("text/vnd.graphviz")
-      |> put_resp_header("content-disposition", ~s(attachment; filename="#{slug(work)}-graph.dot"))
+      |> put_resp_header(
+        "content-disposition",
+        ~s(attachment; filename="#{slug(work)}-graph.dot")
+      )
       |> send_resp(200, Graph.to_dot(work))
     end)
   end
@@ -58,7 +64,10 @@ defmodule MarginaliaWeb.GraphController do
 
       conn
       |> put_resp_content_type("application/json")
-      |> put_resp_header("content-disposition", ~s(attachment; filename="#{slug(work)}-trace.json"))
+      |> put_resp_header(
+        "content-disposition",
+        ~s(attachment; filename="#{slug(work)}-trace.json")
+      )
       |> send_resp(200, body)
     end)
   end

@@ -20,7 +20,11 @@ defmodule Marginalia.ImportBulkTest do
   end
 
   defp doc(title, body \\ nil) do
-    %{title: title, body: body || "# #{title}\n\n" <> String.duplicate("word ", 80), source_url: nil}
+    %{
+      title: title,
+      body: body || "# #{title}\n\n" <> String.duplicate("word ", 80),
+      source_url: nil
+    }
   end
 
   test "each document becomes a draft in the folder", %{user: user} do

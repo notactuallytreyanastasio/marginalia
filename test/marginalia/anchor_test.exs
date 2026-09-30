@@ -31,17 +31,26 @@ defmodule Marginalia.Analysis.AnchorTest do
     test "the same words in a different order are rejected" do
       # the old matcher scored set membership over a sliding window, which is
       # order-blind, so a rearranged sentence anchored
-      assert :error = Anchor.verify("the freezer she kept them in which she never explained", @para)
+      assert :error =
+               Anchor.verify("the freezer she kept them in which she never explained", @para)
     end
 
     test "a deleted negation is rejected" do
       # the worst case: this used to anchor AND return a span still containing
       # "never", storing the opposite of what the model claimed
-      assert :error = Anchor.verify("which she explained to anyone, and by then it hardly mattered", @para)
+      assert :error =
+               Anchor.verify(
+                 "which she explained to anyone, and by then it hardly mattered",
+                 @para
+               )
     end
 
     test "a dropped word is rejected" do
-      assert :error = Anchor.verify("had been standing at window for an hour before anyone noticed", @source)
+      assert :error =
+               Anchor.verify(
+                 "had been standing at window for an hour before anyone noticed",
+                 @source
+               )
     end
 
     test "a substituted word is rejected" do
@@ -50,7 +59,10 @@ defmodule Marginalia.Analysis.AnchorTest do
 
     test "but typography and line wrapping are still absorbed" do
       wrapped = "She kept them in the\nfreezer, which she never\nexplained to anyone."
-      assert {:ok, span} = Anchor.verify("She kept them in the freezer, which she never explained", wrapped)
+
+      assert {:ok, span} =
+               Anchor.verify("She kept them in the freezer, which she never explained", wrapped)
+
       assert String.contains?(wrapped, span)
     end
   end

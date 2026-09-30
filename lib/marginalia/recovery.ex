@@ -23,6 +23,21 @@ defmodule Marginalia.Recovery do
 
   @note "interrupted by a restart"
 
+  @doc false
+  # A child of the application supervisor that does its work in start_link
+  # and then declines to be a process. The supervisor starts children in
+  # order and waits for each, so the sweep is finished before the Endpoint
+  # after it accepts a connection.
+  def child_spec(_arg) do
+    %{id: __MODULE__, start: {__MODULE__, :start_link, []}, restart: :temporary}
+  end
+
+  @doc false
+  def start_link do
+    sweep()
+    :ignore
+  end
+
   @doc "Called on boot, before anything can be served."
   def sweep do
     links = reset(Links.Link, "linking", %{status: "failed", error: @note})

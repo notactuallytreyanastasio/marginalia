@@ -24,7 +24,6 @@ defmodule Marginalia.Analysis do
 
   def topic(work_id), do: "work:#{work_id}"
 
-
   defp broadcast(work_id, msg),
     do: Phoenix.PubSub.broadcast(Marginalia.PubSub, topic(work_id), msg)
 
@@ -128,9 +127,19 @@ defmodule Marginalia.Analysis do
             "items" => %{
               "type" => "object",
               "properties" => %{
-                "title" => %{"type" => "string", "description" => "The move, as something the writer does. Under 90 characters."},
-                "note" => %{"type" => "string", "description" => "What it does to a reader, and what it sets up or pays off."},
-                "quote" => %{"type" => "string", "description" => "8 to 40 words, verbatim from the section. Verified server-side."}
+                "title" => %{
+                  "type" => "string",
+                  "description" => "The move, as something the writer does. Under 90 characters."
+                },
+                "note" => %{
+                  "type" => "string",
+                  "description" => "What it does to a reader, and what it sets up or pays off."
+                },
+                "quote" => %{
+                  "type" => "string",
+                  "description" =>
+                    "8 to 40 words, verbatim from the section. Verified server-side."
+                }
               },
               "required" => ["title", "note", "quote"]
             }
@@ -237,7 +246,9 @@ defmodule Marginalia.Analysis do
     kept = thin(kept, ceiling, section.id)
 
     if dropped > 0 do
-      Logger.info("marginalia: dropped #{dropped}/#{length(candidates)} unanchored beats in section #{section.id}")
+      Logger.info(
+        "marginalia: dropped #{dropped}/#{length(candidates)} unanchored beats in section #{section.id}"
+      )
     end
 
     nodes = Works.insert_nodes(work.id, section.id, kept)

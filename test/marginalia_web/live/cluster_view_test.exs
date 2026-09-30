@@ -51,7 +51,7 @@ defmodule MarginaliaWeb.ClusterViewTest do
     assert html =~ ~r{href="/links/\d+"}
   end
 
-  test "a lone pair is not drawn — there is no shape to show", %{conn: conn} do
+  test "a lone pair is not drawn — there is no shape to show", %{conn: _conn} do
     Marginalia.Repo.delete_all(Marginalia.Links.Link)
     user = user_fixture()
 

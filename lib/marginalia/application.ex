@@ -16,8 +16,11 @@ defmodule Marginalia.Application do
       Marginalia.Cache,
       # work that has to outlive the page that started it
       Marginalia.Runs,
-      # Start a worker by calling: Marginalia.Worker.start_link(arg)
-      # {Marginalia.Worker, arg},
+      # anything that was mid-read or mid-link when this release last stopped
+      # has no process behind it any more. Runs once, after the Repo and
+      # before the Endpoint, so no page is served a row still claiming to be
+      # in flight. See Marginalia.Recovery.
+      Marginalia.Recovery,
       # Start to serve requests, typically the last entry
       MarginaliaWeb.Endpoint
     ]
@@ -25,13 +28,7 @@ defmodule Marginalia.Application do
     # See https://elixir.hexdocs.pm/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Marginalia.Supervisor]
-    started = Supervisor.start_link(children, opts)
-
-    # anything that was mid-read or mid-link when this release last stopped
-    # has no process behind it any more — see Marginalia.Recovery
-    if started != :ignore, do: Marginalia.Recovery.sweep()
-
-    started
+    Supervisor.start_link(children, opts)
   end
 
   # Tell Phoenix to update the endpoint configuration

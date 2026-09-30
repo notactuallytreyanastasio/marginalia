@@ -80,8 +80,14 @@ defmodule MarginaliaWeb.DrawerTest do
       assert remaining.id == a.id
     end
 
-    test "a thread from another draft cannot be switched to", %{conn: conn, work: work, user: user} do
-      {:ok, other} = Works.create_work(user.id, %{"title" => "Other", "body" => String.duplicate("w ", 300)})
+    test "a thread from another draft cannot be switched to", %{
+      conn: conn,
+      work: work,
+      user: user
+    } do
+      {:ok, other} =
+        Works.create_work(user.id, %{"title" => "Other", "body" => String.duplicate("w ", 300)})
+
       {:ok, theirs} = Chat.get_or_create_conversation(other.id)
 
       {:ok, view, _} = live(conn, ~p"/works/#{work.slug}?chat=1")
@@ -95,7 +101,8 @@ defmodule MarginaliaWeb.DrawerTest do
     test "a real selection is kept, verbatim from the draft", %{conn: conn, work: work} do
       {:ok, view, _} = live(conn, ~p"/works/#{work.slug}?chat=1")
 
-      html = render_click(view, "add_context", %{"text" => "  The kettle went cold on the counter "})
+      html =
+        render_click(view, "add_context", %{"text" => "  The kettle went cold on the counter "})
 
       assert html =~ "Carrying 1 passage"
       assert html =~ "The kettle went cold on the counter"

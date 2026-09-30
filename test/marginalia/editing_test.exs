@@ -42,7 +42,11 @@ defmodule Marginalia.EditingTest do
 
   test "an edit lands in the section and in the work", %{work: work, section: section} do
     {:ok, %{section: updated}} =
-      Works.replace_block(section, "The kettle went cold on the counter.", "The kettle went stone cold.")
+      Works.replace_block(
+        section,
+        "The kettle went cold on the counter.",
+        "The kettle went stone cold."
+      )
 
     assert updated.body =~ "stone cold"
     refute updated.body =~ "went cold on the counter"
@@ -54,7 +58,11 @@ defmodule Marginalia.EditingTest do
   test "a note about the line you changed is superseded, not deleted",
        %{work: work, section: section, kettle: kettle, window: window} do
     {:ok, %{superseded: n}} =
-      Works.replace_block(section, "The kettle went cold on the counter.", "The kettle went stone cold.")
+      Works.replace_block(
+        section,
+        "The kettle went cold on the counter.",
+        "The kettle went stone cold."
+      )
 
     assert n == 1
     assert Works.get_node(work.id, kettle.id).status == "superseded"
@@ -64,7 +72,11 @@ defmodule Marginalia.EditingTest do
     assert Works.get_node(work.id, window.id).status == "pending"
   end
 
-  test "a note still anchored after the edit survives it", %{work: work, section: section, kettle: k} do
+  test "a note still anchored after the edit survives it", %{
+    work: work,
+    section: section,
+    kettle: k
+  } do
     # the quoted sentence is still there, with words added around it
     {:ok, %{superseded: n}} =
       Works.replace_block(
@@ -79,14 +91,17 @@ defmodule Marginalia.EditingTest do
 
   test "section boundaries do not move", %{work: work, section: section} do
     before = length(Works.list_sections(work.id))
-    {:ok, _} = Works.replace_block(section, "She stood at the window for an hour.", "She stood there.")
+
+    {:ok, _} =
+      Works.replace_block(section, "She stood at the window for an hour.", "She stood there.")
 
     assert length(Works.list_sections(work.id)) == before
     assert hd(Works.list_sections(work.id)).id == section.id
   end
 
   test "emptying a paragraph is refused", %{section: section} do
-    assert {:error, :empty} = Works.replace_block(section, "The kettle went cold on the counter.", "   ")
+    assert {:error, :empty} =
+             Works.replace_block(section, "The kettle went cold on the counter.", "   ")
   end
 
   test "an edit against a paragraph that has moved is refused", %{section: section} do

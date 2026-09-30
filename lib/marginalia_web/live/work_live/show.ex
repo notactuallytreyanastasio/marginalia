@@ -1423,7 +1423,11 @@ defmodule MarginaliaWeb.WorkLive.Show do
               phx-click="toggle_chat"
             >Talk about it</button>
             <%= if @owner? and length(@backends) > 1 do %>
-              <form phx-change="set_provider" class="inline-flex items-baseline gap-1.5">
+              <form
+                id="provider-form"
+                phx-change="set_provider"
+                class="inline-flex items-baseline gap-1.5"
+              >
                 <span class="mg-label">backend</span>
                 <select
                   name="provider"

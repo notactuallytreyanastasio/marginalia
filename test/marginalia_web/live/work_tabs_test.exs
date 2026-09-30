@@ -29,7 +29,12 @@ defmodule MarginaliaWeb.WorkTabsTest do
     {:ok, work} = Works.set_status(work, "read")
 
     {:ok, _} =
-      Works.insert_node(%{work_id: work.id, node_type: "beat", title: "a beat here", narrative: "n"})
+      Works.insert_node(%{
+        work_id: work.id,
+        node_type: "beat",
+        title: "a beat here",
+        narrative: "n"
+      })
 
     %{conn: log_in_user(conn, user), work: work}
   end

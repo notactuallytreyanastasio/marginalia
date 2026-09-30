@@ -119,8 +119,8 @@ defmodule MarginaliaWeb.CaseLive.Index do
           <span class="mg-label">for instance</span>
           <p class="q">{@opener.edge.rationale}</p>
           <p class="src">
-            one of <b>{@opener.count}</b> places the documents in
-            <em>{@opener.case.name}</em>
+            one of <b>{@opener.count}</b>
+            places the documents in <em>{@opener.case.name}</em>
             pull against each other —
             <.link navigate={~p"/cases/#{@opener.case.slug}/read"}>read it →</.link>
           </p>
@@ -346,7 +346,8 @@ defmodule MarginaliaWeb.CaseLive.Index do
 
   # The description is the corpus, not a claim about it: whoever pastes
   # this link gets the size of the thing and what it does with it.
-  defp description([]), do: "Supreme Court cases, read document by document and related to each other."
+  defp description([]),
+    do: "Supreme Court cases, read document by document and related to each other."
 
   defp description(cases) do
     docs = cases |> Enum.map(&length(&1.works)) |> Enum.sum()

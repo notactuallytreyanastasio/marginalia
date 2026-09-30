@@ -14,7 +14,6 @@ defmodule MarginaliaWeb.UserLive.LoginTest do
     end
   end
 
-
   describe "user login - password" do
     test "redirects if user logs in with valid credentials", %{conn: conn} do
       user = user_fixture() |> set_password()

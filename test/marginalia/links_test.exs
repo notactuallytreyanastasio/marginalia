@@ -298,7 +298,8 @@ defmodule Marginalia.LinksTest do
       # Six sequential replaces meant a title inserted early was ordinary
       # English by the time a later pass read it, and "A page" inside it got
       # substituted again. One pass resumes after the match it just made.
-      assert out == "2. The backend scaffold answers 1. A page with no script on it's open question."
+      assert out ==
+               "2. The backend scaffold answers 1. A page with no script on it's open question."
 
       refute out =~ "1. 1.", "the title was spliced through itself"
     end

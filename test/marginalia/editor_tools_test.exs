@@ -57,7 +57,9 @@ defmodule Marginalia.Chat.EditorToolsTest do
 
   describe "record_correction" do
     test "a misread is stored and comes back from recall", %{work: work} do
-      out = call(work, "record_correction", %{"kind" => "misread", "about" => "Del leaves in ch 3"})
+      out =
+        call(work, "record_correction", %{"kind" => "misread", "about" => "Del leaves in ch 3"})
+
       assert out["recorded"] == "misread"
 
       recalled = call(work, "recall_sessions", %{})

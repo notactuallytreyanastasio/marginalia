@@ -27,6 +27,7 @@ defmodule Marginalia.Release do
     Application.ensure_all_started(:ssl)
     Application.ensure_loaded(@app)
   end
+
   @doc """
   Grant admin to a user by email.
 
@@ -38,15 +39,17 @@ defmodule Marginalia.Release do
   """
   def make_admin(email) do
     load_app()
-    {:ok, _, _} = Ecto.Migrator.with_repo(Marginalia.Repo, fn _repo ->
-      case Marginalia.Repo.get_by(Marginalia.Accounts.User, email: email) do
-        nil ->
-          IO.puts("no user with that email")
 
-        user ->
-          user |> Ecto.Changeset.change(is_admin: true) |> Marginalia.Repo.update!()
-          IO.puts("#{email} is now an admin")
-      end
-    end)
+    {:ok, _, _} =
+      Ecto.Migrator.with_repo(Marginalia.Repo, fn _repo ->
+        case Marginalia.Repo.get_by(Marginalia.Accounts.User, email: email) do
+          nil ->
+            IO.puts("no user with that email")
+
+          user ->
+            user |> Ecto.Changeset.change(is_admin: true) |> Marginalia.Repo.update!()
+            IO.puts("#{email} is now an admin")
+        end
+      end)
   end
 end

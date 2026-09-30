@@ -58,7 +58,10 @@ defmodule Marginalia.Analysis.DecisionGraphTest do
       assert st.nodes == %{}, "the node must not be stored"
     end
 
-    test "a real quote is accepted and rewritten to the source's wording", %{work: w, section: sec} do
+    test "a real quote is accepted and rewritten to the source's wording", %{
+      work: w,
+      section: sec
+    } do
       {result, st} =
         call(state(w, sec), "add_node", %{
           "type" => "observation",
@@ -75,7 +78,11 @@ defmodule Marginalia.Analysis.DecisionGraphTest do
 
     test "a structural node may omit a quote", %{work: w, section: sec} do
       {result, _st} =
-        call(state(w, sec), "add_node", %{"type" => "goal", "title" => "the goal", "narrative" => "n"})
+        call(state(w, sec), "add_node", %{
+          "type" => "goal",
+          "title" => "the goal",
+          "narrative" => "n"
+        })
 
       assert result["id"]
     end
@@ -84,10 +91,19 @@ defmodule Marginalia.Analysis.DecisionGraphTest do
   describe "the flow rule is enforced, not requested" do
     setup %{work: w, section: sec} do
       st = state(w, sec)
-      {%{"id" => goal}, st} = call(st, "add_node", %{"type" => "goal", "title" => "g", "narrative" => "n"})
-      {%{"id" => opt}, st} = call(st, "add_node", %{"type" => "option", "title" => "o", "narrative" => "n"})
-      {%{"id" => dec}, st} = call(st, "add_node", %{"type" => "decision", "title" => "d", "narrative" => "n"})
-      {%{"id" => act}, st} = call(st, "add_node", %{"type" => "action", "title" => "a", "narrative" => "n"})
+
+      {%{"id" => goal}, st} =
+        call(st, "add_node", %{"type" => "goal", "title" => "g", "narrative" => "n"})
+
+      {%{"id" => opt}, st} =
+        call(st, "add_node", %{"type" => "option", "title" => "o", "narrative" => "n"})
+
+      {%{"id" => dec}, st} =
+        call(st, "add_node", %{"type" => "decision", "title" => "d", "narrative" => "n"})
+
+      {%{"id" => act}, st} =
+        call(st, "add_node", %{"type" => "action", "title" => "a", "narrative" => "n"})
+
       %{st: st, goal: goal, opt: opt, dec: dec, act: act}
     end
 
@@ -97,14 +113,24 @@ defmodule Marginalia.Analysis.DecisionGraphTest do
       assert result["error"] =~ "options"
     end
 
-    test "goal -> option -> decision -> action is allowed", %{st: st, goal: g, opt: o, dec: d, act: a} do
+    test "goal -> option -> decision -> action is allowed", %{
+      st: st,
+      goal: g,
+      opt: o,
+      dec: d,
+      act: a
+    } do
       for {from, to} <- [{g, o}, {o, d}, {d, a}] do
         {result, _} = call(st, "link", %{"from" => from, "to" => to})
         assert result["linked"], "expected #{from} -> #{to} to be allowed, got #{inspect(result)}"
       end
     end
 
-    test "a step that is not in the flow is refused and the legal ones named", %{st: st, act: a, opt: o} do
+    test "a step that is not in the flow is refused and the legal ones named", %{
+      st: st,
+      act: a,
+      opt: o
+    } do
       {result, _} = call(st, "link", %{"from" => a, "to" => o})
       assert result["error"] =~ "not a step in goal -> option -> decision"
       assert is_list(result["allowed"])
@@ -118,7 +144,9 @@ defmodule Marginalia.Analysis.DecisionGraphTest do
 
   test "an option can be marked chosen or rejected", %{work: w, section: sec} do
     st = state(w, sec)
-    {%{"id" => opt}, st} = call(st, "add_node", %{"type" => "option", "title" => "o", "narrative" => "n"})
+
+    {%{"id" => opt}, st} =
+      call(st, "add_node", %{"type" => "option", "title" => "o", "narrative" => "n"})
 
     {result, _} = call(st, "set_status", %{"id" => opt, "status" => "rejected"})
     assert result["ok"]
@@ -199,7 +227,6 @@ defmodule Marginalia.Analysis.DecisionGraphTest do
     end
   end
 
-
   describe "malformed tool calls" do
     setup %{work: work, section: section} do
       %{state: state(work, section)}
@@ -233,7 +260,6 @@ defmodule Marginalia.Analysis.DecisionGraphTest do
     end
   end
 
-
   describe "refusals are actionable" do
     setup %{work: work, section: section} do
       %{state: state(work, section)}
@@ -254,7 +280,12 @@ defmodule Marginalia.Analysis.DecisionGraphTest do
     end
 
     test "re-sending a refused call verbatim is called out, not re-run", %{state: state} do
-      bad = %{"type" => "action", "title" => "X", "narrative" => "n", "quote" => "not in the draft at all"}
+      bad = %{
+        "type" => "action",
+        "title" => "X",
+        "narrative" => "n",
+        "quote" => "not in the draft at all"
+      }
 
       {first, state} = call(state, "add_node", bad)
       assert first["error"] =~ "character for character"
@@ -266,7 +297,12 @@ defmodule Marginalia.Analysis.DecisionGraphTest do
 
     test "a different call after a refusal still runs", %{work: work, state: state} do
       {_, state} =
-        call(state, "add_node", %{"type" => "action", "title" => "X", "narrative" => "n", "quote" => "nope nope nope"})
+        call(state, "add_node", %{
+          "type" => "action",
+          "title" => "X",
+          "narrative" => "n",
+          "quote" => "nope nope nope"
+        })
 
       {ok, _} =
         call(state, "add_node", %{
@@ -281,18 +317,31 @@ defmodule Marginalia.Analysis.DecisionGraphTest do
     end
   end
 
-
   describe "rebuilding replaces rather than stacks" do
-    test "the previous decision graph is cleared, the read is not", %{work: work, section: section} do
+    test "the previous decision graph is cleared, the read is not", %{
+      work: work,
+      section: section
+    } do
       st = state(work, section)
 
       # a read, and a decision graph built on top of it
       {:ok, beat} =
-        Works.insert_node(%{work_id: work.id, section_id: section.id, node_type: "beat", title: "a beat"})
+        Works.insert_node(%{
+          work_id: work.id,
+          section_id: section.id,
+          node_type: "beat",
+          title: "a beat"
+        })
 
-      {:ok, spine} = Works.insert_node(%{work_id: work.id, node_type: "spine", title: "the trunk"})
-      {%{"id" => goal}, st} = call(st, "add_node", %{"type" => "goal", "title" => "G", "narrative" => "n"})
-      {%{"id" => opt}, st} = call(st, "add_node", %{"type" => "option", "title" => "O", "narrative" => "n"})
+      {:ok, spine} =
+        Works.insert_node(%{work_id: work.id, node_type: "spine", title: "the trunk"})
+
+      {%{"id" => goal}, st} =
+        call(st, "add_node", %{"type" => "goal", "title" => "G", "narrative" => "n"})
+
+      {%{"id" => opt}, st} =
+        call(st, "add_node", %{"type" => "option", "title" => "O", "narrative" => "n"})
+
       {_, _} = call(st, "link", %{"from" => goal, "to" => opt})
       Works.link(work.id, beat.id, spine.id, "realises", 0, "why")
 
@@ -315,8 +364,13 @@ defmodule Marginalia.Analysis.DecisionGraphTest do
     test "a node from an earlier narrative can be linked to", %{work: work, section: section} do
       # narrative one
       st = state(work, section)
+
       {%{"id" => first}, st} =
-        call(st, "add_node", %{"type" => "outcome", "title" => "Where one ended", "narrative" => "one"})
+        call(st, "add_node", %{
+          "type" => "outcome",
+          "title" => "Where one ended",
+          "narrative" => "one"
+        })
 
       carried = st.nodes
 
@@ -324,7 +378,11 @@ defmodule Marginalia.Analysis.DecisionGraphTest do
       st2 = %{state(work, section) | narrative: "two", nodes: carried}
 
       {%{"id" => second}, st2} =
-        call(st2, "add_node", %{"type" => "observation", "title" => "What two noticed", "narrative" => "two"})
+        call(st2, "add_node", %{
+          "type" => "observation",
+          "title" => "What two noticed",
+          "narrative" => "two"
+        })
 
       {result, _} =
         call(st2, "link", %{"from" => first, "to" => second, "rationale" => "one caused two"})
@@ -335,7 +393,9 @@ defmodule Marginalia.Analysis.DecisionGraphTest do
     test "an id from no narrative at all is still refused, and says what is known",
          %{work: work, section: section} do
       st = state(work, section)
-      {%{"id" => a}, st} = call(st, "add_node", %{"type" => "goal", "title" => "G", "narrative" => "n"})
+
+      {%{"id" => a}, st} =
+        call(st, "add_node", %{"type" => "goal", "title" => "G", "narrative" => "n"})
 
       {result, _} = call(st, "link", %{"from" => a, "to" => 999_999})
       assert result["error"] =~ "unknown node id"
@@ -343,5 +403,4 @@ defmodule Marginalia.Analysis.DecisionGraphTest do
       assert Works.list_edges(work.id) == []
     end
   end
-
 end

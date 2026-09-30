@@ -171,7 +171,6 @@ defmodule Marginalia.Chat do
     end
   end
 
-
   # ==========================================================================
   # The quota
   # ==========================================================================
@@ -211,7 +210,6 @@ defmodule Marginalia.Chat do
 
   @doc "Whether this account may ask another question."
   def allowed?(user), do: remaining(user) != 0
-
 
   # ==========================================================================
   # Threads pinned to a place in the draft
@@ -278,5 +276,4 @@ defmodule Marginalia.Chat do
     |> limit(30)
     |> Repo.all()
   end
-
 end

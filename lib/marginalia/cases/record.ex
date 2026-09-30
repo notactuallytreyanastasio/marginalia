@@ -42,8 +42,8 @@ defmodule Marginalia.Cases.Record do
       decided: "June 29, 2026",
       question:
         "Whether a geofence warrant compelling Google to disclose the " <>
-        "Location History of every device in an area is a Fourth Amendment " <>
-        "search."
+          "Location History of every device in an area is a Fourth Amendment " <>
+          "search."
     },
     "Cisco Systems v. Doe" => %{
       docket: "No. 24-856",
@@ -61,7 +61,7 @@ defmodule Marginalia.Cases.Record do
       decided: "June 23, 2026",
       question:
         "Whether RLUIPA, enacted under the Spending Clause, lets a prisoner " <>
-        "sue a state official for damages in their individual capacity."
+          "sue a state official for damages in their individual capacity."
     },
     "Monsanto Co. v. Durnell" => %{
       docket: "No. 24-1068",
@@ -104,8 +104,8 @@ defmodule Marginalia.Cases.Record do
       decided: "June 29, 2026",
       question:
         "Whether a President may remove a Federal Trade Commission " <>
-        "commissioner before the end of their term, and whether Humphrey's " <>
-        "Executor survives."
+          "commissioner before the end of their term, and whether Humphrey's " <>
+          "Executor survives."
     },
     "Watson v. Republican National Committee" => %{
       docket: "No. 24-1260",
@@ -118,8 +118,8 @@ defmodule Marginalia.Cases.Record do
       decided: "June 30, 2026",
       question:
         "Whether Title IX or the Equal Protection Clause bars a State from " <>
-        "limiting girls' school sports teams to students assigned female at " <>
-        "birth."
+          "limiting girls' school sports teams to students assigned female at " <>
+          "birth."
     },
     "Wolford v. Lopez" => %{
       docket: "No. 24-1046",

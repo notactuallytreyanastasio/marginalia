@@ -245,7 +245,8 @@ defmodule MarginaliaWeb.LandingFeaturesTest do
     test "the section is there, with every stage", %{html: html} do
       assert html =~ "Forty pull requests in, one edited draft out"
 
-      for {stage, n} <- Enum.with_index(~w(find narrow land read compose edit condense compare), 1) do
+      for {stage, n} <-
+            Enum.with_index(~w(find narrow land read compose edit condense compare), 1) do
         assert html =~ "<b>#{n}</b> #{stage}",
                "stage #{n} (#{stage}) is missing from the pipeline"
       end

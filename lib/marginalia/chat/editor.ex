@@ -247,7 +247,8 @@ defmodule Marginalia.Chat.Editor do
       "type" => "function",
       "function" => %{
         "name" => "list_sections",
-        "description" => "The sections in reading order, with word counts and how many beats each carries. Cheap; call it early to orient.",
+        "description" =>
+          "The sections in reading order, with word counts and how many beats each carries. Cheap; call it early to orient.",
         "parameters" => %{"type" => "object", "properties" => %{}}
       }
     },
@@ -255,7 +256,8 @@ defmodule Marginalia.Chat.Editor do
       "type" => "function",
       "function" => %{
         "name" => "section_beats",
-        "description" => "Every beat read out of one section, in order, each with its verbatim quote.",
+        "description" =>
+          "Every beat read out of one section, in order, each with its verbatim quote.",
         "parameters" => %{
           "type" => "object",
           "properties" => %{"ordinal" => %{"type" => "integer"}},
@@ -320,7 +322,10 @@ defmodule Marginalia.Chat.Editor do
               "type" => "string",
               "description" => "What they actually said, in their words where you have them."
             },
-            "section" => %{"type" => "integer", "description" => "Section number, if it was about one."}
+            "section" => %{
+              "type" => "integer",
+              "description" => "Section number, if it was about one."
+            }
           },
           "required" => ["kind", "about"]
         }
@@ -335,7 +340,10 @@ defmodule Marginalia.Chat.Editor do
         "parameters" => %{
           "type" => "object",
           "properties" => %{
-            "query" => %{"type" => "string", "description" => "A few words. Omit to get the corrections alone."}
+            "query" => %{
+              "type" => "string",
+              "description" => "A few words. Omit to get the corrections alone."
+            }
           }
         }
       }
@@ -551,7 +559,12 @@ defmodule Marginalia.Chat.Editor do
     work.id
     |> Works.list_sections()
     |> Enum.map(
-      &%{ordinal: &1.ordinal, title: &1.title, words: &1.word_count, beats: Map.get(by_section, &1.id, 0)}
+      &%{
+        ordinal: &1.ordinal,
+        title: &1.title,
+        words: &1.word_count,
+        beats: Map.get(by_section, &1.id, 0)
+      }
     )
   end
 
@@ -613,7 +626,10 @@ defmodule Marginalia.Chat.Editor do
         %{recorded: c.kind, about: c.about, note: "this will be in front of you next time"}
 
       {:error, cs} ->
-        %{error: "not recorded: #{inspect(Ecto.Changeset.traverse_errors(cs, fn {m, _} -> m end))}"}
+        %{
+          error:
+            "not recorded: #{inspect(Ecto.Changeset.traverse_errors(cs, fn {m, _} -> m end))}"
+        }
     end
   end
 
@@ -621,7 +637,9 @@ defmodule Marginalia.Chat.Editor do
     corrections =
       work.id
       |> Works.list_corrections()
-      |> Enum.map(&%{kind: &1.kind, about: &1.about, they_said: &1.ruling, section: &1.section_ordinal})
+      |> Enum.map(
+        &%{kind: &1.kind, about: &1.about, they_said: &1.ruling, section: &1.section_ordinal}
+      )
 
     %{
       corrections: corrections,
@@ -676,8 +694,7 @@ defmodule Marginalia.Chat.Editor do
       id: "read",
       label: "Read",
       blurb: "What is actually on the page",
-      opener:
-        "I've read the whole draft. Ask me what's there — or what isn't.",
+      opener: "I've read the whole draft. Ask me what's there — or what isn't.",
       stance: """
       MODE: READ.
 
@@ -692,8 +709,7 @@ defmodule Marginalia.Chat.Editor do
       id: "provoke",
       label: "Provoke",
       blurb: "Questions that open the next draft",
-      opener:
-        "Ask me to push on something, or take one of these. I'll ask rather than answer.",
+      opener: "Ask me to push on something, or take one of these. I'll ask rather than answer.",
       stance: """
       MODE: PROVOKE.
 

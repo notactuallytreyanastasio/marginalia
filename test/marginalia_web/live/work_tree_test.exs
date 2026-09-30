@@ -165,7 +165,7 @@ defmodule MarginaliaWeb.WorkTreeTest do
   end
 
   describe "the offer to file drafts by case" do
-    setup %{user: user, a: a, b: b} do
+    setup %{a: a, b: b} do
       {:ok, a} = Marginalia.Cases.place(a, "Demo v. Example", "opinion")
       {:ok, b} = Marginalia.Cases.place(b, "Demo v. Example", "dissent")
       %{a: a, b: b}

@@ -32,7 +32,8 @@ defmodule MarginaliaWeb.InlineThreadTest do
     %{conn: log_in_user(conn, user), work: work, section: section, user: user}
   end
 
-  defp open(view, ref, section), do: render_click(view, "open_thread", %{"ref" => ref, "section" => section.id})
+  defp open(view, ref, section),
+    do: render_click(view, "open_thread", %{"ref" => ref, "section" => section.id})
 
   test "every block offers a thread, silently until you go near it", %{conn: conn, work: work} do
     {:ok, _view, html} = live(conn, ~p"/works/#{work.slug}?view=read")

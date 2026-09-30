@@ -106,7 +106,8 @@ defmodule MarginaliaWeb.HooksTest do
         # satisfy itself. Plus the class names a hook *writes*: the graph
         # hook builds its own `<g class="gnode">` and then selects it,
         # which is legitimate and invisible to a template-only search.
-        String.replace(source, ~r/ColocatedHook\}.*?<\/script>/s, "") <> "\n" <> written(source) <> "\n" <> applied(source)
+        String.replace(source, ~r/ColocatedHook\}.*?<\/script>/s, "") <>
+          "\n" <> written(source) <> "\n" <> applied(source)
       end)
 
     missing =

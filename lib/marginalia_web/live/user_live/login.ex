@@ -11,15 +11,15 @@ defmodule MarginaliaWeb.UserLive.Login do
             Log in
           </h1>
           <p class="mg-hint mt-1.5">
-              <%= if @current_scope do %>
-                You need to reauthenticate to perform sensitive actions on your account.
-              <% else %>
-                Don't have an account? <.link
-                  navigate={~p"/users/register"}
-                  class="font-semibold text-[var(--mg-accent)] hover:underline"
-                  phx-no-format
-                >Sign up</.link> for an account now.
-              <% end %>
+            <%= if @current_scope do %>
+              You need to reauthenticate to perform sensitive actions on your account.
+            <% else %>
+              Don't have an account? <.link
+                navigate={~p"/users/register"}
+                class="font-semibold text-[var(--mg-accent)] hover:underline"
+                phx-no-format
+              >Sign up</.link> for an account now.
+            <% end %>
           </p>
         </div>
 
@@ -74,5 +74,4 @@ defmodule MarginaliaWeb.UserLive.Login do
   def handle_event("submit_password", _params, socket) do
     {:noreply, assign(socket, :trigger_submit, true)}
   end
-
 end

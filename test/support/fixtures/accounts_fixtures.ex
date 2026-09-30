@@ -97,5 +97,4 @@ defmodule Marginalia.AccountsFixtures do
     |> Ecto.Changeset.change(email: email)
     |> Marginalia.Repo.update!()
   end
-
 end

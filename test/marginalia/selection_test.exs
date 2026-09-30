@@ -38,9 +38,18 @@ defmodule Marginalia.SelectionTest do
   end
 
   describe "constructs nobody wrote a rule for" do
-    test "links", do: roundtrip("Ten years ago, [I wrote a runner](https://x.test/p) after Jose said so.")
-    test "code spans", do: roundtrip("We will use `gen_stage`, which happens *elsewhere* entirely.")
-    test "numbered lists", do: roundtrip("1. The purpose of society is to make people better off\n2. In general it is hard")
+    test "links",
+      do: roundtrip("Ten years ago, [I wrote a runner](https://x.test/p) after Jose said so.")
+
+    test "code spans",
+      do: roundtrip("We will use `gen_stage`, which happens *elsewhere* entirely.")
+
+    test "numbered lists",
+      do:
+        roundtrip(
+          "1. The purpose of society is to make people better off\n2. In general it is hard"
+        )
+
     test "bullets", do: roundtrip("- a bullet item here\n- another bullet entirely")
     test "blockquotes", do: roundtrip("> a quoted line here for us to read")
     test "tables", do: roundtrip("| who | named |\n|---|---|\n| Dario | yes |")
@@ -48,7 +57,9 @@ defmodule Marginalia.SelectionTest do
     test "entities", do: roundtrip("Tom &amp; Jerry went to the shop today")
     test "nested emphasis", do: roundtrip("This is **bold with _nested_ emphasis** inside it")
     test "images", do: roundtrip("Look at ![a diagram](/img/x.png) closely now please")
-    test "fenced code", do: roundtrip("```elixir\ndef handle(demand, state) do\n  {:noreply, [], state}\nend\n```")
+
+    test "fenced code",
+      do: roundtrip("```elixir\ndef handle(demand, state) do\n  {:noreply, [], state}\nend\n```")
   end
 
   describe "locate/2" do

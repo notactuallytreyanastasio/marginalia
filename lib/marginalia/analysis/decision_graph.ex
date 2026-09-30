@@ -149,7 +149,10 @@ defmodule Marginalia.Analysis.DecisionGraph do
                 "type" => "string",
                 "enum" => ~w(goal decision option observation action outcome revisit)
               },
-              "title" => %{"type" => "string", "description" => "One clear line, under 100 characters."},
+              "title" => %{
+                "type" => "string",
+                "description" => "One clear line, under 100 characters."
+              },
               "description" => %{
                 "type" => "string",
                 "description" => "Why this exists and what prompted it. 1-3 sentences."
@@ -159,8 +162,14 @@ defmodule Marginalia.Analysis.DecisionGraph do
                 "description" =>
                   "A verbatim span from the draft, copied exactly. Verified server-side; the node is rejected if it is not found."
               },
-              "section" => %{"type" => "integer", "description" => "Section number this belongs to, if any."},
-              "narrative" => %{"type" => "string", "description" => "Which narrative this node belongs to."}
+              "section" => %{
+                "type" => "integer",
+                "description" => "Section number this belongs to, if any."
+              },
+              "narrative" => %{
+                "type" => "string",
+                "description" => "Which narrative this node belongs to."
+              }
             },
             "required" => ["type", "title", "narrative"]
           }
@@ -222,7 +231,10 @@ defmodule Marginalia.Analysis.DecisionGraph do
     provider = opts[:provider]
     # A rebuild replaces the graph rather than adding a second one beside it.
     {:ok, cleared} = Works.reset_decision_graph(work.id)
-    if cleared > 0, do: Logger.info("marginalia: cleared #{cleared} nodes from the previous graph")
+
+    if cleared > 0,
+      do: Logger.info("marginalia: cleared #{cleared} nodes from the previous graph")
+
     broadcast(work.id, {:graph, :building})
 
     with {:ok, narratives} <- find_narratives(work, provider) do
@@ -467,8 +479,10 @@ defmodule Marginalia.Analysis.DecisionGraph do
         # tell the model immediately rather than dropping its work silently —
         # it can go back and copy the line properly
         {%{
-           error: "quote not found in the draft, character for character. The node was not added.",
-           hint: "Copy the span exactly, including punctuation, or omit quote if this node is structural."
+           error:
+             "quote not found in the draft, character for character. The node was not added.",
+           hint:
+             "Copy the span exactly, including punctuation, or omit quote if this node is structural."
          }, state}
 
       {:ok, q} ->
@@ -497,7 +511,6 @@ defmodule Marginalia.Analysis.DecisionGraph do
         end
     end
   end
-
 
   # --- link -----------------------------------------------------------------
 

@@ -272,7 +272,7 @@ defmodule MarginaliaWeb.StackRunTest do
   end
 
   test "relating is a pass like the others, with its own sentence", ctx do
-    {:ok, view, html} = live(ctx.conn, ~p"/stacks/#{ctx.folder.id}")
+    {:ok, _view, html} = live(ctx.conn, ~p"/stacks/#{ctx.folder.id}")
     refute html =~ "Relate the documents", "one document is not a pair"
 
     # a second document, so there is something to relate it to
@@ -286,7 +286,7 @@ defmodule MarginaliaWeb.StackRunTest do
 
     # relating needs each document's own map, which the forward read does not
     # build — a folder can be fully stepped and still have nothing to relate
-    {:ok, view, html} = live(ctx.conn, ~p"/stacks/#{ctx.folder.id}")
+    {:ok, _view, html} = live(ctx.conn, ~p"/stacks/#{ctx.folder.id}")
     assert html =~ "Read each document"
     refute html =~ "Relate the documents"
 

@@ -159,7 +159,7 @@ defmodule MarginaliaWeb.WorkLive.New do
         <%!-- Its own form, and above the main one: a form nested inside a
               form is invalid HTML and the browser silently drops the inner
               one, so Enter would have submitted the upload instead. --%>
-        <form phx-submit="fetch" class="mt-6">
+        <form id="fetch-form" phx-submit="fetch" class="mt-6">
           <label class="mg-label block mb-1.5" for="import-url">Read it off the web</label>
           <div class="flex gap-2 items-start">
             <input
@@ -188,6 +188,7 @@ defmodule MarginaliaWeb.WorkLive.New do
               rejected before it can save anything. --%>
         <.form
           for={@form}
+          id="work-form"
           action={~p"/works/new"}
           method="post"
           phx-change="validate"

@@ -70,8 +70,6 @@ defmodule Marginalia.Analysis.Anchor do
     binary |> binary_part(0, byte_pos) |> String.length()
   end
 
-
-
   defp span(source, index, from_char, to_char) do
     start = Enum.at(index, from_char)
     stop = Enum.at(index, to_char) || start
@@ -117,7 +115,6 @@ defmodule Marginalia.Analysis.Anchor do
   end
 
   defp whitespace?(g), do: g in [" ", "\n", "\r", "\t", " ", "​"]
-
 
   defp fold("‘"), do: "'"
   defp fold("’"), do: "'"
