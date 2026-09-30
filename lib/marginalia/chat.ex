@@ -255,29 +255,23 @@ defmodule Marginalia.Chat do
 
   @doc "Every pinned thread on this draft, keyed by the block it is pinned to."
   def threads_by_block(work_id) do
-    Conversation
-    |> where([c], c.work_id == ^work_id and not is_nil(c.block_ref))
+    # one query with the counts joined in, not one count per thread
+    from(c in Conversation,
+      left_join: m in assoc(c, :messages),
+      where: c.work_id == ^work_id and not is_nil(c.block_ref),
+      group_by: c.id,
+      select: {c, count(m.id)}
+    )
     |> Repo.all()
-    |> Map.new(fn c -> {c.block_ref, thread_summary(c)} end)
-  end
-
-  defp thread_summary(c) do
-    count = Repo.aggregate(where(Message, [m], m.conversation_id == ^c.id), :count)
-    %{id: c.id, messages: count, quote: c.quote, resolved: c.resolved_at != nil, mode: c.mode}
+    |> Map.new(fn {c, count} ->
+      {c.block_ref,
+       %{id: c.id, messages: count, quote: c.quote, resolved: c.resolved_at != nil, mode: c.mode}}
+    end)
   end
 
   @doc "Mark a pinned thread settled, or reopen it."
   def resolve_thread(%Conversation{} = c, resolved?) do
     at = if resolved?, do: DateTime.utc_now() |> DateTime.truncate(:second)
     c |> Conversation.changeset(%{resolved_at: at}) |> Repo.update()
-  end
-
-  @doc "Whole-draft conversations only — the ones the drawer's strip lists."
-  def list_open_conversations(work_id) do
-    Conversation
-    |> where([c], c.work_id == ^work_id and c.anchor_kind == "work")
-    |> order_by([c], desc: c.id)
-    |> limit(30)
-    |> Repo.all()
   end
 end

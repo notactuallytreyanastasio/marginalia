@@ -61,7 +61,11 @@ defmodule MarginaliaWeb.CutLive.Show do
         _ -> cut.folder_id |> then(&Cuts.members(user_id, &1)) |> Enum.map(&stringify/1)
       end
 
-    assign(socket, members: members, links: links(cut))
+    # Here and not in render: working out whether the reading is stale loads
+    # every member's text and hashes it, and render runs on every change.
+    stale = cut.status == "read" and not Cuts.current?(cut, user_id)
+
+    assign(socket, members: members, links: links(cut), stale: stale)
   end
 
   defp stringify(m),
@@ -114,14 +118,6 @@ defmodule MarginaliaWeb.CutLive.Show do
 
   @impl true
   def render(assigns) do
-    user_id = assigns.current_scope.user.id
-
-    assigns =
-      assign(assigns,
-        members: assigns.cut.members || [],
-        stale: assigns.cut.status == "read" and not Cuts.current?(assigns.cut, user_id)
-      )
-
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <div class="mx-auto max-w-3xl px-6 py-10">

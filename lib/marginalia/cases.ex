@@ -105,9 +105,14 @@ defmodule Marginalia.Cases do
           select: {l.id, l.a_work_id, l.b_work_id}
       )
 
+    # only the links just loaded — without the where this counted every
+    # edge of every link in the database, anybody's
+    link_ids = Enum.map(links, &elem(&1, 0))
+
     counts =
       Repo.all(
         from e in Links.LinkEdge,
+          where: e.link_id in ^link_ids,
           group_by: e.link_id,
           select: {e.link_id, count(e.id)}
       )

@@ -33,4 +33,14 @@ defmodule MarginaliaWeb.CutShowTest do
 
     assert Cuts.get_cut(user.id, cut.id).status == "draft"
   end
+
+  test "the members are on the page while the read has not finished",
+       %{conn: conn, cut: cut} do
+    conn = get(conn, ~p"/cuts/#{cut.id}")
+    html = html_response(conn, 200)
+
+    # nothing has been read yet, but who is in the folder is already known
+    assert html =~ ~s(class="cut-members")
+    assert html =~ "One"
+  end
 end

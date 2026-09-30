@@ -30,7 +30,7 @@ defmodule MarginaliaWeb.CaseLive.Read do
   alias Marginalia.Cases.Chat, as: CaseChat
 
   @impl true
-  def mount(%{"slug" => slug} = params, _session, socket) do
+  def mount(%{"slug" => slug}, _session, socket) do
     case Cases.published() |> Enum.find(&(&1.slug == slug)) do
       nil ->
         {:ok, socket |> put_flash(:error, "No such case.") |> push_navigate(to: ~p"/cases")}
@@ -48,12 +48,14 @@ defmodule MarginaliaWeb.CaseLive.Read do
            chat_thinking: false,
            chat_history: [],
            chat_cited: []
-         )
-         |> load(params["lead"])}
+         )}
     end
   end
 
   @impl true
+  # The reading is built here and not also in mount: handle_params always
+  # follows mount before the first render, and building it in both did the
+  # whole case's merge twice per render, four times per page view.
   def handle_params(params, _uri, socket) do
     socket = load(socket, params["lead"])
 

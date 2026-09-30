@@ -97,6 +97,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
            # relating this draft to another one
            links: Links.for_work(work.id),
            linking?: false,
+           linkable: [],
            preview: nil,
            thread_history: [],
            thread_loading: false,
@@ -279,9 +280,21 @@ defmodule MarginaliaWeb.WorkLive.Show do
       spine: Works.list_nodes(w.id, type: "spine"),
       threads: Works.list_nodes(w.id, type: "thread"),
       questions: Works.list_nodes(w.id, type: "question"),
+      groundings: Marginalia.Reading.groundings(w),
       counts: Works.counts(w.id)
     )
   end
+
+  # Who this draft could be linked to, asked when the menu opens rather than
+  # in render, where it was a query on every re-render for a menu that is
+  # shut nearly all the time.
+  defp load_linkable(%{assigns: %{linking?: true}} = socket),
+    do:
+      assign(socket,
+        linkable: Links.linkable(socket.assigns.current_scope.user.id, socket.assigns.work.id)
+      )
+
+  defp load_linkable(socket), do: socket
 
   defp load_document(socket),
     do: assign(socket, document: Marginalia.Document.get(socket.assigns.work.id))
@@ -406,7 +419,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   # --- relating this draft to another --------------------------------------
 
   def handle_event("toggle_linking", _params, socket),
-    do: {:noreply, assign(socket, linking?: !socket.assigns.linking?)}
+    do: {:noreply, socket |> assign(linking?: !socket.assigns.linking?) |> load_linkable()}
 
   # One click does the whole thing: pair the two, start the pass that relates
   # their graphs, and go to the page that will fill in as it lands. The page
@@ -1391,7 +1404,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
               work={@work}
               links={@links}
               open={@linking?}
-              others={Links.linkable(@current_scope.user.id, @work.id)}
+              others={@linkable}
             />
 
             <%= if @mine? and @work.status == "read" and @counts.beats == 0 do %>
@@ -1551,6 +1564,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   spine={@spine}
                   threads={@threads}
                   questions={@questions}
+                  groundings={@groundings}
                 />
             <% end %>
           </div>
@@ -1894,6 +1908,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :spine, :list, required: true
   attr :threads, :list, required: true
   attr :questions, :list, required: true
+  attr :groundings, :map, default: %{}
   attr :diff_rows, :list, default: []
   attr :diff_stat, :map, default: nil
   attr :revisions, :list, default: []
@@ -1936,7 +1951,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
               <.grounded_node
                 :for={{n, i} <- Enum.with_index(@spine, 1)}
                 node={n}
-                work={@work}
+                grounding={@groundings[n.id]}
                 mine?={@mine?}
                 n={String.pad_leading(to_string(i), 2, "0")}
               />
@@ -1950,7 +1965,12 @@ defmodule MarginaliaWeb.WorkLive.Show do
               to the paragraphs they are about.
             </p>
             <div class="mg-cards mt-4">
-              <.grounded_node :for={q <- @questions} node={q} work={@work} mine?={@mine?} />
+              <.grounded_node
+                :for={q <- @questions}
+                node={q}
+                grounding={@groundings[q.id]}
+                mine?={@mine?}
+              />
             </div>
           <% end %>
         <% :changes -> %>
@@ -2009,7 +2029,12 @@ defmodule MarginaliaWeb.WorkLive.Show do
             <p class="mg-empty mt-4">No threads were identified.</p>
           <% else %>
             <div class="mg-cards mt-5">
-              <.grounded_node :for={t <- @threads} node={t} work={@work} mine?={@mine?} />
+              <.grounded_node
+                :for={t <- @threads}
+                node={t}
+                grounding={@groundings[t.id]}
+                mine?={@mine?}
+              />
             </div>
           <% end %>
       <% end %>
@@ -2333,7 +2358,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   end
 
   attr :node, :map, required: true
-  attr :work, :map, required: true
+  attr :grounding, :map, default: nil
   attr :mine?, :boolean, default: true
   attr :n, :string, default: nil
 
@@ -2342,8 +2367,9 @@ defmodule MarginaliaWeb.WorkLive.Show do
   # the whole lot into the chat, so the writer never has to re-explain which
   # thread they meant or go and find where it happens.
   defp grounded_node(assigns) do
-    assigns =
-      assign(assigns, :grounding, Marginalia.Reading.grounding(assigns.work, assigns.node.id))
+    # computed for the whole page in load_map, not here: this renders once
+    # per node, and asking per node was three whole-work queries each time
+    assigns = update(assigns, :grounding, &(&1 || %{beats: [], sections: []}))
 
     ~H"""
     <div class="mg-grounded">

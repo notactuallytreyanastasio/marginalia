@@ -448,21 +448,35 @@ defmodule Marginalia.Reading do
   nothing under it — the writer has to go and find what it means, which is
   the work they came here to avoid.
   """
-  def grounding(work, node_id) do
+  def grounding(work, node_id), do: work |> groundings() |> Map.get(node_id, ungrounded())
+
+  defp ungrounded, do: %{beats: [], sections: []}
+
+  @doc """
+  `grounding/2` for every node in the work at once, keyed by node id.
+
+  A map page shows every spine node, question and thread with its grounding
+  underneath. Asked one node at a time that was three whole-work queries per
+  node, per render; this is three queries for the page.
+  """
+  def groundings(work) do
     nodes = Works.list_nodes(work.id) |> Map.new(&{&1.id, &1})
     sections = Works.list_sections(work.id) |> Map.new(&{&1.id, &1})
 
+    work.id
+    |> Works.list_edges()
+    |> Enum.filter(&(&1.edge_type in ~w(realises asks_about)))
+    # each edge grounds both of its ends in the other
+    |> Enum.flat_map(fn e ->
+      [{e.from_id, e.to_id, e.rationale}, {e.to_id, e.from_id, e.rationale}]
+    end)
+    |> Enum.group_by(&elem(&1, 0), fn {_, other, why} -> {nodes[other], why} end)
+    |> Map.new(fn {node_id, pairs} -> {node_id, ground(pairs, sections)} end)
+  end
+
+  defp ground(pairs, sections) do
     beats =
-      work.id
-      |> Works.list_edges()
-      |> Enum.filter(&(&1.edge_type in ~w(realises asks_about)))
-      |> Enum.flat_map(fn e ->
-        cond do
-          e.from_id == node_id -> [{nodes[e.to_id], e.rationale}]
-          e.to_id == node_id -> [{nodes[e.from_id], e.rationale}]
-          true -> []
-        end
-      end)
+      pairs
       |> Enum.reject(fn {n, _} -> is_nil(n) or n.node_type != "beat" end)
       |> Enum.uniq_by(fn {n, _} -> n.id end)
       |> Enum.map(fn {n, why} ->

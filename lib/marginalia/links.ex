@@ -316,6 +316,10 @@ defmodule Marginalia.Links do
   # here rather than in each view, so nothing that renders a reason has
   # to remember to do it. See `plain/2`.
   def edges(%Link{} = link) do
+    # once, here: plain/2 needs both works for every edge, and preloading an
+    # unloaded association is a query each time it is asked
+    link = Repo.preload(link, [:a_work, :b_work])
+
     link.id
     |> edges()
     |> Enum.map(&%{&1 | rationale: plain(&1.rationale, link)})
@@ -693,6 +697,7 @@ defmodule Marginalia.Links do
   anchored to) so whoever renders it does not have to go back for the graph.
   """
   def margin(%Link{} = link, lead_id) do
+    link = Repo.preload(link, [:a_work, :b_work])
     other = other(link, lead_id)
     far_sections = Marginalia.Works.list_sections(other.id) |> Map.new(&{&1.id, &1.ordinal})
 
@@ -727,6 +732,7 @@ defmodule Marginalia.Links do
   should only have to follow a pointer.
   """
   def pages(%Link{} = link) do
+    link = Repo.preload(link, [:a_work, :b_work])
     {a, b} = works(link)
 
     page_a = Marginalia.Reading.page(a, notes: notes_for(link, a.id))
