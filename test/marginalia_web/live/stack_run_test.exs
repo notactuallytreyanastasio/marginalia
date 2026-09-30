@@ -310,4 +310,11 @@ defmodule MarginaliaWeb.StackRunTest do
 
     assert render(view) =~ "Related 5 pairs"
   end
+
+  test "a step address that is not a number goes back to the folder", ctx do
+    assert {:error, {:live_redirect, %{to: to}}} =
+             live(ctx.conn, "/stacks/#{ctx.folder.id}/abc")
+
+    assert to == "/stacks/#{ctx.folder.id}"
+  end
 end

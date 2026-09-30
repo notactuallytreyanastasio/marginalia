@@ -25,7 +25,11 @@ defmodule MarginaliaWeb.CutLive.Show do
           |> assign(page_title: cut.title, cut: cut, focus: nil)
           |> assign_weave()
 
-        {:ok, if(cut.status == "draft", do: start_read(socket), else: socket)}
+        # Only once connected. start_async does nothing on the dead render,
+        # so starting there marked the cut "reading" with no task behind it,
+        # and the connected mount then saw "reading" and never started one.
+        {:ok,
+         if(cut.status == "draft" and connected?(socket), do: start_read(socket), else: socket)}
     end
   end
 
@@ -90,6 +94,10 @@ defmodule MarginaliaWeb.CutLive.Show do
   end
 
   @impl true
+  # a second press while the first read is going would pay for it twice
+  def handle_event("again", _params, %{assigns: %{cut: %{status: "reading"}}} = socket),
+    do: {:noreply, socket}
+
   def handle_event("again", _params, socket), do: {:noreply, start_read(socket)}
 
   def handle_event("focus", %{"n" => n}, socket) do

@@ -266,11 +266,11 @@ defmodule Marginalia.Cuts do
   end
 
   @doc "Whether a stored reading is still about what the folder now holds."
-  def current?(%Cut{content_sha: nil}), do: false
+  def current?(%Cut{content_sha: nil}, _user_id), do: false
+  def current?(%Cut{folder_id: nil}, _user_id), do: false
 
-  def current?(%Cut{} = cut, user_id) do
-    cut.folder_id && cut.content_sha == content_sha(members(user_id, cut.folder_id))
-  end
+  def current?(%Cut{} = cut, user_id),
+    do: cut.content_sha == content_sha(members(user_id, cut.folder_id))
 
   # ==========================================================================
   # The read

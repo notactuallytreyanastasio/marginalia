@@ -24,7 +24,11 @@ defmodule MarginaliaWeb.WorkController do
   alias Marginalia.Works.Upload
 
   def create(conn, params) do
-    work = Map.get(params, "work", %{})
+    work =
+      case params do
+        %{"work" => %{} = work} -> work
+        _ -> %{}
+      end
 
     case Upload.prepare(work["title"], work["body"], work["intent"]) do
       {:ok, attrs} ->

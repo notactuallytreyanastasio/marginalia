@@ -93,7 +93,12 @@ defmodule MarginaliaWeb.StackLive.Show do
 
   @impl true
   def handle_params(params, _uri, socket) do
-    {:noreply, assign(socket, ordinal: params["ordinal"] && String.to_integer(params["ordinal"]))}
+    case params["ordinal"] && Integer.parse(params["ordinal"]) do
+      nil -> {:noreply, assign(socket, ordinal: nil)}
+      {n, ""} -> {:noreply, assign(socket, ordinal: n)}
+      # /stacks/5/abc is a mistyped address, not a server error
+      _ -> {:noreply, push_patch(socket, to: ~p"/stacks/#{params["id"]}")}
+    end
   end
 
   # ==========================================================================
