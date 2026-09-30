@@ -107,6 +107,24 @@ defmodule MarginaliaWeb.WorkTraceTest do
       assert Works.list_events(work.id) == []
     end
 
+    test "a retry after a failed read starts from clean too", %{conn: conn, work: work} do
+      # a restart mid-read marks it failed, with whatever it had written
+      {:ok, work} = Works.set_status(work, "failed")
+
+      {:ok, _} =
+        Works.insert_node(%{
+          work_id: work.id,
+          node_type: "beat",
+          title: "half-written",
+          narrative: "n"
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/works/#{work.slug}")
+      render_click(view, "start_read")
+
+      assert Works.list_nodes(work.id) == []
+    end
+
     test "a read with beats in it offers no retry", %{conn: conn, work: work} do
       {:ok, work} = Works.set_status(work, "read")
 

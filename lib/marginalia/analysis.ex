@@ -27,6 +27,12 @@ defmodule Marginalia.Analysis do
   defp broadcast(work_id, msg),
     do: Phoenix.PubSub.broadcast(Marginalia.PubSub, topic(work_id), msg)
 
+  # Each section is one model call, which LLM allows up to five minutes an
+  # attempt and retries. Killing the task sooner than that threw away calls
+  # that were going to succeed; this is the backstop for one that never
+  # returns at all.
+  @section_timeout :timer.minutes(20)
+
   @doc "Run The Read in a detached task. Returns immediately."
   def start(work, provider \\ nil) do
     Task.Supervisor.start_child(Marginalia.TaskSupervisor, fn -> run(work, provider) end)
@@ -46,13 +52,21 @@ defmodule Marginalia.Analysis do
     # until it finishes.
     broadcast(work.id, {:stage, :sections, :start})
 
-    sections
-    |> Task.async_stream(&read_section(work, &1, provider),
+    # Not linked: one section raising would otherwise take the whole read
+    # down with it and leave the draft saying "reading" until the next boot.
+    # A section whose task dies or times out never reaches its own failure
+    # handling, so it is marked failed here.
+    Marginalia.TaskSupervisor
+    |> Task.Supervisor.async_stream_nolink(sections, &read_section(work, &1, provider),
       max_concurrency: @concurrency,
-      timeout: 180_000,
+      timeout: @section_timeout,
       on_timeout: :kill_task
     )
-    |> Stream.run()
+    |> Enum.zip(sections)
+    |> Enum.each(fn
+      {{:ok, _}, _section} -> :ok
+      {{:exit, reason}, section} -> fail_section(work, section, inspect(reason))
+    end)
 
     broadcast(work.id, {:stage, :sections, :done})
     broadcast(work.id, {:stage, :spine, :start})

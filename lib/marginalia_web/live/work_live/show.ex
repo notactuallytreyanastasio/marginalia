@@ -296,6 +296,17 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
   defp load_linkable(socket), do: socket
 
+  defp started_read(socket, work) do
+    socket
+    |> assign(
+      work: %{work | status: "reading"},
+      graph_json: nil,
+      stages: %{sections: :start, spine: :waiting, weave: :waiting},
+      started_at: System.system_time(:second)
+    )
+    |> load_map()
+  end
+
   defp load_document(socket),
     do: assign(socket, document: Marginalia.Document.get(socket.assigns.work.id))
 
@@ -962,21 +973,14 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
   def handle_event("start_read", _params, socket) do
     work = socket.assigns.work
-    # a retry after a failed read starts clean; otherwise the second run's
-    # nodes land on top of whatever the first one managed
-    if work.status == "read", do: Works.reset_read(work.id)
 
-    Analysis.start(work, socket.assigns.provider)
+    # A retry starts clean — after a failed read as much as after a finished
+    # one. Only a fresh draft has nothing to clear; otherwise the second
+    # run's nodes land on top of whatever the first one managed.
+    if work.status != "pending", do: Works.reset_read(work.id)
 
-    {:noreply,
-     socket
-     |> assign(
-       work: %{work | status: "reading"},
-       graph_json: nil,
-       stages: %{sections: :start, spine: :waiting, weave: :waiting},
-       started_at: System.system_time(:second)
-     )
-     |> load_map()}
+    :ok = Analysis.start(work, socket.assigns.provider)
+    {:noreply, started_read(socket, work)}
   end
 
   # Admin only, and re-checked in Accounts — a crafted post from a normal

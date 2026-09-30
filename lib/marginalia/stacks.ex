@@ -1150,12 +1150,15 @@ defmodule Marginalia.Stacks do
         # degrades rather than voiding the run, because the beats are already
         # stored and useful on their own. What can still go wrong is the read
         # producing nothing, and that shows as a document with no nodes.
+        # a document that failed before still holds that run's nodes
+        if work.status != "pending", do: Works.reset_read(work.id)
+
         {:ok, done} = Marginalia.Analysis.run(work, opts[:provider])
         if is_function(opts[:on_step]), do: opts[:on_step].(work, i, total)
 
-        if Works.list_nodes(done.id) == [],
-          do: errors ++ [{work.title, :nothing_read}],
-          else: errors
+        if Repo.exists?(from n in Marginalia.Works.Node, where: n.work_id == ^done.id),
+          do: errors,
+          else: errors ++ [{work.title, :nothing_read}]
       end)
 
     {total - length(errors), errors}
