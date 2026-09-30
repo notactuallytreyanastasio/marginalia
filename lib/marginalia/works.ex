@@ -653,32 +653,43 @@ defmodule Marginalia.Works do
       new_text == old_block ->
         {:ok, %{section: section, superseded: 0}}
 
-      not String.contains?(section.body, old_block) ->
-        {:error, :moved}
-
       true ->
-        Repo.transaction(fn ->
-          body = String.replace(section.body, old_block, new_text, global: false)
+        Repo.transact(fn -> write_block(section, old_block, new_text, opts) end)
+    end
+  end
 
-          {:ok, section} =
-            section
-            |> Ecto.Changeset.change(
-              body: body,
-              word_count: length(String.split(body, ~r/\s+/, trim: true))
-            )
-            |> Repo.update()
+  # Two tabs saving the same draft both read `max(seq)`, both insert seq + 1,
+  # and the second hits the unique index and raises; and whichever section
+  # struct was stale overwrote the other's edit. Locking the work row
+  # serialises edits to one draft, and the section is read again under that
+  # lock, so the paragraph is looked for in what is actually stored.
+  defp write_block(%Section{} = section, old_block, new_text, opts) do
+    Repo.one!(from w in Work, where: w.id == ^section.work_id, select: w.id, lock: "FOR UPDATE")
+    section = Repo.get!(Section, section.id)
 
-          n = supersede_unanchored(section)
+    if String.contains?(section.body, old_block) do
+      body = String.replace(section.body, old_block, new_text, global: false)
 
-          # Inside the same transaction as the write. A history kept beside
-          # the thing it describes drifts from it the first time one of the
-          # two fails; here they commit together or neither does.
-          {:ok, revision} = record_revision(section, old_block, new_text, opts)
+      {:ok, section} =
+        section
+        |> Ecto.Changeset.change(
+          body: body,
+          word_count: length(String.split(body, ~r/\s+/, trim: true))
+        )
+        |> Repo.update()
 
-          rebuild_work_body(section.work_id)
+      n = supersede_unanchored(section)
 
-          %{section: section, superseded: n, revision: revision}
-        end)
+      # Inside the same transaction as the write. A history kept beside
+      # the thing it describes drifts from it the first time one of the
+      # two fails; here they commit together or neither does.
+      {:ok, revision} = record_revision(section, old_block, new_text, opts)
+
+      rebuild_work_body(section.work_id)
+
+      {:ok, %{section: section, superseded: n, revision: revision}}
+    else
+      {:error, :moved}
     end
   end
 
@@ -690,12 +701,13 @@ defmodule Marginalia.Works do
       n.quote not in [nil, ""] and n.status != "superseded" and
         Marginalia.Analysis.Anchor.verify(n.quote, section.body) == :error
     end)
-    |> Enum.reduce(0, fn n, acc ->
-      case set_node_status(section.work_id, n.id, "superseded") do
-        {:ok, _} -> acc + 1
-        _ -> acc
-      end
+    |> Enum.map(& &1.id)
+    |> then(fn ids ->
+      Repo.update_all(from(n in Node, where: n.id in ^ids),
+        set: [status: "superseded", updated_at: DateTime.utc_now(:second)]
+      )
     end)
+    |> elem(0)
   end
 
   # the work's body is the sections joined back up, so an export or a re-read

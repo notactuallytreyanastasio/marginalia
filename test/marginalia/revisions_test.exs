@@ -47,6 +47,21 @@ defmodule Marginalia.RevisionsTest do
     assert rev.section_ordinal == section.ordinal
   end
 
+  test "an edit made from a stale copy of the section keeps the other edit",
+       %{work: work, section: stale} do
+    # two tabs, both loaded before either saved
+    a = block(stale, "ALPHA")
+    b = block(stale, "BRAVO")
+
+    {:ok, _} = Works.replace_block(stale, a, String.replace(a, "ALPHA", "ONE"))
+    {:ok, _} = Works.replace_block(stale, b, String.replace(b, "BRAVO", "TWO"))
+
+    body = Repo.reload!(work).body
+    assert body =~ "ONE the first"
+    assert body =~ "TWO the second"
+    assert {:ok, ^body} = Works.replay(work.id)
+  end
+
   test "a rewrite says so, and carries the candidate's label", %{work: work, section: section} do
     b = block(section, "BRAVO")
 
