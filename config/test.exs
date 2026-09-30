@@ -53,3 +53,6 @@ config :marginalia, :llm_endpoints, %{
 # No backing off from a port that is closed on purpose: the retries took
 # seconds each and outlived the test that started them.
 config :marginalia, :llm_backoff_ms, 0
+
+# Reading a page off the web goes to a Req.Test stub, never the network
+config :marginalia, :import_req_options, plug: {Req.Test, Marginalia.Import}

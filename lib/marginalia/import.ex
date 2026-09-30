@@ -25,8 +25,9 @@ defmodule Marginalia.Import do
   that makes the request — from inside the network, with whatever the
   network trusts. So this refuses anything that is not plain http(s) to a
   public host: no `file:`, no `localhost`, no link-local address, no
-  private range, and no redirect that lands on one either. That check is
-  the reason this module is worth reading before it is worth extending.
+  private range, and no redirect that lands on one either: each hop goes
+  back through the same check. That check is the reason this module is
+  worth reading before it is worth extending.
   """
 
   require Logger
@@ -108,12 +109,20 @@ defmodule Marginalia.Import do
   end
 
   defp resolves_private?(host) do
-    case :inet.getaddrs(to_charlist(host), :inet) do
-      {:ok, addrs} -> Enum.any?(addrs, &reserved?/1)
+    host = to_charlist(host)
+
+    case {:inet.getaddrs(host, :inet), :inet.getaddrs(host, :inet6)} do
       # a name that will not resolve is not worth trying anyway
-      _ -> true
+      {{:error, _}, {:error, _}} ->
+        true
+
+      {v4, v6} ->
+        Enum.any?(addrs(v4) ++ addrs(v6), &reserved?/1)
     end
   end
+
+  defp addrs({:ok, addrs}), do: addrs
+  defp addrs(_), do: []
 
   defp reserved?({127, _, _, _}), do: true
   defp reserved?({10, _, _, _}), do: true
@@ -124,12 +133,20 @@ defmodule Marginalia.Import do
   defp reserved?({100, b, _, _}) when b >= 64 and b <= 127, do: true
   defp reserved?({a, _, _, _}) when a >= 224, do: true
   defp reserved?({_, _, _, _}), do: false
-  # IPv6: loopback, link-local and unique-local
+  # IPv6: unspecified, loopback, link-local, site-local and unique-local
+  defp reserved?({0, 0, 0, 0, 0, 0, 0, 0}), do: true
   defp reserved?({0, 0, 0, 0, 0, 0, 0, 1}), do: true
+  # an IPv4 address written as IPv6 (::ffff:127.0.0.1) or behind NAT64
+  # (64:ff9b::7f00:1) is that IPv4 address, and is judged as one
+  defp reserved?({0, 0, 0, 0, 0, 0xFFFF, hi, lo}), do: reserved?(v4(hi, lo))
+  defp reserved?({0x64, 0xFF9B, 0, 0, 0, 0, hi, lo}), do: reserved?(v4(hi, lo))
+  defp reserved?({a, _, _, _, _, _, _, _}) when a >= 0xFEC0 and a <= 0xFEFF, do: true
   defp reserved?({a, _, _, _, _, _, _, _}) when a >= 0xFC00 and a <= 0xFDFF, do: true
   defp reserved?({a, _, _, _, _, _, _, _}) when a >= 0xFE80 and a <= 0xFEBF, do: true
   defp reserved?({_, _, _, _, _, _, _, _}), do: false
   defp reserved?(_), do: true
+
+  defp v4(hi, lo), do: {div(hi, 256), rem(hi, 256), div(lo, 256), rem(lo, 256)}
 
   # --------------------------------------------------------------- the fetch
 
@@ -144,20 +161,40 @@ defmodule Marginalia.Import do
     end
   end
 
-  defp request(uri) do
-    Req.get(URI.to_string(uri),
+  @max_redirects 3
+
+  # Redirects are followed here rather than by Req, because every hop has to
+  # pass the guard again: a public page that answers 302 to
+  # http://169.254.169.254/ is the whole attack.
+  defp request(uri, hops \\ 0)
+
+  defp request(_uri, hops) when hops > @max_redirects, do: {:error, :too_many_redirects}
+
+  defp request(uri, hops) do
+    [
       receive_timeout: @timeout,
-      max_redirects: 3,
-      redirect_log_level: false,
+      redirect: false,
       max_retries: 1,
       headers: [
         {"user-agent", "Marginalia/1.0 (+https://marginalia.bobbby.online)"},
         {"accept", "text/html,application/xhtml+xml"}
       ]
-    )
+    ]
+    # tests plug in a Req.Test stub here
+    |> Keyword.merge(Application.get_env(:marginalia, :import_req_options, []))
+    |> then(&Req.get(URI.to_string(uri), &1))
     |> case do
       {:ok, %{status: 200, body: body}} when is_binary(body) ->
         if byte_size(body) > @max_bytes, do: {:error, :too_big}, else: {:ok, body}
+
+      {:ok, %{status: status} = resp} when status in [301, 302, 303, 307, 308] ->
+        with [location | _] <- Req.Response.get_header(resp, "location"),
+             {:ok, next} <- allowed(uri |> URI.merge(location) |> URI.to_string()) do
+          request(next, hops + 1)
+        else
+          [] -> {:error, {:http, status}}
+          {:error, _} = error -> error
+        end
 
       {:ok, %{status: status}} ->
         {:error, {:http, status}}

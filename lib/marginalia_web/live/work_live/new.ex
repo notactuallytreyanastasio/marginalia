@@ -128,6 +128,7 @@ defmodule MarginaliaWeb.WorkLive.New do
       "There was not enough prose on that page to read. A paywall, or a page that builds itself with JavaScript."
 
   defp why(:too_big), do: "That page is too large."
+  defp why(:too_many_redirects), do: "That address redirects too many times."
   defp why(:unparseable), do: "That page could not be read as HTML."
   defp why({:http, 404}), do: "That page was not found."
   defp why({:http, status}), do: "That site answered with a #{status}."

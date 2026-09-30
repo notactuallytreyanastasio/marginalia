@@ -44,6 +44,21 @@ defmodule Marginalia.ImportTest do
       end
     end
 
+    test "an IPv4 address spelled as IPv6 is judged as the IPv4 address" do
+      for url <- [
+            "http://[::ffff:127.0.0.1]/",
+            "http://[::ffff:169.254.169.254]/",
+            "http://[::ffff:10.0.0.1]/",
+            "http://[64:ff9b::7f00:1]/",
+            "http://[::]/",
+            "http://[fec0::1]/"
+          ] do
+        assert {:error, :private_address} = Import.allowed(url), "allowed #{url}"
+      end
+
+      assert {:ok, _} = Import.allowed("http://[::ffff:93.184.215.14]/")
+    end
+
     test "a hostname that resolves to loopback is still refused" do
       # the check cannot stop at the spelling of the host
       assert {:error, :private_address} = Import.allowed("http://localhost.localdomain/")
@@ -53,6 +68,30 @@ defmodule Marginalia.ImportTest do
       assert {:error, _} = Import.allowed("not a url")
       assert {:error, _} = Import.allowed("https://")
       assert {:error, :bad_url} = Import.allowed(nil)
+    end
+  end
+
+  describe "following redirects" do
+    # config/test.exs routes Import's requests to a Req.Test stub
+    test "a public page that redirects into the private network is refused" do
+      # the guard passed the first address; the hop has to pass it too
+      Req.Test.stub(Import, fn conn ->
+        conn
+        |> Plug.Conn.put_resp_header("location", "http://169.254.169.254/latest/meta-data/")
+        |> Plug.Conn.send_resp(302, "")
+      end)
+
+      assert {:error, :private_address} = Import.fetch("http://93.184.215.14/essay")
+    end
+
+    test "a redirect loop gives up" do
+      Req.Test.stub(Import, fn conn ->
+        conn
+        |> Plug.Conn.put_resp_header("location", "/again")
+        |> Plug.Conn.send_resp(301, "")
+      end)
+
+      assert {:error, :too_many_redirects} = Import.fetch("http://93.184.215.14/essay")
     end
   end
 
