@@ -304,7 +304,9 @@ defmodule Marginalia.Accounts do
         nil
 
       email ->
-        Repo.one(from u in User, where: fragment("lower(?)", u.email) == ^String.downcase(email))
+        # the column is citext, so this compares without case and still uses
+        # the unique index; wrapping it in lower() scanned every guest row
+        Repo.get_by(User, email: email)
     end
   end
 

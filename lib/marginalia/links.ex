@@ -45,22 +45,60 @@ defmodule Marginalia.Links do
     {a, b} = pair(work_a_id, work_b_id)
 
     case Repo.get_by(Link, a_work_id: a, b_work_id: b) do
-      nil ->
-        # a new pair changes the public list; finding an existing one does not
-        Marginalia.Cache.invalidate(:public_links)
-        Marginalia.Cache.invalidate(:published_cases)
-        %Link{} |> Link.changeset(%{a_work_id: a, b_work_id: b}) |> Repo.insert()
-
-      link ->
-        {:ok, link}
+      nil -> insert_pair(a, b)
+      link -> {:ok, link}
     end
   end
 
   def get_or_create(_same, _same_again), do: {:error, :same_work}
 
+  # Two tabs, or a double click, both find no row and both insert. The
+  # unique index on the pair decides; the loser reads back the winner's row
+  # rather than handing its caller a changeset error.
+  defp insert_pair(a, b) do
+    %Link{}
+    |> Link.changeset(%{a_work_id: a, b_work_id: b})
+    |> Repo.insert(on_conflict: :nothing, conflict_target: [:a_work_id, :b_work_id])
+    |> case do
+      {:ok, %Link{id: nil}} ->
+        {:ok, Repo.get_by!(Link, a_work_id: a, b_work_id: b)}
+
+      {:ok, link} ->
+        # a new pair changes the public list; finding an existing one does not
+        Marginalia.Cache.invalidate(:public_links)
+        Marginalia.Cache.invalidate(:published_cases)
+        {:ok, link}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
   defp pair(a, b), do: {min(a, b), max(a, b)}
 
+  @doc """
+  A link, unscoped. For the pipeline and for tests — a page must go
+  through `get/2`, because link ids are sequential and both halves of a
+  link are rendered in full.
+  """
   def get(id), do: Repo.get(Link, id)
+
+  @doc """
+  A link, only if this user owns both of its works.
+
+  A draft is private behind a slug nobody can guess, and a link renders
+  both drafts whole. Without this, `/links/1`, `/links/2`, ... read every
+  writer's work to anyone with a guest session.
+  """
+  def get(user_id, id) do
+    from(l in Link,
+      join: a in assoc(l, :a_work),
+      join: b in assoc(l, :b_work),
+      where: l.id == ^id and a.user_id == ^user_id and b.user_id == ^user_id,
+      preload: [a_work: a, b_work: b]
+    )
+    |> Repo.one()
+  end
 
   def get_for(work_a_id, work_b_id) do
     {a, b} = pair(work_a_id, work_b_id)

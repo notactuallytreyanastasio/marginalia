@@ -119,9 +119,14 @@ defmodule MarginaliaWeb.LinkLive.Index do
 
     a = socket.assigns
 
+    user_id = a.current_scope.user.id
+
+    # the ids come off the wire; only the writer's own drafts can be paired
     with true <- is_integer(a.a) and is_integer(a.b),
          true <- a.a != a.b,
-         {:ok, link} <- Links.get_or_create(a.a, a.b) do
+         %{} = left <- Works.get_work(user_id, a.a),
+         %{} = right <- Works.get_work(user_id, a.b),
+         {:ok, link} <- Links.get_or_create(left.id, right.id) do
       if link.status not in ["linking"], do: Linker.start(link)
 
       {:noreply, push_navigate(socket, to: ~p"/links/#{link.id}")}

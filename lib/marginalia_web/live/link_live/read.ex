@@ -23,7 +23,7 @@ defmodule MarginaliaWeb.LinkLive.Read do
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
-    case Links.get(id) do
+    case link_for(socket, id) do
       nil ->
         {:ok, socket |> put_flash(:error, "No such link.") |> push_navigate(to: ~p"/works")}
 
@@ -157,19 +157,26 @@ defmodule MarginaliaWeb.LinkLive.Read do
   # The map already names every edge; this hands over the actual prose on
   # each end, which is what a question about "this bit" needs.
   def handle_event("cite_edge", %{"edge" => id}, socket) do
-    id = String.to_integer(id)
-    cited = socket.assigns.chat_cited
+    case Integer.parse(id) do
+      {id, ""} ->
+        cited = socket.assigns.chat_cited
 
-    {:noreply,
-     assign(socket,
-       chat_cited: if(id in cited, do: cited, else: cited ++ [id]),
-       chat_open: true
-     )}
+        {:noreply,
+         assign(socket,
+           chat_cited: if(id in cited, do: cited, else: cited ++ [id]),
+           chat_open: true
+         )}
+
+      _ ->
+        {:noreply, socket}
+    end
   end
 
   def handle_event("uncite", %{"edge" => id}, socket) do
-    id = String.to_integer(id)
-    {:noreply, assign(socket, chat_cited: socket.assigns.chat_cited -- [id])}
+    case Integer.parse(id) do
+      {id, ""} -> {:noreply, assign(socket, chat_cited: socket.assigns.chat_cited -- [id])}
+      _ -> {:noreply, socket}
+    end
   end
 
   def handle_event("close_chat", _params, socket),
@@ -196,8 +203,16 @@ defmodule MarginaliaWeb.LinkLive.Read do
 
   @impl true
   def handle_event("relink", _params, socket) do
-    Marginalia.Analysis.Linker.start(socket.assigns.link)
-    {:noreply, assign(socket, link: %{socket.assigns.link | status: "linking"})}
+    link = socket.assigns.link
+
+    # a pass costs money; a visitor reading the owner's public pair is not
+    # the one who gets to spend it
+    if mine?(socket, link) do
+      Marginalia.Analysis.Linker.start(link)
+      {:noreply, assign(socket, link: %{link | status: "linking"})}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("set_only", %{"only" => only}, socket) do
@@ -217,8 +232,12 @@ defmodule MarginaliaWeb.LinkLive.Read do
   defp shown?(note, only), do: note.kind == only
 
   @impl true
+  # the pass reports each stage as it goes; only the end of it changes
+  # anything on this page
+  def handle_info({:link, :stage, _stage}, socket), do: {:noreply, socket}
+
   def handle_info({:link, _}, socket) do
-    link = Links.get(socket.assigns.link.id)
+    link = link_for(socket, socket.assigns.link.id) || socket.assigns.link
     params = %{"lead" => socket.assigns.lead.slug, "only" => socket.assigns.only}
     {:noreply, socket |> assign(link: link) |> then(&reload(&1, params))}
   end
@@ -1175,7 +1194,7 @@ defmodule MarginaliaWeb.LinkLive.Read do
     with false <- is_nil(id),
          {n, _} <- Integer.parse(to_string(id)),
          true <- n != current.id,
-         %{} = link <- Links.get(n) do
+         %{} = link <- link_for(socket, n) do
       if connected?(socket) do
         Phoenix.PubSub.unsubscribe(Marginalia.PubSub, "link:#{current.id}")
         Phoenix.PubSub.subscribe(Marginalia.PubSub, "link:#{link.id}")
@@ -1188,4 +1207,17 @@ defmodule MarginaliaWeb.LinkLive.Read do
   end
 
   defp edge_count(link), do: link |> Links.edges() |> length()
+
+  # The writer's own pair, or one of the owner's that anybody may read —
+  # the public case pages and the tour send visitors here. Nothing else:
+  # link ids count up from one and this page renders both drafts whole.
+  defp link_for(socket, id) do
+    case Integer.parse(to_string(id)) do
+      {n, ""} -> Links.get(socket.assigns.current_scope.user.id, n) || Links.public_link(n)
+      _ -> nil
+    end
+  end
+
+  defp mine?(socket, link),
+    do: Links.get(socket.assigns.current_scope.user.id, link.id) != nil
 end
