@@ -10,7 +10,7 @@ A word is a run of non-space with the space after it: `\S+\s*`, ASCII
 space, as the regex this replaces had it. Space before the first word is
 not part of any word.
 
-    export let wordsOf(text: String): List<String> {
+    let wordsOf(text: String): List<String> {
       let out = new ListBuilder<String>();
       var i = String.begin;
       while (text.hasIndex(i) && isRegexSpace(text[i])) { i = text.next(i); }

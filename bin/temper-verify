@@ -5,6 +5,7 @@
 #   bin/temper-verify                 every harness, default sizes
 #   N=10000 SEED=7 bin/temper-verify  bigger, another seed
 #   bin/temper-verify reflow          one harness
+#   bin/temper-verify bench           old against new, timed
 #
 # The originals are kept in temper/verify/old_*.exs. temper/out is compiled
 # in a scratch copy, so nothing here writes into the committed tree.
@@ -18,6 +19,10 @@ cd "$work/out/marginalia-core"
 mix compile > /dev/null
 
 harnesses=${1:-"diff sentences reflow segmenter"}
+if [ "$harnesses" = bench ]; then
+  mix run --no-compile "$root/temper/verify/bench.exs"
+  exit 0
+fi
 for h in $harnesses; do
   case $h in
     segmenter) n=${N:-200} ;;

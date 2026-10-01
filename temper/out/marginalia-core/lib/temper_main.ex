@@ -172,7 +172,7 @@ defmodule Temper.MarginaliaCore do
             fn_ = fn b ->
               Temper.MarginaliaCore.reflowBlock(b)
             end
-            throw({:temper_return, :ex_return_13, Temper.MarginaliaCore.joinWith(TemperCore.List.map(Temper.MarginaliaCore.blocks(text), fn_), "\n\n")})
+            throw({:temper_return, :ex_return_13, Temper.MarginaliaCore.joinWith__496(TemperCore.List.map(Temper.MarginaliaCore.blocks(text), fn_), "\n\n")})
           end
         end
         return
@@ -182,146 +182,128 @@ defmodule Temper.MarginaliaCore do
       end
     end)
   end
-  def startsWith(s, prefix) do
-    Temper.MarginaliaCore.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      try do
-        return = nil
-        return = try do
-          i = TemperCore.String.begin()
-          j = TemperCore.String.begin()
-          ex_loop_34 = fn ex_loop_34, i, j, return ->
-            if TemperCore.String.has_index(prefix, j) do
-              _t = nil
-              t = if not TemperCore.String.has_index(s, i) do
-                t = true
-                t
-              else
-                t = TemperCore.String.get(s, i) != TemperCore.String.get(prefix, j)
-                t
-              end
-              if t do
-                return = false
-                throw({:temper_break, :ex_block_33, return})
-              else
-                i = TemperCore.String.next(s, i)
-                j = TemperCore.String.next(prefix, j)
-                ex_loop_34.(ex_loop_34, i, j, return)
-              end
+  def startsWith__494(s, prefix) do
+    try do
+      return = nil
+      return = try do
+        i = TemperCore.String.begin()
+        j = TemperCore.String.begin()
+        ex_loop_34 = fn ex_loop_34, i, j, return ->
+          if TemperCore.String.has_index(prefix, j) do
+            _t = nil
+            t = if not TemperCore.String.has_index(s, i) do
+              t = true
+              t
             else
-              {i, j, return}
+              t = TemperCore.String.get(s, i) != TemperCore.String.get(prefix, j)
+              t
             end
+            if t do
+              return = false
+              throw({:temper_break, :ex_block_33, return})
+            else
+              i = TemperCore.String.next(s, i)
+              j = TemperCore.String.next(prefix, j)
+              ex_loop_34.(ex_loop_34, i, j, return)
+            end
+          else
+            {i, j, return}
           end
-          {_i, _j, _return} = ex_loop_34.(ex_loop_34, i, j, return)
-          throw({:temper_return, :ex_return_32, true})
-        catch
-          {:temper_break, :ex_block_33, ex_vars_36} ->
-            ex_vars_36
         end
-        return
+        {_i, _j, _return} = ex_loop_34.(ex_loop_34, i, j, return)
+        throw({:temper_return, :ex_return_32, true})
       catch
-        {:temper_return, :ex_return_32, ex_value_37} ->
-          ex_value_37
+        {:temper_break, :ex_block_33, ex_vars_36} ->
+          ex_vars_36
       end
-    end)
+      return
+    catch
+      {:temper_return, :ex_return_32, ex_value_37} ->
+        ex_value_37
+    end
   end
-  def isRegexSpace(cp) do
-    Temper.MarginaliaCore.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      cond do
-        cp == 32 ->
-          true
-        cp >= 9 ->
-          cp <= 13
-        true ->
-          false
-      end
-    end)
+  def isRegexSpace__487(cp) do
+    cond do
+      cp == 32 ->
+        true
+      cp >= 9 ->
+        cp <= 13
+      true ->
+        false
+    end
   end
-  def isTrimSpace(cp) do
-    Temper.MarginaliaCore.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      cond do
-        Temper.MarginaliaCore.isRegexSpace(cp) ->
-          true
-        cp == 133 ->
-          true
-        cp == 160 ->
-          true
-        cp == 5760 ->
-          true
-        true ->
-          _t = nil
-          t = if cp >= 8192 do
-            t = cp <= 8202
-            t
-          else
-            t = false
-            t
-          end
-          cond do
-            t ->
-              true
-            cp == 8232 ->
-              true
-            cp == 8233 ->
-              true
-            cp == 8239 ->
-              true
-            cp == 8287 ->
-              true
-            true ->
-              cp == 12288
-          end
-      end
-    end)
-  end
-  def leadingEnd(s) do
-    Temper.MarginaliaCore.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      b = TemperCore.String.begin()
-      ex_loop_41 = fn ex_loop_41, b ->
-        if true do
-          _t = nil
-          t = if TemperCore.String.has_index(s, b) do
-            t = Temper.MarginaliaCore.isTrimSpace(TemperCore.String.get(s, b))
-            t
-          else
-            t = false
-            t
-          end
-          if not t do
-            b
-          else
-            b = TemperCore.String.next(s, b)
-            ex_loop_41.(ex_loop_41, b)
-          end
+  def isTrimSpace__488(cp) do
+    cond do
+      Temper.MarginaliaCore.isRegexSpace__487(cp) ->
+        true
+      cp == 133 ->
+        true
+      cp == 160 ->
+        true
+      cp == 5760 ->
+        true
+      true ->
+        _t = nil
+        t = if cp >= 8192 do
+          t = cp <= 8202
+          t
         else
-          b
+          t = false
+          t
         end
-      end
-      b = ex_loop_41.(ex_loop_41, b)
-      b
-    end)
+        cond do
+          t ->
+            true
+          cp == 8232 ->
+            true
+          cp == 8233 ->
+            true
+          cp == 8239 ->
+            true
+          cp == 8287 ->
+            true
+          true ->
+            cp == 12288
+        end
+    end
   end
-  def trimLeading(s) do
-    Temper.MarginaliaCore.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      TemperCore.String.slice(s, Temper.MarginaliaCore.leadingEnd(s), TemperCore.String.end_of(s))
-    end)
-  end
-  def joinWith(parts, sep) do
-    Temper.MarginaliaCore.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      fn_ = fn p ->
-        p
+  def leadingEnd__491(s) do
+    b = TemperCore.String.begin()
+    ex_loop_41 = fn ex_loop_41, b ->
+      if true do
+        _t = nil
+        t = if TemperCore.String.has_index(s, b) do
+          t = Temper.MarginaliaCore.isTrimSpace__488(TemperCore.String.get(s, b))
+          t
+        else
+          t = false
+          t
+        end
+        if not t do
+          b
+        else
+          b = TemperCore.String.next(s, b)
+          ex_loop_41.(ex_loop_41, b)
+        end
+      else
+        b
       end
-      TemperCore.List.join(parts, sep, fn_)
-    end)
+    end
+    b = ex_loop_41.(ex_loop_41, b)
+    b
+  end
+  def trimLeading__492(s) do
+    TemperCore.String.slice(s, Temper.MarginaliaCore.leadingEnd__491(s), TemperCore.String.end_of(s))
+  end
+  def joinWith__496(parts, sep) do
+    fn_ = fn p ->
+      p
+    end
+    TemperCore.List.join(parts, sep, fn_)
   end
   def flushBlock__419(current, out) do
     if not TemperCore.List.is_empty(current) do
-      TemperCore.List.add(out, Temper.MarginaliaCore.joinWith(TemperCore.List.to_list(current), "\n"))
+      TemperCore.List.add(out, Temper.MarginaliaCore.joinWith__496(TemperCore.List.to_list(current), "\n"))
       TemperCore.List.clear(current)
       nil
     else
@@ -338,7 +320,7 @@ defmodule Temper.MarginaliaCore do
           if true do
             _t2 = nil
             t2 = if TemperCore.String.has_index(line, i) do
-              t2 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, i))
+              t2 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, i))
               t2
             else
               t2 = false
@@ -410,89 +392,80 @@ defmodule Temper.MarginaliaCore do
         ex_value_53
     end
   end
-  def trim(s) do
-    Temper.MarginaliaCore.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      b = TemperCore.String.begin()
-      ex_loop_55 = fn ex_loop_55, b ->
-        if true do
-          _t1 = nil
-          t1 = if TemperCore.String.has_index(s, b) do
-            t1 = Temper.MarginaliaCore.isTrimSpace(TemperCore.String.get(s, b))
-            t1
-          else
-            t1 = false
-            t1
-          end
-          if not t1 do
-            b
-          else
-            b = TemperCore.String.next(s, b)
-            ex_loop_55.(ex_loop_55, b)
-          end
+  def trim__489(s) do
+    b = TemperCore.String.begin()
+    ex_loop_55 = fn ex_loop_55, b ->
+      if true do
+        _t1 = nil
+        t1 = if TemperCore.String.has_index(s, b) do
+          t1 = Temper.MarginaliaCore.isTrimSpace__488(TemperCore.String.get(s, b))
+          t1
         else
+          t1 = false
+          t1
+        end
+        if not t1 do
           b
-        end
-      end
-      b = ex_loop_55.(ex_loop_55, b)
-      e = TemperCore.String.end_of(s)
-      ex_loop_57 = fn ex_loop_57, e ->
-        if true do
-          _t2 = nil
-          t2 = if e > b do
-            t2 = Temper.MarginaliaCore.isTrimSpace(TemperCore.String.get(s, TemperCore.String.prev(s, e)))
-            t2
-          else
-            t2 = false
-            t2
-          end
-          if not t2 do
-            e
-          else
-            e = TemperCore.String.prev(s, e)
-            ex_loop_57.(ex_loop_57, e)
-          end
         else
-          e
+          b = TemperCore.String.next(s, b)
+          ex_loop_55.(ex_loop_55, b)
         end
+      else
+        b
       end
-      e = ex_loop_57.(ex_loop_57, e)
-      TemperCore.String.slice(s, b, e)
-    end)
-  end
-  def trailingStart(s) do
-    Temper.MarginaliaCore.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      e = TemperCore.String.end_of(s)
-      ex_loop_60 = fn ex_loop_60, e ->
-        if true do
-          _t = nil
-          t = if e > TemperCore.String.begin() do
-            t = Temper.MarginaliaCore.isTrimSpace(TemperCore.String.get(s, TemperCore.String.prev(s, e)))
-            t
-          else
-            t = false
-            t
-          end
-          if not t do
-            e
-          else
-            e = TemperCore.String.prev(s, e)
-            ex_loop_60.(ex_loop_60, e)
-          end
+    end
+    b = ex_loop_55.(ex_loop_55, b)
+    e = TemperCore.String.end_of(s)
+    ex_loop_57 = fn ex_loop_57, e ->
+      if true do
+        _t2 = nil
+        t2 = if e > b do
+          t2 = Temper.MarginaliaCore.isTrimSpace__488(TemperCore.String.get(s, TemperCore.String.prev(s, e)))
+          t2
         else
-          e
+          t2 = false
+          t2
         end
+        if not t2 do
+          e
+        else
+          e = TemperCore.String.prev(s, e)
+          ex_loop_57.(ex_loop_57, e)
+        end
+      else
+        e
       end
-      e = ex_loop_60.(ex_loop_60, e)
-      e
-    end)
+    end
+    e = ex_loop_57.(ex_loop_57, e)
+    TemperCore.String.slice(s, b, e)
   end
-  def trimTrailing(s) do
-    Temper.MarginaliaCore.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      TemperCore.String.slice(s, TemperCore.String.begin(), Temper.MarginaliaCore.trailingStart(s))
-    end)
+  def trailingStart__490(s) do
+    e = TemperCore.String.end_of(s)
+    ex_loop_60 = fn ex_loop_60, e ->
+      if true do
+        _t = nil
+        t = if e > TemperCore.String.begin() do
+          t = Temper.MarginaliaCore.isTrimSpace__488(TemperCore.String.get(s, TemperCore.String.prev(s, e)))
+          t
+        else
+          t = false
+          t
+        end
+        if not t do
+          e
+        else
+          e = TemperCore.String.prev(s, e)
+          ex_loop_60.(ex_loop_60, e)
+        end
+      else
+        e
+      end
+    end
+    e = ex_loop_60.(ex_loop_60, e)
+    e
+  end
+  def trimTrailing__493(s) do
+    TemperCore.String.slice(s, TemperCore.String.begin(), Temper.MarginaliaCore.trailingStart__490(s))
   end
   def blocks(body) do
     Temper.MarginaliaCore.__temper_init__()
@@ -509,7 +482,7 @@ defmodule Temper.MarginaliaCore do
           fence = if not (open1 === nil) do
             open2 = open1
             TemperCore.List.add(current, line)
-            if Temper.MarginaliaCore.startsWith(Temper.MarginaliaCore.trimLeading(line), open2) do
+            if Temper.MarginaliaCore.startsWith__494(Temper.MarginaliaCore.trimLeading__492(line), open2) do
               Temper.MarginaliaCore.flushBlock__419(current, out)
               fence = nil
               fence
@@ -525,7 +498,7 @@ defmodule Temper.MarginaliaCore do
                 TemperCore.List.add(current, line)
                 fence = opener2
                 fence
-              TemperCore.String.is_empty(Temper.MarginaliaCore.trim(line)) ->
+              TemperCore.String.is_empty(Temper.MarginaliaCore.trim__489(line)) ->
                 Temper.MarginaliaCore.flushBlock__419(current, out)
                 fence
               true ->
@@ -546,8 +519,8 @@ defmodule Temper.MarginaliaCore do
       k2 = 0
       ex_loop_66 = fn ex_loop_66, k2 ->
         if k2 < TemperCore.List.length(all) do
-          block = Temper.MarginaliaCore.trimTrailing(TemperCore.List.get(all, k2))
-          if not TemperCore.String.is_empty(Temper.MarginaliaCore.trim(block)) do
+          block = Temper.MarginaliaCore.trimTrailing__493(TemperCore.List.get(all, k2))
+          if not TemperCore.String.is_empty(Temper.MarginaliaCore.trim__489(block)) do
             TemperCore.List.add(kept, block)
             nil
           else
@@ -564,7 +537,7 @@ defmodule Temper.MarginaliaCore do
     end)
   end
   def flushParagraph__421(piece, out) do
-    p = Temper.MarginaliaCore.trim(TemperCore.StringBuilder.to_string(piece))
+    p = Temper.MarginaliaCore.trim__489(TemperCore.StringBuilder.to_string(piece))
     if not TemperCore.String.is_empty(p) do
       TemperCore.List.add(out, p)
       nil
@@ -653,7 +626,7 @@ defmodule Temper.MarginaliaCore do
     ex_loop_73 = fn ex_loop_73, i, inSpace ->
       if TemperCore.String.has_index(p, i) do
         cp = TemperCore.String.get(p, i)
-        inSpace = if Temper.MarginaliaCore.isRegexSpace(cp) do
+        inSpace = if Temper.MarginaliaCore.isRegexSpace__487(cp) do
           inSpace = true
           inSpace
         else
@@ -686,7 +659,7 @@ defmodule Temper.MarginaliaCore do
     else
       nil
     end
-    Temper.MarginaliaCore.trim(TemperCore.StringBuilder.to_string(out))
+    Temper.MarginaliaCore.trim__489(TemperCore.StringBuilder.to_string(out))
   end
   def flushRun__423(dels, ins, out) do
     _longer = nil
@@ -891,7 +864,7 @@ defmodule Temper.MarginaliaCore do
       k = 0
       ex_loop_90 = fn ex_loop_90, k, nonBlank ->
         if k < TemperCore.List.length(lines) do
-          nonBlank = if not TemperCore.String.is_empty(Temper.MarginaliaCore.trim(TemperCore.List.get(lines, k))) do
+          nonBlank = if not TemperCore.String.is_empty(Temper.MarginaliaCore.trim__489(TemperCore.List.get(lines, k))) do
             nonBlank = TemperCore.int32(nonBlank + 1)
             nonBlank
           else
@@ -908,13 +881,13 @@ defmodule Temper.MarginaliaCore do
       i = TemperCore.String.begin()
       ex_loop_92 = fn ex_loop_92, gaps, i ->
         if TemperCore.String.has_index(text, i) do
-          if Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(text, i)) do
+          if Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(text, i)) do
             newlines = 0
             ex_loop_94 = fn ex_loop_94, i, newlines ->
               if true do
                 _t = nil
                 t = if TemperCore.String.has_index(text, i) do
-                  t = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(text, i))
+                  t = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(text, i))
                   t
                 else
                   t = false
@@ -1061,7 +1034,7 @@ defmodule Temper.MarginaliaCore do
     found
   end
   def normalizeNewlines__424(text) do
-    Temper.MarginaliaCore.joinWith(TemperCore.String.split(text, "\r\n"), "\n")
+    Temper.MarginaliaCore.joinWith__496(TemperCore.String.split(text, "\r\n"), "\n")
   end
   def isJudgeLine__433(line) do
     try do
@@ -1143,14 +1116,14 @@ defmodule Temper.MarginaliaCore do
         else
           rest = TemperCore.String.slice(line, i, TemperCore.String.end_of(line))
           at = TemperCore.String.begin()
-          at = if Temper.MarginaliaCore.startsWith(rest, "C. ") do
+          at = if Temper.MarginaliaCore.startsWith__494(rest, "C. ") do
             at = TemperCore.String.step(rest, at, 3)
             at
           else
             at
           end
           tail = TemperCore.String.slice(rest, at, TemperCore.String.end_of(rest))
-          if not Temper.MarginaliaCore.startsWith(tail, "J.,") do
+          if not Temper.MarginaliaCore.startsWith__494(tail, "J.,") do
             return = false
             return
           else
@@ -1160,7 +1133,7 @@ defmodule Temper.MarginaliaCore do
               if true do
                 _t3 = nil
                 t3 = if TemperCore.String.has_index(tail, k) do
-                  t3 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(tail, k))
+                  t3 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(tail, k))
                   t3
                 else
                   t3 = false
@@ -1180,10 +1153,10 @@ defmodule Temper.MarginaliaCore do
             {k, spaces} = ex_loop_111.(ex_loop_111, k, spaces)
             word = TemperCore.String.slice(tail, k, TemperCore.String.end_of(tail))
             if spaces >= 1 do
-              if Temper.MarginaliaCore.startsWith(word, "concurring") do
+              if Temper.MarginaliaCore.startsWith__494(word, "concurring") do
                 throw({:temper_return, :ex_return_105, true})
               else
-                throw({:temper_return, :ex_return_105, Temper.MarginaliaCore.startsWith(word, "dissenting")})
+                throw({:temper_return, :ex_return_105, Temper.MarginaliaCore.startsWith__494(word, "dissenting")})
               end
             else
               throw({:temper_return, :ex_return_105, false})
@@ -1287,7 +1260,7 @@ defmodule Temper.MarginaliaCore do
     t1 = if digits >= 1 do
       if digits <= 3 do
         if TemperCore.String.has_index(s, i) do
-          t1 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, i))
+          t1 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(s, i))
           t1
         else
           t1 = false
@@ -1306,7 +1279,7 @@ defmodule Temper.MarginaliaCore do
         if true do
           _t5 = nil
           t5 = if TemperCore.String.has_index(s, i) do
-            t5 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, i))
+            t5 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(s, i))
             t5
           else
             t5 = false
@@ -1366,7 +1339,7 @@ defmodule Temper.MarginaliaCore do
     t2 = if tailDigits >= 1 do
       if tailDigits <= 3 do
         if e > TemperCore.String.begin() do
-          t2 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, TemperCore.String.prev(s, e)))
+          t2 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(s, TemperCore.String.prev(s, e)))
           t2
         else
           t2 = false
@@ -1385,7 +1358,7 @@ defmodule Temper.MarginaliaCore do
         if true do
           _t6 = nil
           t6 = if e > TemperCore.String.begin() do
-            t6 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, TemperCore.String.prev(s, e)))
+            t6 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(s, TemperCore.String.prev(s, e)))
             t6
           else
             t6 = false
@@ -1462,7 +1435,7 @@ defmodule Temper.MarginaliaCore do
   end
   def isFurniture__430(line) do
     cond do
-      Temper.MarginaliaCore.startsWith(line, "Cite as:") ->
+      Temper.MarginaliaCore.startsWith__494(line, "Cite as:") ->
         true
       line == "Opinion of the Court" ->
         true
@@ -1570,7 +1543,7 @@ defmodule Temper.MarginaliaCore do
         t1 = if hashes >= 1 do
           if hashes <= 6 do
             if TemperCore.String.has_index(line, i) do
-              t1 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, i))
+              t1 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, i))
               t1
             else
               t1 = false
@@ -1589,7 +1562,7 @@ defmodule Temper.MarginaliaCore do
             if true do
               _t4 = nil
               t4 = if TemperCore.String.has_index(line, i) do
-                t4 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, i))
+                t4 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, i))
                 t4
               else
                 t4 = false
@@ -1711,45 +1684,42 @@ defmodule Temper.MarginaliaCore do
         ex_value_164
     end
   end
-  def endsWithAt(s, end_, suffix) do
-    Temper.MarginaliaCore.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      try do
-        return = nil
-        return = try do
-          i = end_
-          j = TemperCore.String.end_of(suffix)
-          ex_loop_167 = fn ex_loop_167, i, j, return ->
-            if j > TemperCore.String.begin() do
-              if i <= TemperCore.String.begin() do
+  def endsWithAt__495(s, end_, suffix) do
+    try do
+      return = nil
+      return = try do
+        i = end_
+        j = TemperCore.String.end_of(suffix)
+        ex_loop_167 = fn ex_loop_167, i, j, return ->
+          if j > TemperCore.String.begin() do
+            if i <= TemperCore.String.begin() do
+              return = false
+              throw({:temper_break, :ex_block_166, return})
+            else
+              i = TemperCore.String.prev(s, i)
+              j = TemperCore.String.prev(suffix, j)
+              if TemperCore.String.get(s, i) != TemperCore.String.get(suffix, j) do
                 return = false
                 throw({:temper_break, :ex_block_166, return})
               else
-                i = TemperCore.String.prev(s, i)
-                j = TemperCore.String.prev(suffix, j)
-                if TemperCore.String.get(s, i) != TemperCore.String.get(suffix, j) do
-                  return = false
-                  throw({:temper_break, :ex_block_166, return})
-                else
-                  ex_loop_167.(ex_loop_167, i, j, return)
-                end
+                ex_loop_167.(ex_loop_167, i, j, return)
               end
-            else
-              {i, j, return}
             end
+          else
+            {i, j, return}
           end
-          {_i, _j, _return} = ex_loop_167.(ex_loop_167, i, j, return)
-          throw({:temper_return, :ex_return_165, true})
-        catch
-          {:temper_break, :ex_block_166, ex_vars_169} ->
-            ex_vars_169
         end
-        return
+        {_i, _j, _return} = ex_loop_167.(ex_loop_167, i, j, return)
+        throw({:temper_return, :ex_return_165, true})
       catch
-        {:temper_return, :ex_return_165, ex_value_170} ->
-          ex_value_170
+        {:temper_break, :ex_block_166, ex_vars_169} ->
+          ex_vars_169
       end
-    end)
+      return
+    catch
+      {:temper_return, :ex_return_165, ex_value_170} ->
+        ex_value_170
+    end
   end
   def withoutTrailingHyphens__440(s) do
     e = TemperCore.String.end_of(s)
@@ -1782,7 +1752,7 @@ defmodule Temper.MarginaliaCore do
       if true do
         _t = nil
         t = if b > TemperCore.String.begin() do
-          t = not Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, TemperCore.String.prev(s, b)))
+          t = not Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(s, TemperCore.String.prev(s, b)))
           t
         else
           t = false
@@ -1807,7 +1777,7 @@ defmodule Temper.MarginaliaCore do
       if true do
         _t = nil
         t = if TemperCore.String.has_index(s, e) do
-          t = not Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, e))
+          t = not Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(s, e))
           t
         else
           t = false
@@ -1877,7 +1847,7 @@ defmodule Temper.MarginaliaCore do
           TemperCore.String.is_empty(acc) ->
             acc = line
             acc
-          Temper.MarginaliaCore.endsWithAt(acc, TemperCore.String.end_of(acc), "-") ->
+          Temper.MarginaliaCore.endsWithAt__495(acc, TemperCore.String.end_of(acc), "-") ->
             acc = Temper.MarginaliaCore.mend__439(acc, line, keep)
             acc
           true ->
@@ -1891,7 +1861,7 @@ defmodule Temper.MarginaliaCore do
       end
     end
     {acc, _k} = ex_loop_185.(ex_loop_185, acc, k)
-    Temper.MarginaliaCore.trim(acc)
+    Temper.MarginaliaCore.trim__489(acc)
   end
   def reflowPage(text) do
     Temper.MarginaliaCore.__temper_init__()
@@ -1909,7 +1879,7 @@ defmodule Temper.MarginaliaCore do
             k1 = 0
             ex_loop_189 = fn ex_loop_189, k1 ->
               if k1 < TemperCore.List.length(raw) do
-                line = Temper.MarginaliaCore.trim(TemperCore.List.get(raw, k1))
+                line = Temper.MarginaliaCore.trim__489(TemperCore.List.get(raw, k1))
                 _t = nil
                 t = if not Temper.MarginaliaCore.isFurniture__430(line) do
                   t = not TemperCore.String.is_empty(line)
@@ -1951,7 +1921,7 @@ defmodule Temper.MarginaliaCore do
               end
             end
             _k2 = ex_loop_191.(ex_loop_191, k2)
-            throw({:temper_return, :ex_return_187, Temper.MarginaliaCore.joinWith(TemperCore.List.to_list(out), "\n\n")})
+            throw({:temper_return, :ex_return_187, Temper.MarginaliaCore.joinWith__496(TemperCore.List.to_list(out), "\n\n")})
           end
         end
         return
@@ -1969,7 +1939,7 @@ defmodule Temper.MarginaliaCore do
       k = 0
       ex_loop_195 = fn ex_loop_195, k ->
         if k < TemperCore.List.length(raw) do
-          line = Temper.MarginaliaCore.trim(TemperCore.List.get(raw, k))
+          line = Temper.MarginaliaCore.trim__489(TemperCore.List.get(raw, k))
           if not TemperCore.String.is_empty(line) do
             TemperCore.List.add(lines, line)
             nil
@@ -1990,7 +1960,7 @@ defmodule Temper.MarginaliaCore do
     TemperConnected.graphemePrefix(s, n)
   end
   def normalize__444(raw) do
-    unixed = Temper.MarginaliaCore.joinWith(TemperCore.String.split(Temper.MarginaliaCore.joinWith(TemperCore.String.split(raw, "\r\n"), "\n"), "\r"), "\n")
+    unixed = Temper.MarginaliaCore.joinWith__496(TemperCore.String.split(Temper.MarginaliaCore.joinWith__496(TemperCore.String.split(raw, "\r\n"), "\n"), "\r"), "\n")
     out = TemperCore.StringBuilder.new()
     newlines = 0
     i = TemperCore.String.begin()
@@ -2052,7 +2022,7 @@ defmodule Temper.MarginaliaCore do
       _k1 = ex_loop_202.(ex_loop_202, k1)
       nil
     end
-    Temper.MarginaliaCore.trim(TemperCore.StringBuilder.to_string(out))
+    Temper.MarginaliaCore.trim__489(TemperCore.StringBuilder.to_string(out))
   end
   def isMarkdownHead__445(line) do
     try do
@@ -2094,7 +2064,7 @@ defmodule Temper.MarginaliaCore do
             t1 = true
             t1
           true ->
-            t1 = not Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, i))
+            t1 = not Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, i))
             t1
         end
         if t1 do
@@ -2105,7 +2075,7 @@ defmodule Temper.MarginaliaCore do
             if true do
               _t3 = nil
               t3 = if TemperCore.String.has_index(line, i) do
-                t3 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, i))
+                t3 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, i))
                 t3
               else
                 t3 = false
@@ -2137,7 +2107,7 @@ defmodule Temper.MarginaliaCore do
     i = TemperCore.String.begin()
     ex_loop_212 = fn ex_loop_212, i, inWord, n ->
       if TemperCore.String.has_index(s, i) do
-        {inWord, n} = if Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, i)) do
+        {inWord, n} = if Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(s, i)) do
           inWord = false
           {inWord, n}
         else
@@ -2165,7 +2135,7 @@ defmodule Temper.MarginaliaCore do
     i = TemperCore.String.begin()
     ex_loop_215 = fn ex_loop_215, i, start ->
       if TemperCore.String.has_index(text, i) do
-        if Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(text, i)) do
+        if Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(text, i)) do
           runStart = i
           newlines = 0
           lastNewline = i
@@ -2173,7 +2143,7 @@ defmodule Temper.MarginaliaCore do
             if true do
               _t = nil
               t = if TemperCore.String.has_index(text, i) do
-                t = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(text, i))
+                t = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(text, i))
                 t
               else
                 t = false
@@ -2244,7 +2214,7 @@ defmodule Temper.MarginaliaCore do
     k = 0
     ex_loop_222 = fn ex_loop_222, k ->
       if k < TemperCore.List.length(pieces) do
-        para = Temper.MarginaliaCore.trim(TemperCore.List.get(pieces, k))
+        para = Temper.MarginaliaCore.trim__489(TemperCore.List.get(pieces, k))
         words = Temper.MarginaliaCore.wordCount__460(para)
         n = TemperCore.List.length(windows)
         _t = nil
@@ -2274,7 +2244,7 @@ defmodule Temper.MarginaliaCore do
     end
     _k = ex_loop_222.(ex_loop_222, k)
     fn_ = fn w ->
-      Temper.MarginaliaCore.joinWith(TemperCore.List.to_list(Temper.MarginaliaCore.Window.get_paras(w)), "\n\n")
+      Temper.MarginaliaCore.joinWith__496(TemperCore.List.to_list(Temper.MarginaliaCore.Window.get_paras(w)), "\n\n")
     end
     TemperCore.List.map(TemperCore.List.to_list(windows), fn_)
   end
@@ -2321,7 +2291,7 @@ defmodule Temper.MarginaliaCore do
       if k1 < TemperCore.List.length(chunks) do
         if true do
           chunk = TemperCore.List.get(chunks, k1)
-          if TemperCore.String.is_empty(Temper.MarginaliaCore.trim(Temper.MarginaliaCore.Section.get_body(chunk))) do
+          if TemperCore.String.is_empty(Temper.MarginaliaCore.trim__489(Temper.MarginaliaCore.Section.get_body(chunk))) do
             nil
           else
             n = TemperCore.List.length(kept)
@@ -2485,7 +2455,7 @@ defmodule Temper.MarginaliaCore do
                 if true do
                   _t8 = nil
                   t8 = if TemperCore.String.has_index(line, i) do
-                    t8 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, i))
+                    t8 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, i))
                     t8
                   else
                     t8 = false
@@ -2654,7 +2624,7 @@ defmodule Temper.MarginaliaCore do
                   if true do
                     _t10 = nil
                     t10 = if TemperCore.String.has_index(line, s) do
-                      t10 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, s))
+                      t10 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, s))
                       t10
                     else
                       t10 = false
@@ -2807,7 +2777,7 @@ defmodule Temper.MarginaliaCore do
       _return = nil
       return = if true do
         t1 = nil
-        if Temper.MarginaliaCore.graphemeLength(Temper.MarginaliaCore.trim(line)) >= 90 do
+        if Temper.MarginaliaCore.graphemeLength(Temper.MarginaliaCore.trim__489(line)) >= 90 do
           return = false
           return
         else
@@ -2816,7 +2786,7 @@ defmodule Temper.MarginaliaCore do
             if true do
               _t2 = nil
               t2 = if TemperCore.String.has_index(line, i) do
-                t2 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, i))
+                t2 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, i))
                 t2
               else
                 t2 = false
@@ -2855,7 +2825,7 @@ defmodule Temper.MarginaliaCore do
               if true do
                 _t3 = nil
                 t3 = if TemperCore.String.has_index(line, i) do
-                  t3 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, i))
+                  t3 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, i))
                   t3
                 else
                   t3 = false
@@ -2893,7 +2863,7 @@ defmodule Temper.MarginaliaCore do
                   if true do
                     _t6 = nil
                     t6 = if TemperCore.String.has_index(line, i) do
-                      t6 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, i))
+                      t6 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, i))
                       t6
                     else
                       t6 = false
@@ -2967,7 +2937,7 @@ defmodule Temper.MarginaliaCore do
       if true do
         _t2 = nil
         t2 = if TemperCore.String.has_index(line, i) do
-          t2 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, i))
+          t2 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, i))
           t2
         else
           t2 = false
@@ -2984,7 +2954,7 @@ defmodule Temper.MarginaliaCore do
       end
     end
     i = ex_loop_281.(ex_loop_281, i)
-    Temper.MarginaliaCore.trim(TemperCore.String.slice(line, i, TemperCore.String.end_of(line)))
+    Temper.MarginaliaCore.trim__489(TemperCore.String.slice(line, i, TemperCore.String.end_of(line)))
   end
   def untitledIfBlank__456(title) do
     if TemperCore.String.is_empty(title) do
@@ -3014,7 +2984,7 @@ defmodule Temper.MarginaliaCore do
               title = Temper.MarginaliaCore.markdownTitle__446(line)
               title
             else
-              title = Temper.MarginaliaCore.trim(line)
+              title = Temper.MarginaliaCore.trim__489(line)
               title
             end
             TemperCore.List.add(chunks, Temper.MarginaliaCore.HeadChunk.new(title, TemperCore.List.builder()))
@@ -3036,7 +3006,7 @@ defmodule Temper.MarginaliaCore do
     end
     _k = ex_loop_285.(ex_loop_285, k)
     fn_ = fn c ->
-      Temper.MarginaliaCore.Section.new(Temper.MarginaliaCore.untitledIfBlank__456(Temper.MarginaliaCore.HeadChunk.get_title(c)), Temper.MarginaliaCore.trim(Temper.MarginaliaCore.joinWith(TemperCore.List.to_list(Temper.MarginaliaCore.HeadChunk.get_lines(c)), "\n")))
+      Temper.MarginaliaCore.Section.new(Temper.MarginaliaCore.untitledIfBlank__456(Temper.MarginaliaCore.HeadChunk.get_title(c)), Temper.MarginaliaCore.trim__489(Temper.MarginaliaCore.joinWith__496(TemperCore.List.to_list(Temper.MarginaliaCore.HeadChunk.get_lines(c)), "\n")))
     end
     TemperCore.List.map(TemperCore.List.to_list(chunks), fn_)
   end
@@ -3152,7 +3122,7 @@ defmodule Temper.MarginaliaCore do
           if true do
             _t3 = nil
             t3 = if TemperCore.String.has_index(s, i) do
-              t3 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, i))
+              t3 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(s, i))
               t3
             else
               t3 = false
@@ -3228,7 +3198,7 @@ defmodule Temper.MarginaliaCore do
             if true do
               _t5 = nil
               t5 = if TemperCore.String.has_index(s, i) do
-                t5 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, i))
+                t5 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(s, i))
                 t5
               else
                 t5 = false
@@ -3360,7 +3330,7 @@ defmodule Temper.MarginaliaCore do
     if hashes >= 1 do
       if hashes <= 6 do
         if TemperCore.String.has_index(s, i) do
-          Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, i))
+          Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(s, i))
         else
           false
         end
@@ -3393,7 +3363,7 @@ defmodule Temper.MarginaliaCore do
             if true do
               _t2 = nil
               t2 = if TemperCore.String.has_index(block, i) do
-                if Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(block, i)) do
+                if Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(block, i)) do
                   t2 = spaces < 4
                   t2
                 else
@@ -3450,7 +3420,7 @@ defmodule Temper.MarginaliaCore do
           end
           t1 = if t2 do
             if TemperCore.String.has_index(s, after_) do
-              t1 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, after_))
+              t1 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(s, after_))
               t1
             else
               t1 = false
@@ -3514,7 +3484,7 @@ defmodule Temper.MarginaliaCore do
             else
               next = TemperCore.String.next(s, i)
               if TemperCore.String.has_index(s, next) do
-                throw({:temper_return, :ex_return_326, Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, next))})
+                throw({:temper_return, :ex_return_326, Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(s, next))})
               else
                 throw({:temper_return, :ex_return_326, false})
               end
@@ -3688,7 +3658,7 @@ defmodule Temper.MarginaliaCore do
                   if true do
                     _t6 = nil
                     t6 = if TemperCore.String.has_index(block, i) do
-                      t6 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(block, i))
+                      t6 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(block, i))
                       t6
                     else
                       t6 = false
@@ -3771,7 +3741,7 @@ defmodule Temper.MarginaliaCore do
               if true do
                 _t3 = nil
                 t3 = if TemperCore.String.has_index(s, i) do
-                  t3 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, i))
+                  t3 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(s, i))
                   t3
                 else
                   t3 = false
@@ -3807,10 +3777,10 @@ defmodule Temper.MarginaliaCore do
       _return = nil
       return = if true do
         lines = TemperCore.String.split(block, "\n")
-        first = Temper.MarginaliaCore.trimLeading(TemperCore.List.get(lines, 0))
+        first = Temper.MarginaliaCore.trimLeading__492(TemperCore.List.get(lines, 0))
         _second = nil
         second = if TemperCore.List.length(lines) > 1 do
-          second = Temper.MarginaliaCore.trim(TemperCore.List.get(lines, 1))
+          second = Temper.MarginaliaCore.trim__489(TemperCore.List.get(lines, 1))
           second
         else
           second = ""
@@ -3825,11 +3795,11 @@ defmodule Temper.MarginaliaCore do
             return
           true ->
             _t = nil
-            t = if Temper.MarginaliaCore.startsWith(first, "```") do
+            t = if Temper.MarginaliaCore.startsWith__494(first, "```") do
               t = true
               t
             else
-              t = Temper.MarginaliaCore.startsWith(first, "~~~")
+              t = Temper.MarginaliaCore.startsWith__494(first, "~~~")
               t
             end
             cond do
@@ -3859,7 +3829,7 @@ defmodule Temper.MarginaliaCore do
                 k = 0
                 ex_loop_352 = fn ex_loop_352, allPiped, k ->
                   if k < TemperCore.List.length(lines) do
-                    allPiped = if not Temper.MarginaliaCore.startsWith(Temper.MarginaliaCore.trimLeading(TemperCore.List.get(lines, k)), "|") do
+                    allPiped = if not Temper.MarginaliaCore.startsWith__494(Temper.MarginaliaCore.trimLeading__492(TemperCore.List.get(lines, k)), "|") do
                       allPiped = false
                       allPiped
                     else
@@ -3888,7 +3858,7 @@ defmodule Temper.MarginaliaCore do
       if true do
         _t = nil
         t = if TemperCore.String.has_index(block, i) do
-          t = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(block, i))
+          t = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(block, i))
           t
         else
           t = false
@@ -3920,7 +3890,7 @@ defmodule Temper.MarginaliaCore do
           if true do
             _t3 = nil
             t3 = if TemperCore.String.has_index(line, i) do
-              t3 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, i))
+              t3 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, i))
               t3
             else
               t3 = false
@@ -3952,7 +3922,7 @@ defmodule Temper.MarginaliaCore do
           i = TemperCore.String.next(line, i)
           _t2 = nil
           t2 = if TemperCore.String.has_index(line, i) do
-            t2 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, i))
+            t2 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, i))
             t2
           else
             t2 = false
@@ -3978,7 +3948,7 @@ defmodule Temper.MarginaliaCore do
     fn_1 = fn l1 ->
       Temper.MarginaliaCore.stripQuoteMark__467(l1)
     end
-    stripped = Temper.MarginaliaCore.joinWith(TemperCore.List.map(lines, fn_1), "\n")
+    stripped = Temper.MarginaliaCore.joinWith__496(TemperCore.List.map(lines, fn_1), "\n")
     back = TemperCore.String.split(Temper.MarginaliaCore.reflow(stripped), "\n")
     fn_2 = fn l2 ->
       if TemperCore.String.is_empty(l2) do
@@ -3987,7 +3957,7 @@ defmodule Temper.MarginaliaCore do
         "> " <> l2
       end
     end
-    Temper.MarginaliaCore.joinWith(TemperCore.List.map(back, fn_2), "\n")
+    Temper.MarginaliaCore.joinWith__496(TemperCore.List.map(back, fn_2), "\n")
   end
   def isCloser__464(cp) do
     cond do
@@ -4190,7 +4160,7 @@ defmodule Temper.MarginaliaCore do
     try do
       _return = nil
       return = if true do
-        if not Temper.MarginaliaCore.endsWithAt(line, dot, word) do
+        if not Temper.MarginaliaCore.endsWithAt__495(line, dot, word) do
           return = false
           return
         else
@@ -4256,8 +4226,8 @@ defmodule Temper.MarginaliaCore do
           dot = TemperCore.String.prev(line, e)
           k = 0
           ex_loop_395 = fn ex_loop_395, k, return ->
-            if k < TemperCore.List.length(TemperCore.Global.get(:"Temper.MarginaliaCore.abbreviations__500")) do
-              if Temper.MarginaliaCore.abbreviationAt__474(line, dot, TemperCore.List.get(TemperCore.Global.get(:"Temper.MarginaliaCore.abbreviations__500"), k)) do
+            if k < TemperCore.List.length(TemperCore.Global.get(:"Temper.MarginaliaCore.abbreviations__511")) do
+              if Temper.MarginaliaCore.abbreviationAt__474(line, dot, TemperCore.List.get(TemperCore.Global.get(:"Temper.MarginaliaCore.abbreviations__511"), k)) do
                 return = true
                 throw({:temper_break, :ex_block_392, return})
               else
@@ -4335,7 +4305,7 @@ defmodule Temper.MarginaliaCore do
       end
     end
     _k = ex_loop_400.(ex_loop_400, k)
-    Temper.MarginaliaCore.joinWith(TemperCore.List.to_list(out), "\n")
+    Temper.MarginaliaCore.joinWith__496(TemperCore.List.to_list(out), "\n")
   end
   def squeezeBlanks__470(text) do
     out = TemperCore.StringBuilder.new()
@@ -4396,7 +4366,7 @@ defmodule Temper.MarginaliaCore do
             if true do
               _t1 = nil
               t1 = if TemperCore.String.has_index(line, b) do
-                t1 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, b))
+                t1 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, b))
                 t1
               else
                 t1 = false
@@ -4422,7 +4392,7 @@ defmodule Temper.MarginaliaCore do
             if true do
               _t2 = nil
               t2 = if e > b do
-                t2 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, TemperCore.String.prev(line, e)))
+                t2 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(line, TemperCore.String.prev(line, e)))
                 t2
               else
                 t2 = false
@@ -4451,7 +4421,7 @@ defmodule Temper.MarginaliaCore do
       end
     end
     _k = ex_loop_406.(ex_loop_406, k)
-    Temper.MarginaliaCore.joinWith(TemperCore.List.to_list(pieces), " ")
+    Temper.MarginaliaCore.joinWith__496(TemperCore.List.to_list(pieces), " ")
   end
   def reflowBlock(block) do
     Temper.MarginaliaCore.__temper_init__()
@@ -4467,7 +4437,7 @@ defmodule Temper.MarginaliaCore do
               return = Temper.MarginaliaCore.reflowQuote__466(block)
               return
             true ->
-              throw({:temper_return, :ex_return_412, Temper.MarginaliaCore.splitSentences__472(Temper.MarginaliaCore.trim(Temper.MarginaliaCore.squeezeBlanks__470(Temper.MarginaliaCore.unwrap__469(block))))})
+              throw({:temper_return, :ex_return_412, Temper.MarginaliaCore.splitSentences__472(Temper.MarginaliaCore.trim__489(Temper.MarginaliaCore.squeezeBlanks__470(Temper.MarginaliaCore.unwrap__469(block))))})
           end
         end
         return
@@ -4512,7 +4482,7 @@ defmodule Temper.MarginaliaCore do
     t1 = if hashes >= 1 do
       if hashes <= 6 do
         if TemperCore.String.has_index(first, h) do
-          t1 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(first, h))
+          t1 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(first, h))
           t1
         else
           t1 = false
@@ -4531,7 +4501,7 @@ defmodule Temper.MarginaliaCore do
         if true do
           _t4 = nil
           t4 = if TemperCore.String.has_index(first, h) do
-            t4 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(first, h))
+            t4 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(first, h))
             t4
           else
             t4 = false
@@ -4590,7 +4560,7 @@ defmodule Temper.MarginaliaCore do
       end
     end
     _k = ex_loop_420.(ex_loop_420, k)
-    label = Temper.MarginaliaCore.graphemePrefix(Temper.MarginaliaCore.trim(TemperCore.StringBuilder.to_string(plain)), 60)
+    label = Temper.MarginaliaCore.graphemePrefix(Temper.MarginaliaCore.trim__489(TemperCore.StringBuilder.to_string(plain)), 60)
     if Temper.MarginaliaCore.graphemeLength(label) > 12 do
       TemperCore.int_to_string(i) <> ". " <> label <> "…"
     else
@@ -4660,88 +4630,85 @@ defmodule Temper.MarginaliaCore do
       end
     end)
   end
-  def wordsOf(text) do
-    Temper.MarginaliaCore.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      out = TemperCore.List.builder()
-      i = TemperCore.String.begin()
-      ex_loop_430 = fn ex_loop_430, i ->
-        if true do
-          _t1 = nil
-          t1 = if TemperCore.String.has_index(text, i) do
-            t1 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(text, i))
-            t1
+  def wordsOf__497(text) do
+    out = TemperCore.List.builder()
+    i = TemperCore.String.begin()
+    ex_loop_430 = fn ex_loop_430, i ->
+      if true do
+        _t1 = nil
+        t1 = if TemperCore.String.has_index(text, i) do
+          t1 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(text, i))
+          t1
+        else
+          t1 = false
+          t1
+        end
+        if not t1 do
+          i
+        else
+          i = TemperCore.String.next(text, i)
+          ex_loop_430.(ex_loop_430, i)
+        end
+      else
+        i
+      end
+    end
+    i = ex_loop_430.(ex_loop_430, i)
+    ex_loop_432 = fn ex_loop_432, i ->
+      if TemperCore.String.has_index(text, i) do
+        start = i
+        ex_loop_434 = fn ex_loop_434, i ->
+          if true do
+            _t2 = nil
+            t2 = if TemperCore.String.has_index(text, i) do
+              t2 = not Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(text, i))
+              t2
+            else
+              t2 = false
+              t2
+            end
+            if not t2 do
+              i
+            else
+              i = TemperCore.String.next(text, i)
+              ex_loop_434.(ex_loop_434, i)
+            end
           else
-            t1 = false
-            t1
-          end
-          if not t1 do
             i
+          end
+        end
+        i = ex_loop_434.(ex_loop_434, i)
+        ex_loop_436 = fn ex_loop_436, i ->
+          if true do
+            _t3 = nil
+            t3 = if TemperCore.String.has_index(text, i) do
+              t3 = Temper.MarginaliaCore.isRegexSpace__487(TemperCore.String.get(text, i))
+              t3
+            else
+              t3 = false
+              t3
+            end
+            if not t3 do
+              i
+            else
+              i = TemperCore.String.next(text, i)
+              ex_loop_436.(ex_loop_436, i)
+            end
           else
-            i = TemperCore.String.next(text, i)
-            ex_loop_430.(ex_loop_430, i)
+            i
           end
-        else
-          i
         end
+        i = ex_loop_436.(ex_loop_436, i)
+        TemperCore.List.add(out, TemperCore.String.slice(text, start, i))
+        ex_loop_432.(ex_loop_432, i)
+      else
+        i
       end
-      i = ex_loop_430.(ex_loop_430, i)
-      ex_loop_432 = fn ex_loop_432, i ->
-        if TemperCore.String.has_index(text, i) do
-          start = i
-          ex_loop_434 = fn ex_loop_434, i ->
-            if true do
-              _t2 = nil
-              t2 = if TemperCore.String.has_index(text, i) do
-                t2 = not Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(text, i))
-                t2
-              else
-                t2 = false
-                t2
-              end
-              if not t2 do
-                i
-              else
-                i = TemperCore.String.next(text, i)
-                ex_loop_434.(ex_loop_434, i)
-              end
-            else
-              i
-            end
-          end
-          i = ex_loop_434.(ex_loop_434, i)
-          ex_loop_436 = fn ex_loop_436, i ->
-            if true do
-              _t3 = nil
-              t3 = if TemperCore.String.has_index(text, i) do
-                t3 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(text, i))
-                t3
-              else
-                t3 = false
-                t3
-              end
-              if not t3 do
-                i
-              else
-                i = TemperCore.String.next(text, i)
-                ex_loop_436.(ex_loop_436, i)
-              end
-            else
-              i
-            end
-          end
-          i = ex_loop_436.(ex_loop_436, i)
-          TemperCore.List.add(out, TemperCore.String.slice(text, start, i))
-          ex_loop_432.(ex_loop_432, i)
-        else
-          i
-        end
-      end
-      _i = ex_loop_432.(ex_loop_432, i)
-      TemperCore.List.to_list(out)
-    end)
+    end
+    _i = ex_loop_432.(ex_loop_432, i)
+    TemperCore.List.to_list(out)
   end
-  def distinct__488(words) do
+  def distinct__499(words) do
     set = TemperCore.Map.builder()
     k = 0
     ex_loop_439 = fn ex_loop_439, k ->
@@ -4756,7 +4723,7 @@ defmodule Temper.MarginaliaCore do
     _k = ex_loop_439.(ex_loop_439, k)
     set
   end
-  def unrelated__487(ak, bk) do
+  def unrelated__498(ak, bk) do
     try do
       _return = nil
       return = if true do
@@ -4772,8 +4739,8 @@ defmodule Temper.MarginaliaCore do
           return = false
           return
         else
-          a = TemperCore.Map.to_map(Temper.MarginaliaCore.distinct__488(ak))
-          b = TemperCore.Map.to_map(Temper.MarginaliaCore.distinct__488(bk))
+          a = TemperCore.Map.to_map(Temper.MarginaliaCore.distinct__499(ak))
+          b = TemperCore.Map.to_map(Temper.MarginaliaCore.distinct__499(bk))
           bKeys = TemperCore.Map.keys(b)
           shared = 0
           k = 0
@@ -4811,7 +4778,7 @@ defmodule Temper.MarginaliaCore do
         ex_value_445
     end
   end
-  def attach__495(script, aw, bw, parts) do
+  def attach__506(script, aw, bw, parts) do
     ai = 0
     bi = 0
     c = 0
@@ -4826,10 +4793,10 @@ defmodule Temper.MarginaliaCore do
               Temper.MarginaliaCore.Chunk.get_kind(chunk) == 0 ->
                 ta = TemperCore.List.get(aw, ai)
                 tb = TemperCore.List.get(bw, bi)
-                cut = Temper.MarginaliaCore.trailingStart(tb)
+                cut = Temper.MarginaliaCore.trailingStart__490(tb)
                 _token = nil
                 token = if cut == TemperCore.String.end_of(tb) do
-                  token = Temper.MarginaliaCore.trim(tb) <> TemperCore.String.slice(ta, Temper.MarginaliaCore.trailingStart(ta), TemperCore.String.end_of(ta))
+                  token = Temper.MarginaliaCore.trim__489(tb) <> TemperCore.String.slice(ta, Temper.MarginaliaCore.trailingStart__490(ta), TemperCore.String.end_of(ta))
                   token
                 else
                   token = tb
@@ -4864,21 +4831,21 @@ defmodule Temper.MarginaliaCore do
     {_ai, _bi, _c} = ex_loop_447.(ex_loop_447, ai, bi, c)
     nil
   end
-  def moveDown__490(p, a) do
+  def moveDown__501(p, a) do
     if Temper.MarginaliaCore.Path.get_i(p) < TemperCore.List.length(a) do
       Temper.MarginaliaCore.Path.new(TemperCore.int32(Temper.MarginaliaCore.Path.get_y(p) + 1), TemperCore.int32(Temper.MarginaliaCore.Path.get_i(p) + 1), Temper.MarginaliaCore.Path.get_j(p), Temper.MarginaliaCore.Edit.new(1, TemperCore.List.get(a, Temper.MarginaliaCore.Path.get_i(p)), Temper.MarginaliaCore.Path.get_edits(p)))
     else
       Temper.MarginaliaCore.Path.new(TemperCore.int32(Temper.MarginaliaCore.Path.get_y(p) + 1), Temper.MarginaliaCore.Path.get_i(p), Temper.MarginaliaCore.Path.get_j(p), Temper.MarginaliaCore.Path.get_edits(p))
     end
   end
-  def moveRight__489(p, b) do
+  def moveRight__500(p, b) do
     if Temper.MarginaliaCore.Path.get_j(p) < TemperCore.List.length(b) do
       Temper.MarginaliaCore.Path.new(Temper.MarginaliaCore.Path.get_y(p), Temper.MarginaliaCore.Path.get_i(p), TemperCore.int32(Temper.MarginaliaCore.Path.get_j(p) + 1), Temper.MarginaliaCore.Edit.new(2, TemperCore.List.get(b, Temper.MarginaliaCore.Path.get_j(p)), Temper.MarginaliaCore.Path.get_edits(p)))
     else
       p
     end
   end
-  def followSnake__491(p, a, b) do
+  def followSnake__502(p, a, b) do
     y = Temper.MarginaliaCore.Path.get_y(p)
     i = Temper.MarginaliaCore.Path.get_i(p)
     j = Temper.MarginaliaCore.Path.get_j(p)
@@ -4914,7 +4881,7 @@ defmodule Temper.MarginaliaCore do
     {edits, i, j, y} = ex_loop_454.(ex_loop_454, edits, i, j, y)
     Temper.MarginaliaCore.Path.new(y, i, j, edits)
   end
-  def sameWords__494(x, y) do
+  def sameWords__505(x, y) do
     try do
       return = nil
       return = try do
@@ -4949,7 +4916,7 @@ defmodule Temper.MarginaliaCore do
         ex_value_461
     end
   end
-  def compact__493(edits) do
+  def compact__504(edits) do
     out = TemperCore.List.builder()
     e = edits
     ex_loop_463 = fn ex_loop_463, e ->
@@ -4986,7 +4953,7 @@ defmodule Temper.MarginaliaCore do
             if Temper.MarginaliaCore.Chunk.get_kind(TemperCore.List.get(out, TemperCore.int32(n - 1))) == 0 do
               if Temper.MarginaliaCore.Chunk.get_kind(TemperCore.List.get(out, TemperCore.int32(n - 2))) == 2 do
                 if Temper.MarginaliaCore.Chunk.get_kind(TemperCore.List.get(out, TemperCore.int32(n - 3))) == 0 do
-                  t2 = Temper.MarginaliaCore.sameWords__494(Temper.MarginaliaCore.Chunk.get_words(TemperCore.List.get(out, TemperCore.int32(n - 1))), Temper.MarginaliaCore.Chunk.get_words(TemperCore.List.get(out, TemperCore.int32(n - 2))))
+                  t2 = Temper.MarginaliaCore.sameWords__505(Temper.MarginaliaCore.Chunk.get_words(TemperCore.List.get(out, TemperCore.int32(n - 1))), Temper.MarginaliaCore.Chunk.get_words(TemperCore.List.get(out, TemperCore.int32(n - 2))))
                   t2
                 else
                   t2 = false
@@ -5041,7 +5008,7 @@ defmodule Temper.MarginaliaCore do
     _k = ex_loop_465.(ex_loop_465, k)
     TemperCore.List.to_list(out)
   end
-  def myers__492(a, b) do
+  def myers__503(a, b) do
     return = nil
     return = try do
       paths = %TemperCore.Vec{t: {Temper.MarginaliaCore.Path.new(0, 0, 0, nil)}}
@@ -5068,7 +5035,7 @@ defmodule Temper.MarginaliaCore do
                   at = TemperCore.int32(at + 1)
                   {at, path}
                 diag == TemperCore.int32(-envelope) ->
-                  path = Temper.MarginaliaCore.moveDown__490(path, a)
+                  path = Temper.MarginaliaCore.moveDown__501(path, a)
                   {at, path}
                 true ->
                   _t3 = nil
@@ -5080,17 +5047,17 @@ defmodule Temper.MarginaliaCore do
                     t3
                   end
                   if t3 do
-                    path = Temper.MarginaliaCore.moveRight__489(path, b)
+                    path = Temper.MarginaliaCore.moveRight__500(path, b)
                     at = TemperCore.int32(at + 1)
                     {at, path}
                   else
                     _t4 = nil
                     second = TemperCore.List.get(paths, TemperCore.int32(at + 1))
                     t4 = if Temper.MarginaliaCore.Path.get_y(path) > Temper.MarginaliaCore.Path.get_y(second) do
-                      t4 = Temper.MarginaliaCore.moveRight__489(path, b)
+                      t4 = Temper.MarginaliaCore.moveRight__500(path, b)
                       t4
                     else
-                      t4 = Temper.MarginaliaCore.moveDown__490(second, a)
+                      t4 = Temper.MarginaliaCore.moveDown__501(second, a)
                       t4
                     end
                     path = t4
@@ -5098,7 +5065,7 @@ defmodule Temper.MarginaliaCore do
                     {at, path}
                   end
               end
-              path = Temper.MarginaliaCore.followSnake__491(path, a, b)
+              path = Temper.MarginaliaCore.followSnake__502(path, a, b)
               _t2 = nil
               t2 = if Temper.MarginaliaCore.Path.get_i(path) == TemperCore.List.length(a) do
                 t2 = Temper.MarginaliaCore.Path.get_j(path) == TemperCore.List.length(b)
@@ -5108,7 +5075,7 @@ defmodule Temper.MarginaliaCore do
                 t2
               end
               if t2 do
-                return = Temper.MarginaliaCore.compact__493(Temper.MarginaliaCore.Path.get_edits(path))
+                return = Temper.MarginaliaCore.compact__504(Temper.MarginaliaCore.Path.get_edits(path))
                 throw({:temper_break, :ex_block_468, return})
               else
                 TemperCore.List.add(next, path)
@@ -5135,7 +5102,7 @@ defmodule Temper.MarginaliaCore do
     end
     return
   end
-  def merge__496(parts) do
+  def merge__507(parts) do
     out = TemperCore.List.builder()
     k = 0
     ex_loop_475 = fn ex_loop_475, k ->
@@ -5176,18 +5143,18 @@ defmodule Temper.MarginaliaCore do
   def diff(a, b) do
     Temper.MarginaliaCore.__temper_init__()
     TemperCore.Heap.entry(fn ->
-      aw = Temper.MarginaliaCore.wordsOf(a)
-      bw = Temper.MarginaliaCore.wordsOf(b)
+      aw = Temper.MarginaliaCore.wordsOf__497(a)
+      bw = Temper.MarginaliaCore.wordsOf__497(b)
       fn_1 = fn w1 ->
-        Temper.MarginaliaCore.trim(w1)
+        Temper.MarginaliaCore.trim__489(w1)
       end
       ak = TemperCore.List.map(aw, fn_1)
       fn_2 = fn w2 ->
-        Temper.MarginaliaCore.trim(w2)
+        Temper.MarginaliaCore.trim__489(w2)
       end
       bk = TemperCore.List.map(bw, fn_2)
       parts = TemperCore.List.builder()
-      if Temper.MarginaliaCore.unrelated__487(ak, bk) do
+      if Temper.MarginaliaCore.unrelated__498(ak, bk) do
         k1 = 0
         ex_loop_482 = fn ex_loop_482, k1 ->
           if k1 < TemperCore.List.length(aw) do
@@ -5212,21 +5179,21 @@ defmodule Temper.MarginaliaCore do
         _k2 = ex_loop_484.(ex_loop_484, k2)
         nil
       else
-        Temper.MarginaliaCore.attach__495(Temper.MarginaliaCore.myers__492(ak, bk), aw, bw, parts)
+        Temper.MarginaliaCore.attach__506(Temper.MarginaliaCore.myers__503(ak, bk), aw, bw, parts)
         nil
       end
-      Temper.MarginaliaCore.merge__496(TemperCore.List.to_list(parts))
+      Temper.MarginaliaCore.merge__507(TemperCore.List.to_list(parts))
     end)
   end
   def __temper_init__() do
     TemperCore.init_once(:"Temper.MarginaliaCore", fn ->
-      TemperCore.Global.put(:"Temper.MarginaliaCore.targetWords__497", 1800)
-      TemperCore.Global.put(:"Temper.MarginaliaCore.minWords__498", 250)
-      TemperCore.Global.put(:"Temper.MarginaliaCore.maxWords__499", 4000)
-      TemperCore.Global.put(:"Temper.MarginaliaCore.abbreviations__500", %TemperCore.Vec{t: {"e.g", "i.e", "vs", "etc", "cf", "viz", "ca", "Mr", "Mrs", "Ms", "Dr", "Prof", "St", "No", "Fig", "Jr", "Sr", "Inc", "Ltd", "Co"}})
-      TemperCore.Global.put(:"Temper.MarginaliaCore.v_EQ__501", 0)
-      TemperCore.Global.put(:"Temper.MarginaliaCore.v_DEL__502", 1)
-      TemperCore.Global.put(:"Temper.MarginaliaCore.v_INS__503", 2)
+      TemperCore.Global.put(:"Temper.MarginaliaCore.targetWords__508", 1800)
+      TemperCore.Global.put(:"Temper.MarginaliaCore.minWords__509", 250)
+      TemperCore.Global.put(:"Temper.MarginaliaCore.maxWords__510", 4000)
+      TemperCore.Global.put(:"Temper.MarginaliaCore.abbreviations__511", %TemperCore.Vec{t: {"e.g", "i.e", "vs", "etc", "cf", "viz", "ca", "Mr", "Mrs", "Ms", "Dr", "Prof", "St", "No", "Fig", "Jr", "Sr", "Inc", "Ltd", "Co"}})
+      TemperCore.Global.put(:"Temper.MarginaliaCore.v_EQ__512", 0)
+      TemperCore.Global.put(:"Temper.MarginaliaCore.v_DEL__513", 1)
+      TemperCore.Global.put(:"Temper.MarginaliaCore.v_INS__514", 2)
       nil
     end)
   end

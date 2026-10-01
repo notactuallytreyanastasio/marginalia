@@ -7,19 +7,19 @@ this replaces used `String.trim/1` (Unicode whitespace) and the regexes
 definitions differ, and keeping them apart is what keeps the output the same.
 
     /** `\s` in a regex without the `u` flag: tab, newline, vertical tab, form feed, return, space. */
-    export let isRegexSpace(cp: Int): Boolean {
+    let isRegexSpace(cp: Int): Boolean {
       cp == 32 || (cp >= 9 && cp <= 13)
     }
 
     /** What `String.trim/1` strips: Unicode whitespace. */
-    export let isTrimSpace(cp: Int): Boolean {
+    let isTrimSpace(cp: Int): Boolean {
       isRegexSpace(cp) || cp == 0x85 || cp == 0xA0 || cp == 0x1680 ||
         (cp >= 0x2000 && cp <= 0x200A) || cp == 0x2028 || cp == 0x2029 ||
         cp == 0x202F || cp == 0x205F || cp == 0x3000
     }
 
     /** `String.trim/1`. */
-    export let trim(s: String): String {
+    let trim(s: String): String {
       var b = String.begin;
       while (s.hasIndex(b) && isTrimSpace(s[b])) { b = s.next(b); }
       var e = s.end;
@@ -28,25 +28,25 @@ definitions differ, and keeping them apart is what keeps the output the same.
     }
 
     /** Where `String.trim_trailing/1` would cut: the start of the trailing whitespace. */
-    export let trailingStart(s: String): StringIndex {
+    let trailingStart(s: String): StringIndex {
       var e = s.end;
       while (e > String.begin && isTrimSpace(s[s.prev(e)])) { e = s.prev(e); }
       e
     }
 
     /** Where `String.trim_leading/1` would cut: the end of the leading whitespace. */
-    export let leadingEnd(s: String): StringIndex {
+    let leadingEnd(s: String): StringIndex {
       var b = String.begin;
       while (s.hasIndex(b) && isTrimSpace(s[b])) { b = s.next(b); }
       b
     }
 
-    export let trimLeading(s: String): String { s.slice(leadingEnd(s), s.end) }
+    let trimLeading(s: String): String { s.slice(leadingEnd(s), s.end) }
 
-    export let trimTrailing(s: String): String { s.slice(String.begin, trailingStart(s)) }
+    let trimTrailing(s: String): String { s.slice(String.begin, trailingStart(s)) }
 
     /** Whether `s` begins with `prefix`. */
-    export let startsWith(s: String, prefix: String): Boolean {
+    let startsWith(s: String, prefix: String): Boolean {
       var i = String.begin;
       var j = String.begin;
       while (prefix.hasIndex(j)) {
@@ -58,7 +58,7 @@ definitions differ, and keeping them apart is what keeps the output the same.
     }
 
     /** Whether `s` ends with `suffix`, the suffix ending at `end`. */
-    export let endsWithAt(s: String, end: StringIndex, suffix: String): Boolean {
+    let endsWithAt(s: String, end: StringIndex, suffix: String): Boolean {
       var i = end;
       var j = suffix.end;
       while (j > String.begin) {
@@ -70,6 +70,6 @@ definitions differ, and keeping them apart is what keeps the output the same.
       true
     }
 
-    export let joinWith(parts: List<String>, sep: String): String {
+    let joinWith(parts: List<String>, sep: String): String {
       parts.join(sep) { (p): String => p }
     }
