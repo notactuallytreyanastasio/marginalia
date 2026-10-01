@@ -26,8 +26,13 @@ config :marginalia, MarginaliaWeb.Endpoint,
   secret_key_base: "jpP1w+xBmF2UqPjxnFIhdGfoLC/lDOjAO2qI/+Rb+EWMW4hy7U6ATjus1wthrzQ8",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:marginalia, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:marginalia, ~w(--watch)]}
-  ]
+    tailwind: {Tailwind, :install_and_run, [:marginalia, ~w(--watch)]},
+    # regenerates temper/out whenever a .temper.md source changes
+    bash: [Path.expand("../bin/temper-watch", __DIR__)]
+  ],
+  # the generated Temper libraries are path deps; the code reloader
+  # recompiles a dep only when it is listed here
+  reloadable_apps: [:marginalia, :temper_marginalia_core, :temper_core]
 
 # ## SSL Support
 #

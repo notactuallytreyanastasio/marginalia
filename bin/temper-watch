@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# Regenerates temper/out every time a Temper source changes, for as long as
+# it runs. `mix phx.server` starts it as a watcher (config/dev.exs), so an
+# edit to a .temper.md file reaches the browser on its own: temper rebuilds
+# (about half a second, the JVM stays warm), the changed files are copied
+# into temper/out, the code reloader recompiles the dependency, and live
+# reload refreshes the page.
+#
+# A build that reports a diagnostic is not copied: temper/out keeps the last
+# good build, and the diagnostic is printed here, as Temper wrote it.
+#
+# Without a temper CLI it says so and exits, and the app runs on the
+# committed temper/out. The result of a session is exactly what
+# bin/temper-gen makes, so `mix temper.check` passes on it.
+set -uo pipefail
+cd "$(dirname "$0")/.."
+root=$(pwd)
+TEMPER_BLIMP="${TEMPER_BLIMP:-$HOME/code/temper-elixir}"
+TEMPER="${TEMPER:-$TEMPER_BLIMP/temper/cli/build/install/temper/bin/temper}"
+export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@21}"
+
+say() { printf '[temper] %s\n' "$*"; }
+
+if [ ! -x "$TEMPER" ]; then
+  say "no temper CLI at $TEMPER; serving the committed temper/out"
+  exit 0
+fi
+
+built="$root/temper/temper.out/elixir"
+
+# Copies a finished build into temper/out. temper rewrites every file on
+# every build, so -c compares contents and -r without -t leaves a file
+# that did not change alone, mtime included: Mix recompiles only what did.
+sync() {
+  find "$built" -name '*.map' -delete
+  local changed
+  changed=$(rsync -r -c --delete --exclude TEMPER_COMMIT --exclude _build --exclude deps --itemize-changes "$built/" temper/out/ | grep -c '^>f\|^\*deleting' || true)
+  commit=$(git -C "$TEMPER_BLIMP" rev-parse HEAD)
+  if [ -n "$(git -C "$TEMPER_BLIMP" status --porcelain -- temper/be-elixir temper/frontend)" ]; then
+    commit="$commit (with uncommitted changes)"
+  fi
+  [ "$(cat temper/out/TEMPER_COMMIT 2>/dev/null)" = "$commit" ] || echo "$commit" > temper/out/TEMPER_COMMIT
+  say "build $1 in $2: $changed file(s) changed in temper/out"
+}
+
+# Reads temper watch's output: a build's diagnostics come between its
+# "starting" and "Finished" lines.
+handle() {
+  local line n took diagnostics=()
+  while IFS= read -r line; do
+    case "$line" in
+      "Watch starting build #"*)
+        diagnostics=()
+        ;;
+      "Finished build #"*)
+        n=${line#Finished build #}; n=${n%% *}
+        took=${line##* in }
+        if [ ${#diagnostics[@]} -eq 0 ]; then
+          sync "$n" "$took"
+        else
+          printf '%s\n' "${diagnostics[@]}"
+          say "build $n has diagnostics; temper/out keeps the last good build"
+        fi
+        ;;
+      *)
+        diagnostics+=("$line")
+        ;;
+    esac
+  done
+}
+
+say "watching temper/ (temper watch -b elixir)"
+fifo=$(mktemp -u)
+mkfifo "$fifo"
+# temper/.temperignore keeps temper/out, temper/verify and temper's own
+# output out of the watch, or each copy would set off another build
+"$TEMPER" watch -b elixir -w temper --ignorefile temper/.temperignore > "$fifo" 2>&1 &
+temper_pid=$!
+handle < "$fifo" &
+handle_pid=$!
+
+stop() {
+  kill "$temper_pid" "$handle_pid" 2>/dev/null
+  rm -f "$fifo"
+}
+trap stop EXIT
+trap 'exit 130' INT TERM HUP
+
+# Phoenix gives a watcher no signal when the server stops, only the end of
+# its stdin. So run until stdin closes (Ctrl-D, or Ctrl-C, in a terminal),
+# then stop temper, or its JVM outlives the server.
+while read -r _; do :; done

@@ -1,0 +1,8 @@
+# What `temper watch -w temper` (bin/temper-watch) must not watch: its
+# own output, and the generated code it copies into temper/out, which
+# would set off another build each time.
+out/
+verify/
+temper.out/
+temper.keep/
+README.md

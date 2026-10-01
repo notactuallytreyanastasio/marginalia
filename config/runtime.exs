@@ -35,7 +35,10 @@ if config_env() == :dev do
         ~r"priv/gettext/.*\.po$"E,
         # Router, Controllers, LiveViews and LiveComponents
         ~r"lib/marginalia_web/router\.ex$"E,
-        ~r"lib/marginalia_web/(controllers|live|components)/.*\.(ex|heex)$"E
+        ~r"lib/marginalia_web/(controllers|live|components)/.*\.(ex|heex)$"E,
+        # Elixir generated from temper/ by bin/temper-watch; the reload's
+        # request recompiles it (reloadable_apps in dev.exs)
+        ~r"temper/out/.*\.ex$"E
       ]
     ]
 end

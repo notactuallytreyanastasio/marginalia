@@ -76,6 +76,69 @@ linked list of edits is shared between paths exactly as Elixir's own
 `List.myers_difference/2` shares it. The generated library compiles
 without warnings.
 
+## Working on it live
+
+`mix phx.server` runs `bin/temper-watch` alongside esbuild and tailwind.
+Save a `.temper.md` file, and the page in the browser reloads running the
+new code, about a second later:
+
+```
+[temper] watching temper/ (temper watch -b elixir)
+[temper] build 0 in 2.584s: 0 file(s) changed in temper/out
+[temper] build 1 in 759.708ms: 1 file(s) changed in temper/out
+[debug] Live reload: temper/out/marginalia-core/lib/temper_main.ex
+Generated temper_marginalia_core app
+```
+
+1. `temper watch -b elixir -w temper` keeps a JVM warm and rebuilds on
+   every save, in well under a second. `temper/.temperignore` keeps it from
+   watching its own output.
+2. The script copies the build into `temper/out`, comparing contents, so
+   only files that changed get a new mtime.
+3. Live reload sees `temper/out/**/*.ex` change (`config/runtime.exs`) and
+   refreshes the page.
+4. That request runs the code reloader. `reloadable_apps` in
+   `config/dev.exs` lists the generated libraries, so it recompiles the
+   path dependency, not only the app.
+
+A build with a diagnostic is not copied. The page keeps running the last
+good build, and the diagnostic appears in the server's output as Temper
+wrote it:
+
+```
+161: let broken(): Int { "no" }
+                         ┗━━┛
+[-work/marginalia-core/src/diff.temper.md:161+24-28]@G: Cannot assign to Int32 from String
+[temper] build 2 has diagnostics; temper/out keeps the last good build
+```
+
+What a session leaves in `temper/out` is exactly what `bin/temper-gen`
+makes, so `mix temper.check` passes and the result can be committed. With
+no temper CLI, the watcher says so and exits, and the app serves the
+committed code. Run `bin/temper-watch` in a terminal to watch without the
+server, for example while running `mix test`. Ctrl-C stops it.
+
+### Moving an Elixir module into Temper
+
+1. **Write it.** Add `temper/marginalia-core/src/<name>.temper.md`. Every
+   file in the library's `src/` becomes part of `Temper.MarginaliaCore`,
+   so there is nothing to register. `export` what Elixir will call, and
+   only that, because an exported function pays the library's entry on
+   every call. When Temper can't answer something about a character,
+   declare a `@connected` function and implement it in
+   `src/_connected.ex`.
+2. **Point the Elixir module at it.** Keep the module and its API, and
+   replace its body with calls into `Temper.MarginaliaCore`. Convert the
+   results back into what callers already match on, as
+   `Marginalia.Diff.rows/2` does. This step is deliberately written by
+   hand: it is the boundary between Temper's types and the app's.
+3. **Prove it is the same.** Copy the old module into
+   `temper/verify/old_<name>.exs` under `Old.`, and add a harness that
+   runs old and new on random inputs and counts which rules the inputs
+   reach. `bin/temper-verify <name>` runs it.
+4. **Commit the source and `temper/out` together.** `mix precommit`
+   refuses a `temper/out` that the sources would not generate.
+
 ## What the host answers
 
 Temper's core strings carry no Unicode character data. The few questions
