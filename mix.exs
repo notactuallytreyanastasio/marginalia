@@ -104,8 +104,10 @@ defmodule Marginalia.MixProject do
       ],
       "temper.gen": ["cmd bin/temper-gen"],
       "temper.check": ["cmd bin/temper-gen --check"],
+      "temper.test": ["cmd bin/temper-test"],
       precommit: [
         "temper.check",
+        "temper.test",
         "compile --warnings-as-errors",
         "deps.unlock --unused",
         "format",

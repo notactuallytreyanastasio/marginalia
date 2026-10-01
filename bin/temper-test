@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Runs the Temper tests: the ExUnit files be-elixir generated in
+# temper/out/*/test from the `test` blocks in temper/*/src. Arguments go to
+# `mix test`, so `bin/temper-test test/words_test.exs:17` runs one test.
+#
+# The build goes under the app's own _build/temper, not into temper/out,
+# which holds only what bin/temper-gen generates.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+root=$(pwd)
+status=0
+for lib in temper/out/*/; do
+  [ -d "$lib/test" ] && [ -f "$lib/mix.exs" ] || continue
+  case "$(basename "$lib")" in temper-core|std) continue ;; esac
+  echo "==> $(basename "$lib")"
+  (cd "$lib" && MIX_ENV=test MIX_BUILD_ROOT="$root/_build/temper" mix test "$@") || status=1
+done
+exit $status

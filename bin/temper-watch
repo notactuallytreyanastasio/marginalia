@@ -41,6 +41,20 @@ sync() {
   fi
   [ "$(cat temper/out/TEMPER_COMMIT 2>/dev/null)" = "$commit" ] || echo "$commit" > temper/out/TEMPER_COMMIT
   say "build $1 in $2: $changed file(s) changed in temper/out"
+  [ "$changed" -gt 0 ] && run_tests
+}
+
+# The Temper tests, after every build that changed something: the summary,
+# and each failure's Temper line and message.
+run_tests() {
+  local out
+  out=$(bin/temper-test 2>&1)
+  # a failure's message runs from its Temper line to ExUnit's `code:` line
+  printf '%s\n' "$out" | awk '
+    /^ +src\/.*\.temper(\.md)?:[0-9]+: / { on = 1 }
+    /^ +code: / { on = 0 }
+    on { sub(/^ +/, ""); print "[temper]   " $0 }'
+  say "tests: $(printf '%s\n' "$out" | grep -E '[0-9]+ tests?, [0-9]+ failures?' | tail -1)"
 }
 
 # Reads temper watch's output: a build's diagnostics come between its

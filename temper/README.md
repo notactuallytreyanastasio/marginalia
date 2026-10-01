@@ -95,9 +95,11 @@ Generated temper_marginalia_core app
    watching its own output.
 2. The script copies the build into `temper/out`, comparing contents, so
    only files that changed get a new mtime.
-3. Live reload sees `temper/out/**/*.ex` change (`config/runtime.exs`) and
+3. If anything changed, it runs the Temper tests (below) and prints the
+   summary, plus each failure's Temper line and message.
+4. Live reload sees `temper/out/**/*.ex` change (`config/runtime.exs`) and
    refreshes the page.
-4. That request runs the code reloader. `reloadable_apps` in
+5. That request runs the code reloader. `reloadable_apps` in
    `config/dev.exs` lists the generated libraries, so it recompiles the
    path dependency, not only the app.
 
@@ -132,12 +134,56 @@ server, for example while running `mix test`. Ctrl-C stops it.
    results back into what callers already match on, as
    `Marginalia.Diff.rows/2` does. This step is deliberately written by
    hand: it is the boundary between Temper's types and the app's.
-3. **Prove it is the same.** Copy the old module into
+3. **Port its tests.** Put them in `src/<name>_test.temper.md`, with every
+   check inside a helper that takes the `test` (see below).
+4. **Prove it is the same.** Copy the old module into
    `temper/verify/old_<name>.exs` under `Old.`, and add a harness that
    runs old and new on random inputs and counts which rules the inputs
    reach. `bin/temper-verify <name>` runs it.
-4. **Commit the source and `temper/out` together.** `mix precommit`
+5. **Commit the source and `temper/out` together.** `mix precommit`
    refuses a `temper/out` that the sources would not generate.
+
+## Temper tests
+
+`src/*_test.temper.md` holds 26 tests, ported from the app's Elixir tests
+for the diffs, the segmenter, sentences and PDF reflow. be-elixir turns
+each test file into an ExUnit file in `temper/out/marginalia-core/test/`.
+`bin/temper-test` (`mix temper.test`, in `mix precommit`) runs them, and
+a failure names its Temper line:
+
+```
+  1) test identical spans are all one piece (Temper.MarginaliaCore.WordsTest)
+     test/words_test.exs:17
+     src/words_test.temper.md:37: got:
+     same:a b c
+     want:
+     same:a b d
+```
+
+The tests aren't part of the library. They, their helpers and std (for
+std/testing) live in the generated `test/support/` and are compiled only
+under `MIX_ENV=test`. The app never compiles any of them, in any
+environment.
+
+**Every check runs inside a helper that takes the `test`.** The Temper
+frontend evaluates anything whose inputs are known while compiling, on
+every backend. `assert(kinds(rows("a", "b")) == "same")` would come out as
+`assert(false)`, already decided, and test the compiler instead of the
+generated code. A function that takes the `test` is never evaluated early:
+
+```temper
+let diffIs(test: Test, a: String, b: String, want: String): Void {
+  expectText(test, render(diff(a, b)), want);
+}
+
+test("identical spans are all one piece") { test =>
+  diffIs(test, "a b c", "a b c", "same:a b c");
+}
+```
+
+`src/testing.temper.md` has the shared helpers. The test source travels
+with the Temper code, so another backend's build of this library gets
+the same tests.
 
 ## What the host answers
 
