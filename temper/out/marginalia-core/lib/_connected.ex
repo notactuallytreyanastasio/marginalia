@@ -18,4 +18,7 @@ defmodule TemperConnected do
   def isUpcaseFixed(cp), do: String.upcase(<<cp::utf8>>) == <<cp::utf8>>
   def downcase(s), do: String.downcase(s)
   def graphemeLength(s), do: String.length(s)
+
+  # for segmenter.temper.md: titles are cut to a number of graphemes
+  def graphemePrefix(s, n), do: String.slice(s, 0, n)
 end
