@@ -145,19 +145,19 @@ defmodule Temper.Std.JsonObject do
       this2 = vs
       n = TemperCore.List.length(this2)
       i = 0
-      ex_loop_42 = fn ex_loop_42, i ->
+      ex_loop_2 = fn ex_loop_2, i ->
         if i < n do
           el = TemperCore.List.get(this2, i)
           i = TemperCore.int32(i + 1)
           v = el
           TemperCore.call(p, :objectKey, [k])
           TemperCore.call(v, :produce, [p])
-          ex_loop_42.(ex_loop_42, i)
+          ex_loop_2.(ex_loop_2, i)
         else
           i
         end
       end
-      _i = ex_loop_42.(ex_loop_42, i)
+      _i = ex_loop_2.(ex_loop_2, i)
       nil
     end
     TemperCore.Map.for_each(this1.properties, fn_)
@@ -184,18 +184,18 @@ defmodule Temper.Std.JsonArray do
     this2 = this1.elements
     n = TemperCore.List.length(this2)
     i = 0
-    ex_loop_47 = fn ex_loop_47, i ->
+    ex_loop_1 = fn ex_loop_1, i ->
       if i < n do
         el = TemperCore.List.get(this2, i)
         i = TemperCore.int32(i + 1)
         v = el
         TemperCore.call(v, :produce, [p])
-        ex_loop_47.(ex_loop_47, i)
+        ex_loop_1.(ex_loop_1, i)
       else
         i
       end
     end
-    _i = ex_loop_47.(ex_loop_47, i)
+    _i = ex_loop_1.(ex_loop_1, i)
     TemperCore.call(p, :endArray, [])
     nil
   end
@@ -402,31 +402,31 @@ defmodule Temper.Std.JsonNumericToken do
   def asInt32(this) do
     try do
       try do
-        throw({:temper_return, :ex_return_91, TemperCore.String.to_int32(this.content)})
+        throw({:temper_return, :ex_return_0, TemperCore.String.to_int32(this.content)})
       rescue
         _ in TemperCore.Bubble ->
           t = TemperCore.String.to_float64(this.content)
-          throw({:temper_return, :ex_return_91, TemperCore.float_to_int32(t)})
+          throw({:temper_return, :ex_return_0, TemperCore.float_to_int32(t)})
       end
       nil
     catch
-      {:temper_return, :ex_return_91, ex_value_92} ->
-        ex_value_92
+      {:temper_return, :ex_return_0, ex_value_1} ->
+        ex_value_1
     end
   end
   def asInt64(this) do
     try do
       try do
-        throw({:temper_return, :ex_return_93, TemperCore.String.to_int64(this.content)})
+        throw({:temper_return, :ex_return_0, TemperCore.String.to_int64(this.content)})
       rescue
         _ in TemperCore.Bubble ->
           t = TemperCore.String.to_float64(this.content)
-          throw({:temper_return, :ex_return_93, TemperCore.float_to_int64(t)})
+          throw({:temper_return, :ex_return_0, TemperCore.float_to_int64(t)})
       end
       nil
     catch
-      {:temper_return, :ex_return_93, ex_value_94} ->
-        ex_value_94
+      {:temper_return, :ex_return_0, ex_value_1} ->
+        ex_value_1
     end
   end
   def asFloat64(this) do
@@ -540,7 +540,7 @@ defmodule Temper.Std.JsonTextProducer do
     else
       nil
     end
-    Temper.Std.encodeJsonString__364(key, TemperCore.Heap.get(this, :buffer))
+    Temper.Std.encodeJsonString(key, TemperCore.Heap.get(this, :buffer))
     TemperCore.StringBuilder.append(TemperCore.Heap.get(this, :buffer), ":")
     if currentState >= 0 do
       TemperCore.List.set(TemperCore.Heap.get(this, :stack), TemperCore.int32(TemperCore.List.length(TemperCore.Heap.get(this, :stack)) - 1), 1)
@@ -617,7 +617,7 @@ defmodule Temper.Std.JsonTextProducer do
   end
   def stringValue(this, x) do
     Temper.Std.JsonTextProducer.beforeValue(this)
-    Temper.Std.encodeJsonString__364(x, TemperCore.Heap.get(this, :buffer))
+    Temper.Std.encodeJsonString(x, TemperCore.Heap.get(this, :buffer))
     nil
   end
   def toJsonString(this) do
@@ -696,7 +696,7 @@ defmodule Temper.Std.JsonSyntaxTreeProducer do
         multis1 = nil
         i = 0
         n = TemperCore.int32(Bitwise.band(TemperCore.List.length(ls), -2))
-        ex_loop_123 = fn ex_loop_123, i, multis1 ->
+        ex_loop_2 = fn ex_loop_2, i, multis1 ->
           if i < n do
             _t1 = nil
             postfixReturn1 = i
@@ -758,17 +758,17 @@ defmodule Temper.Std.JsonSyntaxTreeProducer do
                     raise(TemperCore.Panic)
                 end
                 TemperCore.List.add(t2, value)
-                ex_loop_123.(ex_loop_123, i, multis1)
+                ex_loop_2.(ex_loop_2, i, multis1)
               else
                 TemperCore.Map.set(m, key, %TemperCore.Vec{t: {value}})
-                ex_loop_123.(ex_loop_123, i, multis1)
+                ex_loop_2.(ex_loop_2, i, multis1)
               end
             end
           else
             {i, multis1}
           end
         end
-        {_i, multis1} = ex_loop_123.(ex_loop_123, i, multis1)
+        {_i, multis1} = ex_loop_2.(ex_loop_2, i, multis1)
         multis2 = multis1
         if not (multis2 === nil) do
           fn_ = fn k, vs ->
@@ -980,18 +980,18 @@ defmodule Temper.Std.ListJsonAdapter do
     this2 = x
     n = TemperCore.List.length(this2)
     i = 0
-    ex_loop_163 = fn ex_loop_163, i ->
+    ex_loop_1 = fn ex_loop_1, i ->
       if i < n do
         el1 = TemperCore.List.get(this2, i)
         i = TemperCore.int32(i + 1)
         el2 = el1
         TemperCore.call(TemperCore.Heap.get(this1, :adapterForT), :encodeToJson, [el2, p])
-        ex_loop_163.(ex_loop_163, i)
+        ex_loop_1.(ex_loop_1, i)
       else
         i
       end
     end
-    _i = ex_loop_163.(ex_loop_163, i)
+    _i = ex_loop_1.(ex_loop_1, i)
     TemperCore.call(p, :endArray, [])
     nil
   end
@@ -1001,18 +1001,18 @@ defmodule Temper.Std.ListJsonAdapter do
     elements = Temper.Std.JsonArray.get_elements(t2)
     n = TemperCore.List.length(elements)
     i = 0
-    ex_loop_166 = fn ex_loop_166, i ->
+    ex_loop_1 = fn ex_loop_1, i ->
       if i < n do
         el = TemperCore.List.get(elements, i)
         i = TemperCore.int32(i + 1)
         t3 = TemperCore.call(TemperCore.Heap.get(this, :adapterForT), :decodeFromJson, [el, ic])
         TemperCore.List.add(b, t3)
-        ex_loop_166.(ex_loop_166, i)
+        ex_loop_1.(ex_loop_1, i)
       else
         i
       end
     end
-    _i = ex_loop_166.(ex_loop_166, i)
+    _i = ex_loop_1.(ex_loop_1, i)
     TemperCore.List.to_list(b)
   end
   def new(adapterForT) do
@@ -1607,10 +1607,10 @@ defmodule Temper.Std.RegexFormatter do
             TemperCore.StringBuilder.append(TemperCore.Heap.get(this, :out), "\\")
             TemperCore.StringBuilder.append(TemperCore.Heap.get(this, :out), specialEscape)
             return = nil
-            throw({:temper_break, :ex_block_329, return})
+            throw({:temper_break, :ex_block_1, return})
           else
             _return = if code <= 127 do
-              escapeNeed = TemperCore.List.get(TemperCore.Global.get(:"Temper.Std.escapeNeeds__165"), code)
+              escapeNeed = TemperCore.List.get(TemperCore.Global.get(:"Temper.Std.escapeNeeds"), code)
               _t2 = nil
               t2 = cond do
                 escapeNeed == 2 ->
@@ -1630,13 +1630,13 @@ defmodule Temper.Std.RegexFormatter do
                   t8 = TemperCore.String.from_code_point(code)
                   TemperCore.StringBuilder.append(t7, t8)
                   return = nil
-                  throw({:temper_break, :ex_block_329, return})
+                  throw({:temper_break, :ex_block_1, return})
                 escapeNeed == 0 ->
                   t9 = TemperCore.Heap.get(this, :out)
                   t10 = TemperCore.String.from_code_point(code)
                   TemperCore.StringBuilder.append(t9, t10)
                   return = nil
-                  throw({:temper_break, :ex_block_329, return})
+                  throw({:temper_break, :ex_block_1, return})
                 true ->
                   return
               end
@@ -1675,10 +1675,10 @@ defmodule Temper.Std.RegexFormatter do
               t3 = TemperCore.Heap.get(this, :out)
               t4 = TemperCore.String.from_code_point(code)
               TemperCore.StringBuilder.append(t3, t4)
-              throw({:temper_return, :ex_return_328, nil})
+              throw({:temper_return, :ex_return_0, nil})
             else
               TemperCore.StringBuilder.append(TemperCore.Heap.get(this, :out), TemperCore.Regex.code_escape(code))
-              throw({:temper_return, :ex_return_328, nil})
+              throw({:temper_return, :ex_return_0, nil})
             end
           end
         rescue
@@ -1687,28 +1687,28 @@ defmodule Temper.Std.RegexFormatter do
         end
         return
       catch
-        {:temper_break, :ex_block_329, ex_vars_330} ->
-          ex_vars_330
+        {:temper_break, :ex_block_1, ex_vars_2} ->
+          ex_vars_2
       end
       return
     catch
-      {:temper_return, :ex_return_328, ex_value_331} ->
-        ex_value_331
+      {:temper_return, :ex_return_0, ex_value_3} ->
+        ex_value_3
     end
   end
   def pushCodePoints(this, codePoints, insideCodeSet) do
     value = Temper.Std.CodePoints.get_value(codePoints)
     index = TemperCore.String.begin()
-    ex_loop_333 = fn ex_loop_333, index ->
+    ex_loop_1 = fn ex_loop_1, index ->
       if TemperCore.String.has_index(value, index) do
         Temper.Std.RegexFormatter.pushCode(this, TemperCore.String.get(value, index), insideCodeSet)
         index = TemperCore.String.next(value, index)
-        ex_loop_333.(ex_loop_333, index)
+        ex_loop_1.(ex_loop_1, index)
       else
         index
       end
     end
-    _index = ex_loop_333.(ex_loop_333, index)
+    _index = ex_loop_1.(ex_loop_1, index)
     nil
   end
   def pushCodeRange(this, codeRange) do
@@ -1724,7 +1724,7 @@ defmodule Temper.Std.RegexFormatter do
     nil
   end
   def pushCodeSet(this, codeSet) do
-    adjusted = Temper.Std.RegexFormatter.adjustCodeSet(this, codeSet, TemperCore.Global.get(:"Temper.Std.regexRefs__164"))
+    adjusted = Temper.Std.RegexFormatter.adjustCodeSet(this, codeSet, TemperCore.Global.get(:"Temper.Std.regexRefs"))
     if TemperCore.is_a(adjusted, Temper.Std.CodeSet) do
       t = adjusted
       if TemperCore.List.is_empty(Temper.Std.CodeSet.get_items(t)) do
@@ -1744,16 +1744,16 @@ defmodule Temper.Std.RegexFormatter do
           nil
         end
         i = 0
-        ex_loop_338 = fn ex_loop_338, i ->
+        ex_loop_1 = fn ex_loop_1, i ->
           if i < TemperCore.List.length(Temper.Std.CodeSet.get_items(t)) do
             Temper.Std.RegexFormatter.pushCodeSetItem(this, TemperCore.List.get(Temper.Std.CodeSet.get_items(t), i))
             i = TemperCore.int32(i + 1)
-            ex_loop_338.(ex_loop_338, i)
+            ex_loop_1.(ex_loop_1, i)
           else
             i
           end
         end
-        _i = ex_loop_338.(ex_loop_338, i)
+        _i = ex_loop_1.(ex_loop_1, i)
         TemperCore.StringBuilder.append(TemperCore.Heap.get(this, :out), "]")
         nil
       end
@@ -1788,17 +1788,17 @@ defmodule Temper.Std.RegexFormatter do
       TemperCore.StringBuilder.append(TemperCore.Heap.get(this, :out), "(?:")
       Temper.Std.RegexFormatter.pushRegex(this, TemperCore.List.get(Temper.Std.Or.get_items(or_), 0))
       i = 1
-      ex_loop_343 = fn ex_loop_343, i ->
+      ex_loop_1 = fn ex_loop_1, i ->
         if i < TemperCore.List.length(Temper.Std.Or.get_items(or_)) do
           TemperCore.StringBuilder.append(TemperCore.Heap.get(this, :out), "|")
           Temper.Std.RegexFormatter.pushRegex(this, TemperCore.List.get(Temper.Std.Or.get_items(or_), i))
           i = TemperCore.int32(i + 1)
-          ex_loop_343.(ex_loop_343, i)
+          ex_loop_1.(ex_loop_1, i)
         else
           i
         end
       end
-      _i = ex_loop_343.(ex_loop_343, i)
+      _i = ex_loop_1.(ex_loop_1, i)
       TemperCore.StringBuilder.append(TemperCore.Heap.get(this, :out), ")")
       nil
     else
@@ -1876,16 +1876,16 @@ defmodule Temper.Std.RegexFormatter do
   end
   def pushSequence(this, sequence) do
     i = 0
-    ex_loop_347 = fn ex_loop_347, i ->
+    ex_loop_1 = fn ex_loop_1, i ->
       if i < TemperCore.List.length(Temper.Std.Sequence.get_items(sequence)) do
         Temper.Std.RegexFormatter.pushRegex(this, TemperCore.List.get(Temper.Std.Sequence.get_items(sequence), i))
         i = TemperCore.int32(i + 1)
-        ex_loop_347.(ex_loop_347, i)
+        ex_loop_1.(ex_loop_1, i)
       else
         i
       end
     end
-    _i = ex_loop_347.(ex_loop_347, i)
+    _i = ex_loop_1.(ex_loop_1, i)
     nil
   end
   def maxCode(_this, codePart) do
@@ -1898,7 +1898,7 @@ defmodule Temper.Std.RegexFormatter do
         else
           max_ = 0
           index = TemperCore.String.begin()
-          ex_loop_350 = fn ex_loop_350, index, max_ ->
+          ex_loop_1 = fn ex_loop_1, index, max_ ->
             if TemperCore.String.has_index(value, index) do
               next = TemperCore.String.get(value, index)
               max_ = if next > max_ do
@@ -1908,12 +1908,12 @@ defmodule Temper.Std.RegexFormatter do
                 max_
               end
               index = TemperCore.String.next(value, index)
-              ex_loop_350.(ex_loop_350, index, max_)
+              ex_loop_1.(ex_loop_1, index, max_)
             else
               {index, max_}
             end
           end
-          {_index, max_} = ex_loop_350.(ex_loop_350, index, max_)
+          {_index, max_} = ex_loop_1.(ex_loop_1, index, max_)
           max_
         end
       TemperCore.is_a(codePart, Temper.Std.CodeRange) ->
@@ -2153,10 +2153,10 @@ defmodule Temper.Std.Date do
             t2
           end
           if t2 do
-            t1 = day <= TemperCore.List.get(TemperCore.Global.get(:"Temper.Std.daysInMonth__34"), month)
+            t1 = day <= TemperCore.List.get(TemperCore.Global.get(:"Temper.Std.daysInMonth"), month)
             t1
           else
-            t1 = Temper.Std.isLeapYear__32(year)
+            t1 = Temper.Std.isLeapYear(year)
             t1
           end
         else
@@ -2182,11 +2182,11 @@ defmodule Temper.Std.Date do
   end
   def toString(this) do
     sb = TemperCore.StringBuilder.new()
-    Temper.Std.padTo__33(4, this.year, sb)
+    Temper.Std.padTo(4, this.year, sb)
     TemperCore.StringBuilder.append(sb, "-")
-    Temper.Std.padTo__33(2, this.month, sb)
+    Temper.Std.padTo(2, this.month, sb)
     TemperCore.StringBuilder.append(sb, "-")
-    Temper.Std.padTo__33(2, this.day, sb)
+    Temper.Std.padTo(2, this.day, sb)
     TemperCore.StringBuilder.to_string(sb)
   end
   def fromIsoString(isoString) do
@@ -2265,11 +2265,11 @@ defmodule Temper.Std.Date do
     yy = TemperCore.int32(y - TemperCore.int32(c * 100))
     janFirst = rem(TemperCore.int32(TemperCore.int32(TemperCore.int32(8 + TemperCore.int32(5 * rem(TemperCore.int32(yy + 3), 4))) + TemperCore.int32(3 * TemperCore.int32(yy - 1))) + TemperCore.int32(5 * rem(c, 4))), 7)
     _table = nil
-    table = if Temper.Std.isLeapYear__32(y) do
-      table = TemperCore.Global.get(:"Temper.Std.dayOfWeekLookupTableLeapy__35")
+    table = if Temper.Std.isLeapYear(y) do
+      table = TemperCore.Global.get(:"Temper.Std.dayOfWeekLookupTableLeapy")
       table
     else
-      table = TemperCore.Global.get(:"Temper.Std.dayOfWeekLookupTableNotLeapy__36")
+      table = TemperCore.Global.get(:"Temper.Std.dayOfWeekLookupTableNotLeapy")
       table
     end
     monthOffset = TemperCore.List.get(table, this.month)
@@ -2355,12 +2355,12 @@ defmodule Temper.Std do
       TemperCore.List.map(testCases, fn_)
     end)
   end
-  def escapeXml__41(s) do
+  def escapeXml(s) do
     sb = TemperCore.StringBuilder.new()
     end_ = TemperCore.String.end_of(s)
     emitted = TemperCore.String.begin()
     i = TemperCore.String.begin()
-    ex_loop_8 = fn ex_loop_8, emitted, i ->
+    ex_loop_1 = fn ex_loop_1, emitted, i ->
       if i < end_ do
         emitted = try do
           c = TemperCore.String.get(s, i)
@@ -2395,7 +2395,7 @@ defmodule Temper.Std do
                   t1
               end
               if t1 do
-                throw({:temper_break, :ex_block_10, emitted})
+                throw({:temper_break, :ex_block_3, emitted})
               else
                 _t2 = nil
                 t2 = cond do
@@ -2413,7 +2413,7 @@ defmodule Temper.Std do
                   esc = "[0x" <> TemperCore.int_to_string(c, 16) <> "]"
                   esc
                 else
-                  throw({:temper_break, :ex_block_10, emitted})
+                  throw({:temper_break, :ex_block_3, emitted})
                 end
               end
           end
@@ -2422,16 +2422,16 @@ defmodule Temper.Std do
           emitted = TemperCore.String.next(s, i)
           emitted
         catch
-          {:temper_break, :ex_block_10, ex_vars_11} ->
-            ex_vars_11
+          {:temper_break, :ex_block_3, ex_vars_4} ->
+            ex_vars_4
         end
         i = TemperCore.String.next(s, i)
-        ex_loop_8.(ex_loop_8, emitted, i)
+        ex_loop_1.(ex_loop_1, emitted, i)
       else
         {emitted, i}
       end
     end
-    {emitted, _i} = ex_loop_8.(ex_loop_8, emitted, i)
+    {emitted, _i} = ex_loop_1.(ex_loop_1, emitted, i)
     if emitted == TemperCore.String.begin() do
       s
     else
@@ -2459,11 +2459,11 @@ defmodule Temper.Std do
       totals = "tests='" <> total <> "' failures='" <> fails2 <> "'"
       writeLine.("  <testsuite name='suite' " <> totals <> " time='0.0'>")
       i = 0
-      ex_loop_14 = fn ex_loop_14, i ->
+      ex_loop_2 = fn ex_loop_2, i ->
         if i < TemperCore.List.length(testResults) do
           testResult2 = TemperCore.List.get(testResults, i)
           failureMessages = TemperCore.Pair.get_value(testResult2)
-          name = Temper.Std.escapeXml__41(TemperCore.Pair.get_key(testResult2))
+          name = Temper.Std.escapeXml(TemperCore.Pair.get_key(testResult2))
           basics = "name='" <> name <> "' classname='" <> name <> "' time='0.0'"
           if TemperCore.List.is_empty(failureMessages) do
             writeLine.("    <testcase " <> basics <> " />")
@@ -2473,18 +2473,18 @@ defmodule Temper.Std do
             fn_2 = fn it ->
               it
             end
-            message = Temper.Std.escapeXml__41(TemperCore.List.join(failureMessages, ", ", fn_2))
+            message = Temper.Std.escapeXml(TemperCore.List.join(failureMessages, ", ", fn_2))
             writeLine.("      <failure message='" <> message <> "' />")
             writeLine.("    </testcase>")
             nil
           end
           i = TemperCore.int32(i + 1)
-          ex_loop_14.(ex_loop_14, i)
+          ex_loop_2.(ex_loop_2, i)
         else
           i
         end
       end
-      _i = ex_loop_14.(ex_loop_14, i)
+      _i = ex_loop_2.(ex_loop_2, i)
       writeLine.("  </testsuite>")
       writeLine.("</testsuites>")
       nil
@@ -2522,24 +2522,24 @@ defmodule Temper.Std do
       nil
     end)
   end
-  def parseJsonValue__369(sourceText, i, out) do
+  def parseJsonValue(sourceText, i, out) do
     try do
       _return = nil
       {_i, return} = if true do
-        i = Temper.Std.skipJsonSpaces__368(sourceText, i)
+        i = Temper.Std.skipJsonSpaces(sourceText, i)
         if not TemperCore.String.has_index(sourceText, i) do
-          Temper.Std.expectedTokenError__366(sourceText, i, out, "JSON value")
+          Temper.Std.expectedTokenError(sourceText, i, out, "JSON value")
           return = TemperCore.String.none()
           {i, return}
         else
           subject = TemperCore.String.get(sourceText, i)
           cond do
             subject == 123 ->
-              throw({:temper_return, :ex_return_142, Temper.Std.parseJsonObject__370(sourceText, i, out)})
+              throw({:temper_return, :ex_return_0, Temper.Std.parseJsonObject(sourceText, i, out)})
             subject == 91 ->
-              throw({:temper_return, :ex_return_142, Temper.Std.parseJsonArray__371(sourceText, i, out)})
+              throw({:temper_return, :ex_return_0, Temper.Std.parseJsonArray(sourceText, i, out)})
             subject == 34 ->
-              throw({:temper_return, :ex_return_142, Temper.Std.parseJsonString__372(sourceText, i, out)})
+              throw({:temper_return, :ex_return_0, Temper.Std.parseJsonString(sourceText, i, out)})
             true ->
               _t = nil
               t = if subject == 116 do
@@ -2551,37 +2551,37 @@ defmodule Temper.Std do
               end
               cond do
                 t ->
-                  throw({:temper_return, :ex_return_142, Temper.Std.parseJsonBoolean__375(sourceText, i, out)})
+                  throw({:temper_return, :ex_return_0, Temper.Std.parseJsonBoolean(sourceText, i, out)})
                 subject == 110 ->
-                  throw({:temper_return, :ex_return_142, Temper.Std.parseJsonNull__376(sourceText, i, out)})
+                  throw({:temper_return, :ex_return_0, Temper.Std.parseJsonNull(sourceText, i, out)})
                 true ->
-                  throw({:temper_return, :ex_return_142, Temper.Std.parseJsonNumber__378(sourceText, i, out)})
+                  throw({:temper_return, :ex_return_0, Temper.Std.parseJsonNumber(sourceText, i, out)})
               end
           end
         end
       end
       return
     catch
-      {:temper_return, :ex_return_142, ex_value_144} ->
-        ex_value_144
+      {:temper_return, :ex_return_0, ex_value_2} ->
+        ex_value_2
     end
   end
-  def encodeHex4__365(cp, buffer) do
+  def encodeHex4(cp, buffer) do
     b0 = TemperCore.int32(Bitwise.band(TemperCore.int32(div(cp, 4096)), 15))
     b1 = TemperCore.int32(Bitwise.band(TemperCore.int32(div(cp, 256)), 15))
     b2 = TemperCore.int32(Bitwise.band(TemperCore.int32(div(cp, 16)), 15))
     b3 = TemperCore.int32(Bitwise.band(cp, 15))
-    TemperCore.StringBuilder.append(buffer, TemperCore.List.get(TemperCore.Global.get(:"Temper.Std.hexDigits__386"), b0))
-    TemperCore.StringBuilder.append(buffer, TemperCore.List.get(TemperCore.Global.get(:"Temper.Std.hexDigits__386"), b1))
-    TemperCore.StringBuilder.append(buffer, TemperCore.List.get(TemperCore.Global.get(:"Temper.Std.hexDigits__386"), b2))
-    TemperCore.StringBuilder.append(buffer, TemperCore.List.get(TemperCore.Global.get(:"Temper.Std.hexDigits__386"), b3))
+    TemperCore.StringBuilder.append(buffer, TemperCore.List.get(TemperCore.Global.get(:"Temper.Std.hexDigits"), b0))
+    TemperCore.StringBuilder.append(buffer, TemperCore.List.get(TemperCore.Global.get(:"Temper.Std.hexDigits"), b1))
+    TemperCore.StringBuilder.append(buffer, TemperCore.List.get(TemperCore.Global.get(:"Temper.Std.hexDigits"), b2))
+    TemperCore.StringBuilder.append(buffer, TemperCore.List.get(TemperCore.Global.get(:"Temper.Std.hexDigits"), b3))
     nil
   end
-  def encodeJsonString__364(x, buffer) do
+  def encodeJsonString(x, buffer) do
     TemperCore.StringBuilder.append(buffer, "\"")
     i = TemperCore.String.begin()
     emitted = i
-    ex_loop_174 = fn ex_loop_174, emitted, i ->
+    ex_loop_1 = fn ex_loop_1, emitted, i ->
       if TemperCore.String.has_index(x, i) do
         cp = TemperCore.String.get(x, i)
         _replacement = nil
@@ -2633,7 +2633,7 @@ defmodule Temper.Std do
           TemperCore.StringBuilder.append_between(buffer, x, emitted, i)
           TemperCore.StringBuilder.append(buffer, replacement)
           if replacement == "\\u" do
-            Temper.Std.encodeHex4__365(cp, buffer)
+            Temper.Std.encodeHex4(cp, buffer)
             nil
           else
             nil
@@ -2644,17 +2644,17 @@ defmodule Temper.Std do
           emitted
         end
         i = nextI
-        ex_loop_174.(ex_loop_174, emitted, i)
+        ex_loop_1.(ex_loop_1, emitted, i)
       else
         {emitted, i}
       end
     end
-    {emitted, i} = ex_loop_174.(ex_loop_174, emitted, i)
+    {emitted, i} = ex_loop_1.(ex_loop_1, emitted, i)
     TemperCore.StringBuilder.append_between(buffer, x, emitted, i)
     TemperCore.StringBuilder.append(buffer, "\"")
     nil
   end
-  def storeJsonError__367(out, explanation) do
+  def storeJsonError(out, explanation) do
     subject = TemperCore.call(out, :get_parseErrorReceiver, [])
     if not (subject === nil) do
       TemperCore.call(subject, :explainJsonError, [explanation])
@@ -2664,7 +2664,7 @@ defmodule Temper.Std do
     end
     nil
   end
-  def expectedTokenError__366(sourceText, i, out, shortExplanation) do
+  def expectedTokenError(sourceText, i, out, shortExplanation) do
     _gotten = nil
     gotten = if TemperCore.String.has_index(sourceText, i) do
       gotten = "`" <> TemperCore.String.slice(sourceText, i, TemperCore.String.end_of(sourceText)) <> "`"
@@ -2673,11 +2673,11 @@ defmodule Temper.Std do
       gotten = "end-of-file"
       gotten
     end
-    Temper.Std.storeJsonError__367(out, "Expected " <> shortExplanation <> ", but got " <> gotten)
+    Temper.Std.storeJsonError(out, "Expected " <> shortExplanation <> ", but got " <> gotten)
     nil
   end
-  def skipJsonSpaces__368(sourceText, i) do
-    ex_loop_179 = fn ex_loop_179, i ->
+  def skipJsonSpaces(sourceText, i) do
+    ex_loop_1 = fn ex_loop_1, i ->
       if TemperCore.String.has_index(sourceText, i) do
         subject = TemperCore.String.get(sourceText, i)
         _t = nil
@@ -2699,22 +2699,22 @@ defmodule Temper.Std do
           i
         else
           i = TemperCore.String.next(sourceText, i)
-          ex_loop_179.(ex_loop_179, i)
+          ex_loop_1.(ex_loop_1, i)
         end
       else
         i
       end
     end
-    i = ex_loop_179.(ex_loop_179, i)
+    i = ex_loop_1.(ex_loop_1, i)
     i
   end
-  def decodeHexUnsigned__374(sourceText, start, limit) do
+  def decodeHexUnsigned(sourceText, start, limit) do
     try do
       return = nil
       return = try do
         n = 0
         i = start
-        ex_loop_183 = fn ex_loop_183, i, n, return ->
+        ex_loop_2 = fn ex_loop_2, i, n, return ->
           if TemperCore.cmp(i, limit) < 0 do
             cp = TemperCore.String.get(sourceText, i)
             _digit = nil
@@ -2755,30 +2755,30 @@ defmodule Temper.Std do
                   {digit, return}
                 else
                   return = -1
-                  throw({:temper_break, :ex_block_182, return})
+                  throw({:temper_break, :ex_block_1, return})
                 end
               end
             end
             n = TemperCore.int32(TemperCore.int32(n * 16) + digit)
             i = TemperCore.String.next(sourceText, i)
-            ex_loop_183.(ex_loop_183, i, n, return)
+            ex_loop_2.(ex_loop_2, i, n, return)
           else
             {i, n, return}
           end
         end
-        {_i, n, _return} = ex_loop_183.(ex_loop_183, i, n, return)
-        throw({:temper_return, :ex_return_181, n})
+        {_i, n, _return} = ex_loop_2.(ex_loop_2, i, n, return)
+        throw({:temper_return, :ex_return_0, n})
       catch
-        {:temper_break, :ex_block_182, ex_vars_185} ->
-          ex_vars_185
+        {:temper_break, :ex_block_1, ex_vars_4} ->
+          ex_vars_4
       end
       return
     catch
-      {:temper_return, :ex_return_181, ex_value_186} ->
-        ex_value_186
+      {:temper_return, :ex_return_0, ex_value_5} ->
+        ex_value_5
     end
   end
-  def parseJsonStringTo__373(sourceText, i, sb, errOut) do
+  def parseJsonStringTo(sourceText, i, sb, errOut) do
     try do
       return = nil
       {_i, return} = try do
@@ -2791,14 +2791,14 @@ defmodule Temper.Std do
           t1
         end
         if t1 do
-          Temper.Std.expectedTokenError__366(sourceText, i, errOut, "\"")
+          Temper.Std.expectedTokenError(sourceText, i, errOut, "\"")
           return = TemperCore.String.none()
           {i, return}
         else
           i = TemperCore.String.next(sourceText, i)
           leadSurrogate = -1
           consumed = i
-          ex_loop_189 = fn ex_loop_189, consumed, i, leadSurrogate, return ->
+          ex_loop_2 = fn ex_loop_2, consumed, i, leadSurrogate, return ->
             if TemperCore.String.has_index(sourceText, i) do
               _t3 = nil
               cp = TemperCore.String.get(sourceText, i)
@@ -2814,9 +2814,9 @@ defmodule Temper.Std do
                 else
                   needToFlush = true
                   if not TemperCore.String.has_index(sourceText, iNext) do
-                    Temper.Std.expectedTokenError__366(sourceText, iNext, errOut, "escape sequence")
+                    Temper.Std.expectedTokenError(sourceText, iNext, errOut, "escape sequence")
                     return = TemperCore.String.none()
-                    throw({:temper_break, :ex_block_188, {i, return}})
+                    throw({:temper_break, :ex_block_1, {i, return}})
                   else
                     esc0 = TemperCore.String.get(sourceText, iNext)
                     iNext = TemperCore.String.next(sourceText, iNext)
@@ -2859,24 +2859,24 @@ defmodule Temper.Std do
                           iNext = TemperCore.String.next(sourceText, iNext)
                           iNext = TemperCore.String.next(sourceText, iNext)
                           iNext = TemperCore.String.next(sourceText, iNext)
-                          hex = Temper.Std.decodeHexUnsigned__374(sourceText, startHex, iNext)
+                          hex = Temper.Std.decodeHexUnsigned(sourceText, startHex, iNext)
                           {hex, iNext}
                         else
                           hex = -1
                           {hex, iNext}
                         end
                         if hex < 0 do
-                          Temper.Std.expectedTokenError__366(sourceText, iNext, errOut, "four hex digits")
+                          Temper.Std.expectedTokenError(sourceText, iNext, errOut, "four hex digits")
                           return = TemperCore.String.none()
-                          throw({:temper_break, :ex_block_188, {i, return}})
+                          throw({:temper_break, :ex_block_1, {i, return}})
                         else
                           t3 = hex
                           {iNext, needToFlush, return, t3}
                         end
                       true ->
-                        Temper.Std.expectedTokenError__366(sourceText, iNext, errOut, "escape sequence")
+                        Temper.Std.expectedTokenError(sourceText, iNext, errOut, "escape sequence")
                         return = TemperCore.String.none()
-                        throw({:temper_break, :ex_block_188, {i, return}})
+                        throw({:temper_break, :ex_block_1, {i, return}})
                     end
                   end
                 end
@@ -2957,13 +2957,13 @@ defmodule Temper.Std do
                   {consumed, leadSurrogate}
                 end
                 i = iNext
-                ex_loop_189.(ex_loop_189, consumed, i, leadSurrogate, return)
+                ex_loop_2.(ex_loop_2, consumed, i, leadSurrogate, return)
               end
             else
               {consumed, i, leadSurrogate, return}
             end
           end
-          {consumed, i, leadSurrogate, _return} = ex_loop_189.(ex_loop_189, consumed, i, leadSurrogate, return)
+          {consumed, i, leadSurrogate, _return} = ex_loop_2.(ex_loop_2, consumed, i, leadSurrogate, return)
           _t2 = nil
           t2 = if not TemperCore.String.has_index(sourceText, i) do
             t2 = true
@@ -2973,8 +2973,8 @@ defmodule Temper.Std do
             t2
           end
           if t2 do
-            Temper.Std.expectedTokenError__366(sourceText, i, errOut, "\"")
-            throw({:temper_return, :ex_return_187, TemperCore.String.none()})
+            Temper.Std.expectedTokenError(sourceText, i, errOut, "\"")
+            throw({:temper_return, :ex_return_0, TemperCore.String.none()})
           else
             if leadSurrogate >= 0 do
               try do
@@ -2990,20 +2990,20 @@ defmodule Temper.Std do
               nil
             end
             i = TemperCore.String.next(sourceText, i)
-            throw({:temper_return, :ex_return_187, i})
+            throw({:temper_return, :ex_return_0, i})
           end
         end
       catch
-        {:temper_break, :ex_block_188, ex_vars_191} ->
-          ex_vars_191
+        {:temper_break, :ex_block_1, ex_vars_4} ->
+          ex_vars_4
       end
       return
     catch
-      {:temper_return, :ex_return_187, ex_value_192} ->
-        ex_value_192
+      {:temper_return, :ex_return_0, ex_value_5} ->
+        ex_value_5
     end
   end
-  def parseJsonObject__370(sourceText, i, out) do
+  def parseJsonObject(sourceText, i, out) do
     try do
       return = nil
       {_i, return} = try do
@@ -3017,12 +3017,12 @@ defmodule Temper.Std do
             t1
           end
           if t1 do
-            Temper.Std.expectedTokenError__366(sourceText, i, out, "'{'")
+            Temper.Std.expectedTokenError(sourceText, i, out, "'{'")
             return = TemperCore.String.none()
-            throw({:temper_break, :ex_block_194, {i, return}})
+            throw({:temper_break, :ex_block_1, {i, return}})
           else
             TemperCore.call(out, :startObject, [])
-            i = Temper.Std.skipJsonSpaces__368(sourceText, TemperCore.String.next(sourceText, i))
+            i = Temper.Std.skipJsonSpaces(sourceText, TemperCore.String.next(sourceText, i))
             _t2 = nil
             t2 = if TemperCore.String.has_index(sourceText, i) do
               t2 = TemperCore.String.get(sourceText, i) != 125
@@ -3032,27 +3032,27 @@ defmodule Temper.Std do
               t2
             end
             {i, _return} = if t2 do
-              ex_loop_195 = fn ex_loop_195, i, return ->
+              ex_loop_2 = fn ex_loop_2, i, return ->
                 if true do
                   _t4 = nil
                   keyBuffer = TemperCore.StringBuilder.new()
-                  afterKey = Temper.Std.parseJsonStringTo__373(sourceText, i, keyBuffer, out)
+                  afterKey = Temper.Std.parseJsonStringTo(sourceText, i, keyBuffer, out)
                   if not (afterKey >= 0) do
                     return = TemperCore.String.none()
-                    throw({:temper_break, :ex_block_194, {i, return}})
+                    throw({:temper_break, :ex_block_1, {i, return}})
                   else
                     TemperCore.call(out, :objectKey, [TemperCore.StringBuilder.to_string(keyBuffer)])
                     t4 = try do
                       t4 = case afterKey do
-                        ex_index_197 ->
-                          TemperCore.cast_check(ex_index_197, ex_index_197 >= 0)
+                        ex_index_4 ->
+                          TemperCore.cast_check(ex_index_4, ex_index_4 >= 0)
                       end
                       t4
                     rescue
                       _ in TemperCore.Bubble ->
                         raise(TemperCore.Panic)
                     end
-                    i = Temper.Std.skipJsonSpaces__368(sourceText, t4)
+                    i = Temper.Std.skipJsonSpaces(sourceText, t4)
                     _t5 = nil
                     t5 = if TemperCore.String.has_index(sourceText, i) do
                       t5 = TemperCore.String.get(sourceText, i) == 58
@@ -3063,17 +3063,17 @@ defmodule Temper.Std do
                     end
                     if t5 do
                       i = TemperCore.String.next(sourceText, i)
-                      afterPropertyValue = Temper.Std.parseJsonValue__369(sourceText, i, out)
+                      afterPropertyValue = Temper.Std.parseJsonValue(sourceText, i, out)
                       if not (afterPropertyValue >= 0) do
                         return = TemperCore.String.none()
-                        throw({:temper_break, :ex_block_194, {i, return}})
+                        throw({:temper_break, :ex_block_1, {i, return}})
                       else
                         t7 = case afterPropertyValue do
-                          ex_index_198 ->
-                            TemperCore.cast_check(ex_index_198, ex_index_198 >= 0)
+                          ex_index_5 ->
+                            TemperCore.cast_check(ex_index_5, ex_index_5 >= 0)
                         end
                         i = t7
-                        i = Temper.Std.skipJsonSpaces__368(sourceText, i)
+                        i = Temper.Std.skipJsonSpaces(sourceText, i)
                         _t6 = nil
                         t6 = if TemperCore.String.has_index(sourceText, i) do
                           t6 = TemperCore.String.get(sourceText, i) == 44
@@ -3083,23 +3083,23 @@ defmodule Temper.Std do
                           t6
                         end
                         if t6 do
-                          i = Temper.Std.skipJsonSpaces__368(sourceText, TemperCore.String.next(sourceText, i))
-                          ex_loop_195.(ex_loop_195, i, return)
+                          i = Temper.Std.skipJsonSpaces(sourceText, TemperCore.String.next(sourceText, i))
+                          ex_loop_2.(ex_loop_2, i, return)
                         else
                           {i, return}
                         end
                       end
                     else
-                      Temper.Std.expectedTokenError__366(sourceText, i, out, "':'")
+                      Temper.Std.expectedTokenError(sourceText, i, out, "':'")
                       return = TemperCore.String.none()
-                      throw({:temper_break, :ex_block_194, {i, return}})
+                      throw({:temper_break, :ex_block_1, {i, return}})
                     end
                   end
                 else
                   {i, return}
                 end
               end
-              {i, return} = ex_loop_195.(ex_loop_195, i, return)
+              {i, return} = ex_loop_2.(ex_loop_2, i, return)
               {i, return}
             else
               {i, return}
@@ -3114,28 +3114,28 @@ defmodule Temper.Std do
             end
             if t3 do
               TemperCore.call(out, :endObject, [])
-              throw({:temper_return, :ex_return_193, TemperCore.String.next(sourceText, i)})
+              throw({:temper_return, :ex_return_0, TemperCore.String.next(sourceText, i)})
             else
-              Temper.Std.expectedTokenError__366(sourceText, i, out, "'}'")
-              throw({:temper_return, :ex_return_193, TemperCore.String.none()})
+              Temper.Std.expectedTokenError(sourceText, i, out, "'}'")
+              throw({:temper_return, :ex_return_0, TemperCore.String.none()})
             end
           end
         rescue
           _ in TemperCore.Bubble ->
-            throw({:temper_return, :ex_return_193, raise(TemperCore.Panic)})
+            throw({:temper_return, :ex_return_0, raise(TemperCore.Panic)})
         end
         {i, return}
       catch
-        {:temper_break, :ex_block_194, ex_vars_199} ->
-          ex_vars_199
+        {:temper_break, :ex_block_1, ex_vars_6} ->
+          ex_vars_6
       end
       return
     catch
-      {:temper_return, :ex_return_193, ex_value_200} ->
-        ex_value_200
+      {:temper_return, :ex_return_0, ex_value_7} ->
+        ex_value_7
     end
   end
-  def parseJsonArray__371(sourceText, i, out) do
+  def parseJsonArray(sourceText, i, out) do
     try do
       return = nil
       {_i, return} = try do
@@ -3149,12 +3149,12 @@ defmodule Temper.Std do
             t1
           end
           if t1 do
-            Temper.Std.expectedTokenError__366(sourceText, i, out, "'['")
+            Temper.Std.expectedTokenError(sourceText, i, out, "'['")
             return = TemperCore.String.none()
-            throw({:temper_break, :ex_block_202, {i, return}})
+            throw({:temper_break, :ex_block_1, {i, return}})
           else
             TemperCore.call(out, :startArray, [])
-            i = Temper.Std.skipJsonSpaces__368(sourceText, TemperCore.String.next(sourceText, i))
+            i = Temper.Std.skipJsonSpaces(sourceText, TemperCore.String.next(sourceText, i))
             _t2 = nil
             t2 = if TemperCore.String.has_index(sourceText, i) do
               t2 = TemperCore.String.get(sourceText, i) != 93
@@ -3164,19 +3164,19 @@ defmodule Temper.Std do
               t2
             end
             {i, _return} = if t2 do
-              ex_loop_203 = fn ex_loop_203, i, return ->
+              ex_loop_2 = fn ex_loop_2, i, return ->
                 if true do
-                  afterElementValue = Temper.Std.parseJsonValue__369(sourceText, i, out)
+                  afterElementValue = Temper.Std.parseJsonValue(sourceText, i, out)
                   if not (afterElementValue >= 0) do
                     return = TemperCore.String.none()
-                    throw({:temper_break, :ex_block_202, {i, return}})
+                    throw({:temper_break, :ex_block_1, {i, return}})
                   else
                     t4 = case afterElementValue do
-                      ex_index_205 ->
-                        TemperCore.cast_check(ex_index_205, ex_index_205 >= 0)
+                      ex_index_4 ->
+                        TemperCore.cast_check(ex_index_4, ex_index_4 >= 0)
                     end
                     i = t4
-                    i = Temper.Std.skipJsonSpaces__368(sourceText, i)
+                    i = Temper.Std.skipJsonSpaces(sourceText, i)
                     _t5 = nil
                     t5 = if TemperCore.String.has_index(sourceText, i) do
                       t5 = TemperCore.String.get(sourceText, i) == 44
@@ -3186,8 +3186,8 @@ defmodule Temper.Std do
                       t5
                     end
                     if t5 do
-                      i = Temper.Std.skipJsonSpaces__368(sourceText, TemperCore.String.next(sourceText, i))
-                      ex_loop_203.(ex_loop_203, i, return)
+                      i = Temper.Std.skipJsonSpaces(sourceText, TemperCore.String.next(sourceText, i))
+                      ex_loop_2.(ex_loop_2, i, return)
                     else
                       {i, return}
                     end
@@ -3196,7 +3196,7 @@ defmodule Temper.Std do
                   {i, return}
                 end
               end
-              {i, return} = ex_loop_203.(ex_loop_203, i, return)
+              {i, return} = ex_loop_2.(ex_loop_2, i, return)
               {i, return}
             else
               {i, return}
@@ -3211,30 +3211,30 @@ defmodule Temper.Std do
             end
             if t3 do
               TemperCore.call(out, :endArray, [])
-              throw({:temper_return, :ex_return_201, TemperCore.String.next(sourceText, i)})
+              throw({:temper_return, :ex_return_0, TemperCore.String.next(sourceText, i)})
             else
-              Temper.Std.expectedTokenError__366(sourceText, i, out, "']'")
-              throw({:temper_return, :ex_return_201, TemperCore.String.none()})
+              Temper.Std.expectedTokenError(sourceText, i, out, "']'")
+              throw({:temper_return, :ex_return_0, TemperCore.String.none()})
             end
           end
         rescue
           _ in TemperCore.Bubble ->
-            throw({:temper_return, :ex_return_201, raise(TemperCore.Panic)})
+            throw({:temper_return, :ex_return_0, raise(TemperCore.Panic)})
         end
         {i, return}
       catch
-        {:temper_break, :ex_block_202, ex_vars_206} ->
-          ex_vars_206
+        {:temper_break, :ex_block_1, ex_vars_5} ->
+          ex_vars_5
       end
       return
     catch
-      {:temper_return, :ex_return_201, ex_value_207} ->
-        ex_value_207
+      {:temper_return, :ex_return_0, ex_value_6} ->
+        ex_value_6
     end
   end
-  def parseJsonString__372(sourceText, i, out) do
+  def parseJsonString(sourceText, i, out) do
     sb = TemperCore.StringBuilder.new()
-    after_ = Temper.Std.parseJsonStringTo__373(sourceText, i, sb, out)
+    after_ = Temper.Std.parseJsonStringTo(sourceText, i, sb, out)
     if after_ >= 0 do
       TemperCore.call(out, :stringValue, [TemperCore.StringBuilder.to_string(sb)])
       nil
@@ -3243,43 +3243,43 @@ defmodule Temper.Std do
     end
     after_
   end
-  def afterSubstring__377(string, inString, substring) do
+  def afterSubstring(string, inString, substring) do
     try do
       return = nil
       return = try do
         i = inString
         j = TemperCore.String.begin()
-        ex_loop_211 = fn ex_loop_211, i, j, return ->
+        ex_loop_2 = fn ex_loop_2, i, j, return ->
           if TemperCore.String.has_index(substring, j) do
             cond do
               not TemperCore.String.has_index(string, i) ->
                 return = TemperCore.String.none()
-                throw({:temper_break, :ex_block_210, return})
+                throw({:temper_break, :ex_block_1, return})
               TemperCore.String.get(string, i) != TemperCore.String.get(substring, j) ->
                 return = TemperCore.String.none()
-                throw({:temper_break, :ex_block_210, return})
+                throw({:temper_break, :ex_block_1, return})
               true ->
                 i = TemperCore.String.next(string, i)
                 j = TemperCore.String.next(substring, j)
-                ex_loop_211.(ex_loop_211, i, j, return)
+                ex_loop_2.(ex_loop_2, i, j, return)
             end
           else
             {i, j, return}
           end
         end
-        {i, _j, _return} = ex_loop_211.(ex_loop_211, i, j, return)
-        throw({:temper_return, :ex_return_209, i})
+        {i, _j, _return} = ex_loop_2.(ex_loop_2, i, j, return)
+        throw({:temper_return, :ex_return_0, i})
       catch
-        {:temper_break, :ex_block_210, ex_vars_213} ->
-          ex_vars_213
+        {:temper_break, :ex_block_1, ex_vars_4} ->
+          ex_vars_4
       end
       return
     catch
-      {:temper_return, :ex_return_209, ex_value_214} ->
-        ex_value_214
+      {:temper_return, :ex_return_0, ex_value_5} ->
+        ex_value_5
     end
   end
-  def parseJsonBoolean__375(sourceText, i, out) do
+  def parseJsonBoolean(sourceText, i, out) do
     try do
       return = nil
       return = try do
@@ -3311,11 +3311,11 @@ defmodule Temper.Std do
         _return = if not (keyword1 === nil) do
           keyword2 = keyword1
           if TemperCore.String.has_at_least(sourceText, i, end_, n) do
-            after_ = Temper.Std.afterSubstring__377(sourceText, i, keyword2)
+            after_ = Temper.Std.afterSubstring(sourceText, i, keyword2)
             if after_ >= 0 do
               return = after_
               TemperCore.call(out, :booleanValue, [n == 4])
-              throw({:temper_break, :ex_block_216, return})
+              throw({:temper_break, :ex_block_1, return})
             else
               return
             end
@@ -3325,39 +3325,39 @@ defmodule Temper.Std do
         else
           return
         end
-        Temper.Std.expectedTokenError__366(sourceText, i, out, "`false` or `true`")
-        throw({:temper_return, :ex_return_215, TemperCore.String.none()})
+        Temper.Std.expectedTokenError(sourceText, i, out, "`false` or `true`")
+        throw({:temper_return, :ex_return_0, TemperCore.String.none()})
       catch
-        {:temper_break, :ex_block_216, ex_vars_217} ->
-          ex_vars_217
+        {:temper_break, :ex_block_1, ex_vars_2} ->
+          ex_vars_2
       end
       return
     catch
-      {:temper_return, :ex_return_215, ex_value_218} ->
-        ex_value_218
+      {:temper_return, :ex_return_0, ex_value_3} ->
+        ex_value_3
     end
   end
-  def parseJsonNull__376(sourceText, i, out) do
+  def parseJsonNull(sourceText, i, out) do
     try do
       _return = nil
       return = if true do
-        after_ = Temper.Std.afterSubstring__377(sourceText, i, "null")
+        after_ = Temper.Std.afterSubstring(sourceText, i, "null")
         if after_ >= 0 do
           return = after_
           TemperCore.call(out, :nullValue, [])
           return
         else
-          Temper.Std.expectedTokenError__366(sourceText, i, out, "`null`")
-          throw({:temper_return, :ex_return_219, TemperCore.String.none()})
+          Temper.Std.expectedTokenError(sourceText, i, out, "`null`")
+          throw({:temper_return, :ex_return_0, TemperCore.String.none()})
         end
       end
       return
     catch
-      {:temper_return, :ex_return_219, ex_value_221} ->
-        ex_value_221
+      {:temper_return, :ex_return_0, ex_value_2} ->
+        ex_value_2
     end
   end
-  def parseJsonNumber__378(sourceText, i, out) do
+  def parseJsonNumber(sourceText, i, out) do
     try do
       return = nil
       {_i, return} = try do
@@ -3411,7 +3411,7 @@ defmodule Temper.Std do
             error = "digit"
             error
           end
-          Temper.Std.expectedTokenError__366(sourceText, i, out, error)
+          Temper.Std.expectedTokenError(sourceText, i, out, error)
           return = TemperCore.String.none()
           {i, return}
         else
@@ -3421,7 +3421,7 @@ defmodule Temper.Std do
           tentativeInt64 = TemperCore.int32(digit0 - 48)
           overflowInt64 = false
           {i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64} = if 48 != digit0 do
-            ex_loop_224 = fn ex_loop_224, i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64 ->
+            ex_loop_2 = fn ex_loop_2, i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64 ->
               if TemperCore.String.has_index(sourceText, i) do
                 possibleDigit1 = TemperCore.String.get(sourceText, i)
                 _t11 = nil
@@ -3455,12 +3455,12 @@ defmodule Temper.Std do
                     end
                     if not t14 do
                       overflowInt64 = true
-                      ex_loop_224.(ex_loop_224, i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64)
+                      ex_loop_2.(ex_loop_2, i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64)
                     else
-                      ex_loop_224.(ex_loop_224, i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64)
+                      ex_loop_2.(ex_loop_2, i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64)
                     end
                   else
-                    ex_loop_224.(ex_loop_224, i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64)
+                    ex_loop_2.(ex_loop_2, i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64)
                   end
                 else
                   {i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64}
@@ -3469,7 +3469,7 @@ defmodule Temper.Std do
                 {i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64}
               end
             end
-            {i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64} = ex_loop_224.(ex_loop_224, i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64)
+            {i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64} = ex_loop_2.(ex_loop_2, i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64)
             {i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64}
           else
             {i, nDigits, overflowInt64, tentativeFloat64, tentativeInt64}
@@ -3486,7 +3486,7 @@ defmodule Temper.Std do
           {i, _nDigits, nDigitsAfterPoint, return, _tentativeFloat64} = if t3 do
             i = TemperCore.String.next(sourceText, i)
             afterPoint = i
-            ex_loop_226 = fn ex_loop_226, i, nDigits, nDigitsAfterPoint, tentativeFloat64 ->
+            ex_loop_4 = fn ex_loop_4, i, nDigits, nDigitsAfterPoint, tentativeFloat64 ->
               if TemperCore.String.has_index(sourceText, i) do
                 possibleDigit2 = TemperCore.String.get(sourceText, i)
                 _t12 = nil
@@ -3502,7 +3502,7 @@ defmodule Temper.Std do
                   nDigits = TemperCore.int32(nDigits + 1)
                   nDigitsAfterPoint = TemperCore.int32(nDigitsAfterPoint + 1)
                   tentativeFloat64 = TemperCore.Float.add(TemperCore.Float.mul(tentativeFloat64, 10.0), TemperCore.int_to_float(TemperCore.int32(possibleDigit2 - 48)))
-                  ex_loop_226.(ex_loop_226, i, nDigits, nDigitsAfterPoint, tentativeFloat64)
+                  ex_loop_4.(ex_loop_4, i, nDigits, nDigitsAfterPoint, tentativeFloat64)
                 else
                   {i, nDigits, nDigitsAfterPoint, tentativeFloat64}
                 end
@@ -3510,11 +3510,11 @@ defmodule Temper.Std do
                 {i, nDigits, nDigitsAfterPoint, tentativeFloat64}
               end
             end
-            {i, nDigits, nDigitsAfterPoint, tentativeFloat64} = ex_loop_226.(ex_loop_226, i, nDigits, nDigitsAfterPoint, tentativeFloat64)
+            {i, nDigits, nDigitsAfterPoint, tentativeFloat64} = ex_loop_4.(ex_loop_4, i, nDigits, nDigitsAfterPoint, tentativeFloat64)
             if i == afterPoint do
-              Temper.Std.expectedTokenError__366(sourceText, i, out, "digit")
+              Temper.Std.expectedTokenError(sourceText, i, out, "digit")
               return = TemperCore.String.none()
-              throw({:temper_break, :ex_block_223, {i, return}})
+              throw({:temper_break, :ex_block_1, {i, return}})
             else
               {i, nDigits, nDigitsAfterPoint, return, tentativeFloat64}
             end
@@ -3533,9 +3533,9 @@ defmodule Temper.Std do
           {i, nExponentDigits, _return} = if t4 do
             i = TemperCore.String.next(sourceText, i)
             if not TemperCore.String.has_index(sourceText, i) do
-              Temper.Std.expectedTokenError__366(sourceText, i, out, "sign or digit")
+              Temper.Std.expectedTokenError(sourceText, i, out, "sign or digit")
               return = TemperCore.String.none()
-              throw({:temper_break, :ex_block_223, {i, return}})
+              throw({:temper_break, :ex_block_1, {i, return}})
             else
               afterE = TemperCore.String.get(sourceText, i)
               _t9 = nil
@@ -3552,7 +3552,7 @@ defmodule Temper.Std do
               else
                 i
               end
-              ex_loop_228 = fn ex_loop_228, i, nExponentDigits ->
+              ex_loop_6 = fn ex_loop_6, i, nExponentDigits ->
                 if TemperCore.String.has_index(sourceText, i) do
                   possibleDigit3 = TemperCore.String.get(sourceText, i)
                   _t13 = nil
@@ -3566,7 +3566,7 @@ defmodule Temper.Std do
                   if t13 do
                     i = TemperCore.String.next(sourceText, i)
                     nExponentDigits = TemperCore.int32(nExponentDigits + 1)
-                    ex_loop_228.(ex_loop_228, i, nExponentDigits)
+                    ex_loop_6.(ex_loop_6, i, nExponentDigits)
                   else
                     {i, nExponentDigits}
                   end
@@ -3574,11 +3574,11 @@ defmodule Temper.Std do
                   {i, nExponentDigits}
                 end
               end
-              {i, nExponentDigits} = ex_loop_228.(ex_loop_228, i, nExponentDigits)
+              {i, nExponentDigits} = ex_loop_6.(ex_loop_6, i, nExponentDigits)
               if nExponentDigits == 0 do
-                Temper.Std.expectedTokenError__366(sourceText, i, out, "exponent digit")
+                Temper.Std.expectedTokenError(sourceText, i, out, "exponent digit")
                 return = TemperCore.String.none()
-                throw({:temper_break, :ex_block_223, {i, return}})
+                throw({:temper_break, :ex_block_1, {i, return}})
               else
                 {i, nExponentDigits, return}
               end
@@ -3669,27 +3669,27 @@ defmodule Temper.Std do
               TemperCore.call(out, :numericTokenValue, [numericTokenString])
               nil
             end
-            throw({:temper_return, :ex_return_222, i})
+            throw({:temper_return, :ex_return_0, i})
           end
         end
       catch
-        {:temper_break, :ex_block_223, ex_vars_230} ->
-          ex_vars_230
+        {:temper_break, :ex_block_1, ex_vars_8} ->
+          ex_vars_8
       end
       return
     catch
-      {:temper_return, :ex_return_222, ex_value_231} ->
-        ex_value_231
+      {:temper_return, :ex_return_0, ex_value_9} ->
+        ex_value_9
     end
   end
   def parseJsonToProducer(sourceText, out) do
     Temper.Std.__temper_init__()
     TemperCore.Heap.entry(fn ->
       i = TemperCore.String.begin()
-      afterValue = Temper.Std.parseJsonValue__369(sourceText, i, out)
+      afterValue = Temper.Std.parseJsonValue(sourceText, i, out)
       _i = if afterValue >= 0 do
         t1 = afterValue
-        i = Temper.Std.skipJsonSpaces__368(sourceText, t1)
+        i = Temper.Std.skipJsonSpaces(sourceText, t1)
         _t2 = nil
         t2 = if TemperCore.String.has_index(sourceText, i) do
           t2 = not (TemperCore.call(out, :get_parseErrorReceiver, []) === nil)
@@ -3699,7 +3699,7 @@ defmodule Temper.Std do
           t2
         end
         if t2 do
-          Temper.Std.storeJsonError__367(out, "Extraneous JSON `" <> TemperCore.String.slice(sourceText, i, TemperCore.String.end_of(sourceText)) <> "`")
+          Temper.Std.storeJsonError(out, "Extraneous JSON `" <> TemperCore.String.slice(sourceText, i, TemperCore.String.end_of(sourceText)) <> "`")
           i
         else
           i
@@ -3754,10 +3754,10 @@ defmodule Temper.Std do
       Temper.Std.ListJsonAdapter.new(adapterForT)
     end)
   end
-  def buildEscapeNeeds__163() do
+  def buildEscapeNeeds() do
     escapeNeeds = TemperCore.List.builder()
     code = 0
-    ex_loop_397 = fn ex_loop_397, code ->
+    ex_loop_1 = fn ex_loop_1, code ->
       if code <= 127 do
         _t1 = nil
         _t2 = nil
@@ -3873,12 +3873,12 @@ defmodule Temper.Std do
         end
         TemperCore.List.add(escapeNeeds, t1)
         code = TemperCore.int32(code + 1)
-        ex_loop_397.(ex_loop_397, code)
+        ex_loop_1.(ex_loop_1, code)
       else
         code
       end
     end
-    _code = ex_loop_397.(ex_loop_397, code)
+    _code = ex_loop_1.(ex_loop_1, code)
     TemperCore.List.to_list(escapeNeeds)
   end
   def entire(item) do
@@ -3915,7 +3915,7 @@ defmodule Temper.Std do
       Temper.Std.Repeat.new(item, 0, 1, reluctant2)
     end)
   end
-  def isLeapYear__32(year) do
+  def isLeapYear(year) do
     if rem(year, 4) == 0 do
       if rem(year, 100) != 0 do
         true
@@ -3926,7 +3926,7 @@ defmodule Temper.Std do
       false
     end
   end
-  def padTo__33(minWidth, num, sb) do
+  def padTo(minWidth, num, sb) do
     decimal = TemperCore.int_to_string(num, 10)
     decimalIndex = TemperCore.String.begin()
     decimalEnd = TemperCore.String.end_of(decimal)
@@ -3946,23 +3946,23 @@ defmodule Temper.Std do
       decimalIndex
     end
     nNeeded = TemperCore.int32(minWidth - TemperCore.String.count_between(decimal, decimalIndex, decimalEnd))
-    ex_loop_418 = fn ex_loop_418, nNeeded ->
+    ex_loop_1 = fn ex_loop_1, nNeeded ->
       if nNeeded > 0 do
         TemperCore.StringBuilder.append(sb, "0")
         nNeeded = TemperCore.int32(nNeeded - 1)
-        ex_loop_418.(ex_loop_418, nNeeded)
+        ex_loop_1.(ex_loop_1, nNeeded)
       else
         nNeeded
       end
     end
-    _nNeeded = ex_loop_418.(ex_loop_418, nNeeded)
+    _nNeeded = ex_loop_1.(ex_loop_1, nNeeded)
     TemperCore.StringBuilder.append_between(sb, decimal, decimalIndex, decimalEnd)
     nil
   end
   def __temper_init__() do
     TemperCore.init_once(:"Temper.Std", fn ->
       TemperCore.Global.put(:"Temper.Std.NullInterchangeContext.instance", Temper.Std.NullInterchangeContext.new())
-      TemperCore.Global.put(:"Temper.Std.hexDigits__386", %TemperCore.Vec{t: {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"}})
+      TemperCore.Global.put(:"Temper.Std.hexDigits", %TemperCore.Vec{t: {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"}})
       TemperCore.Global.put(:"Temper.Std.Codes.ampersand", 38)
       TemperCore.Global.put(:"Temper.Std.Codes.backslash", 92)
       TemperCore.Global.put(:"Temper.Std.Codes.caret", 94)
@@ -3998,25 +3998,25 @@ defmodule Temper.Std do
       TemperCore.Global.put(:"Temper.Std.Codes.supplementalMin", 65536)
       TemperCore.Global.put(:"Temper.Std.Codes.uint16Max", 65535)
       TemperCore.Global.put(:"Temper.Std.Codes.underscore", 95)
-      TemperCore.Global.put(:"Temper.Std.return__192", Temper.Std.Begin.new())
-      TemperCore.Global.put(:"Temper.Std.v_Begin", TemperCore.Global.get(:"Temper.Std.return__192"))
-      TemperCore.Global.put(:"Temper.Std.return__194", Temper.Std.Dot.new())
-      TemperCore.Global.put(:"Temper.Std.v_Dot", TemperCore.Global.get(:"Temper.Std.return__194"))
-      TemperCore.Global.put(:"Temper.Std.return__196", Temper.Std.End.new())
-      TemperCore.Global.put(:"Temper.Std.v_End", TemperCore.Global.get(:"Temper.Std.return__196"))
-      TemperCore.Global.put(:"Temper.Std.return__198", Temper.Std.WordBoundary.new())
-      TemperCore.Global.put(:"Temper.Std.v_WordBoundary", TemperCore.Global.get(:"Temper.Std.return__198"))
-      TemperCore.Global.put(:"Temper.Std.return__200", Temper.Std.Digit.new())
-      TemperCore.Global.put(:"Temper.Std.v_Digit", TemperCore.Global.get(:"Temper.Std.return__200"))
-      TemperCore.Global.put(:"Temper.Std.return__202", Temper.Std.Space.new())
-      TemperCore.Global.put(:"Temper.Std.v_Space", TemperCore.Global.get(:"Temper.Std.return__202"))
-      TemperCore.Global.put(:"Temper.Std.return__204", Temper.Std.Word.new())
-      TemperCore.Global.put(:"Temper.Std.v_Word", TemperCore.Global.get(:"Temper.Std.return__204"))
-      TemperCore.Global.put(:"Temper.Std.escapeNeeds__165", Temper.Std.buildEscapeNeeds__163())
-      TemperCore.Global.put(:"Temper.Std.regexRefs__164", Temper.Std.RegexRefs.new(nil, nil, nil, nil))
-      TemperCore.Global.put(:"Temper.Std.daysInMonth__34", %TemperCore.Vec{t: {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}})
-      TemperCore.Global.put(:"Temper.Std.dayOfWeekLookupTableLeapy__35", %TemperCore.Vec{t: {0, 0, 3, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6}})
-      TemperCore.Global.put(:"Temper.Std.dayOfWeekLookupTableNotLeapy__36", %TemperCore.Vec{t: {0, 0, 3, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5}})
+      TemperCore.Global.put(:"Temper.Std.return", Temper.Std.Begin.new())
+      TemperCore.Global.put(:"Temper.Std.v_Begin", TemperCore.Global.get(:"Temper.Std.return"))
+      TemperCore.Global.put(:"Temper.Std.return__2", Temper.Std.Dot.new())
+      TemperCore.Global.put(:"Temper.Std.v_Dot", TemperCore.Global.get(:"Temper.Std.return__2"))
+      TemperCore.Global.put(:"Temper.Std.return__3", Temper.Std.End.new())
+      TemperCore.Global.put(:"Temper.Std.v_End", TemperCore.Global.get(:"Temper.Std.return__3"))
+      TemperCore.Global.put(:"Temper.Std.return__4", Temper.Std.WordBoundary.new())
+      TemperCore.Global.put(:"Temper.Std.v_WordBoundary", TemperCore.Global.get(:"Temper.Std.return__4"))
+      TemperCore.Global.put(:"Temper.Std.return__5", Temper.Std.Digit.new())
+      TemperCore.Global.put(:"Temper.Std.v_Digit", TemperCore.Global.get(:"Temper.Std.return__5"))
+      TemperCore.Global.put(:"Temper.Std.return__6", Temper.Std.Space.new())
+      TemperCore.Global.put(:"Temper.Std.v_Space", TemperCore.Global.get(:"Temper.Std.return__6"))
+      TemperCore.Global.put(:"Temper.Std.return__7", Temper.Std.Word.new())
+      TemperCore.Global.put(:"Temper.Std.v_Word", TemperCore.Global.get(:"Temper.Std.return__7"))
+      TemperCore.Global.put(:"Temper.Std.escapeNeeds", Temper.Std.buildEscapeNeeds())
+      TemperCore.Global.put(:"Temper.Std.regexRefs", Temper.Std.RegexRefs.new(nil, nil, nil, nil))
+      TemperCore.Global.put(:"Temper.Std.daysInMonth", %TemperCore.Vec{t: {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}})
+      TemperCore.Global.put(:"Temper.Std.dayOfWeekLookupTableLeapy", %TemperCore.Vec{t: {0, 0, 3, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6}})
+      TemperCore.Global.put(:"Temper.Std.dayOfWeekLookupTableNotLeapy", %TemperCore.Vec{t: {0, 0, 3, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5}})
       nil
     end)
   end
