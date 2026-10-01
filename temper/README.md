@@ -128,6 +128,32 @@ appeared to say:
   flag, so its `.{0,80}` is 80 bytes (40 `é` pass, 41 fail), and
   `[:.\-—]` is a set of bytes.
 
+## What it costs
+
+`bin/temper-verify bench` times the Elixir each port replaced against the
+generated code (median of 15 runs):
+
+```
+                                              Elixir    Temper   ratio
+word diff, 2,000-word section, 4% edited        4 ms     14 ms   3.5x
+paragraph diff, 60 paragraphs                   8 ms     22 ms   2.7x
+sentences reflow, 5,400 words                   2 ms      8 ms   3.5x
+PDF page reflow, 400 lines                     11 ms      3 ms   0.3x
+segmenter, 11,700-word manuscript              20 ms     68 ms   3.4x
+```
+
+Every one is a few milliseconds on a whole document, against an app that
+waits seconds on a language model. The first numbers were worse, 3x to 5x.
+Two causes were cheap to fix:
+
+- Internal helpers had been exported, and an exported function runs
+  through the library's entry check once per character.
+- The Unicode predicates asked PCRE about every character. ASCII is now
+  answered directly, checked against PCRE on all 128 code points.
+
+What remains is mostly code-point-at-a-time string walking, where the
+originals matched regexes on whole binaries.
+
 ## A bug the port found
 
 The segmenter's marker regex meant `—{3,}` as three or more em dashes.
