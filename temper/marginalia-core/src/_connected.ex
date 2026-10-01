@@ -10,4 +10,12 @@ defmodule TemperConnected do
   def isUnicodeSpace(cp), do: Regex.match?(~r/\A\s\z/u, <<cp::utf8>>)
   def isUnicodeUpper(cp), do: Regex.match?(~r/\A\p{Lu}\z/u, <<cp::utf8>>)
   def isUnicodeDigit(cp), do: Regex.match?(~r/\A\d\z/u, <<cp::utf8>>)
+
+  # for reflow.temper.md: \p{L} and \p{N}, case mapping, and String.length,
+  # which counts graphemes, where Temper strings count code points
+  def isUnicodeLetter(cp), do: Regex.match?(~r/\A\p{L}\z/u, <<cp::utf8>>)
+  def isUnicodeNumber(cp), do: Regex.match?(~r/\A\p{N}\z/u, <<cp::utf8>>)
+  def isUpcaseFixed(cp), do: String.upcase(<<cp::utf8>>) == <<cp::utf8>>
+  def downcase(s), do: String.downcase(s)
+  def graphemeLength(s), do: String.length(s)
 end
