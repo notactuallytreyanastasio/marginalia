@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Runs the Elixir each Temper port replaced against the generated code, on
+# random inputs, and fails on the first input where they differ.
+#
+#   bin/temper-verify                 every harness, default sizes
+#   N=10000 SEED=7 bin/temper-verify  bigger, another seed
+#   bin/temper-verify reflow          one harness
+#
+# The originals are kept in temper/verify/old_*.exs. temper/out is compiled
+# in a scratch copy, so nothing here writes into the committed tree.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+root=$(pwd)
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+cp -R temper/out "$work/out"
+cd "$work/out/marginalia-core"
+mix compile > /dev/null
+
+harnesses=${1:-"diff sentences reflow segmenter"}
+for h in $harnesses; do
+  case $h in
+    segmenter) n=${N:-200} ;;
+    *) n=${N:-2000} ;;
+  esac
+  printf '%-10s ' "$h"
+  N=$n SEED=${SEED:-1} mix run --no-compile "$root/temper/verify/$h.exs" 2>&1 | tail -1
+done
