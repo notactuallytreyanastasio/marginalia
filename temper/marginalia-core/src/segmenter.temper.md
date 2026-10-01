@@ -30,21 +30,26 @@ Line endings normalised, runs of blank lines collapsed, trimmed.
       let unixed = joinWith(joinWith(raw.split("\r\n"), "\n").split("\r"), "\n");
       let out = new StringBuilder();
       var newlines = 0;
+      // text between newlines is copied a run at a time, not a code point
+      // at a time: building a string one code point at a time was most of
+      // this function's cost
+      var runStart = String.begin;
       var i = String.begin;
       while (unixed.hasIndex(i)) {
-        let cp = unixed[i];
-        if (cp == 10) {
+        if (unixed[i] == 10) {
+          if (newlines == 0) { out.appendBetween(unixed, runStart, i); }
           newlines += 1;
-        } else {
+        } else if (newlines > 0) {
           // ~r/\n{3,}/ becomes "\n\n"
           if (newlines >= 3) { out.append("\n\n"); } else {
             for (var k = 0; k < newlines; ++k) { out.append("\n"); }
           }
           newlines = 0;
-          out.appendCodePoint(cp) orelse panic();
+          runStart = i;
         }
         i = unixed.next(i);
       }
+      if (newlines == 0) { out.appendBetween(unixed, runStart, unixed.end); }
       if (newlines >= 3) { out.append("\n\n"); } else {
         for (var k = 0; k < newlines; ++k) { out.append("\n"); }
       }

@@ -10,7 +10,8 @@ corpus =
 
 words = corpus |> Enum.join(" ") |> String.split(~r/\s+/, trim: true)
 pick = fn list -> Enum.at(list, :rand.uniform(length(list)) - 1) end
-spaces = [" ", " ", " ", "  ", "\t", "\n", "  ", " ", " "]
+# a lone \r and \r\n too: paragraphs takes \r\n as one newline and \r as text
+spaces = [" ", " ", " ", "  ", "\t", "\n", "  ", " ", " ", "\r", "\r\n"]
 
 edit_words = fn ws ->
   Enum.flat_map(ws, fn w ->

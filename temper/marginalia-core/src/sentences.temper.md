@@ -98,19 +98,20 @@ drops the ASCII space either side of every newline.
 
     let squeezeBlanks(text: String): String {
       let out = new StringBuilder();
-      var inBlank = false;
+      // everything between blank runs is copied a run at a time
+      var runStart = String.begin;
       var i = String.begin;
       while (text.hasIndex(i)) {
-        let cp = text[i];
-        if (cp == 32 || cp == 9) {
-          if (!inBlank) { out.append(" "); }
-          inBlank = true;
+        if (text[i] == 32 || text[i] == 9) {
+          out.appendBetween(text, runStart, i);
+          out.append(" ");
+          while (text.hasIndex(i) && (text[i] == 32 || text[i] == 9)) { i = text.next(i); }
+          runStart = i;
         } else {
-          inBlank = false;
-          out.appendCodePoint(cp) orelse panic();
+          i = text.next(i);
         }
-        i = text.next(i);
       }
+      out.appendBetween(text, runStart, text.end);
       out.toString()
     }
 
@@ -126,6 +127,8 @@ regex's did.
 
     let breakSentences(text: String): String {
       let out = new StringBuilder();
+      // text up to each break is copied a run at a time
+      var runStart = String.begin;
       var i = String.begin;
       while (text.hasIndex(i)) {
         let cp = text[i];
@@ -137,15 +140,16 @@ regex's did.
           var m = k;
           while (text.hasIndex(m) && isOpener(text[m])) { m = text.next(m); }
           if (k > j && text.hasIndex(m) && (isUnicodeUpper(text[m]) || isUnicodeDigit(text[m]))) {
-            out.append(text.slice(i, j));
+            out.appendBetween(text, runStart, j);
             out.append("\n");
             i = k;
+            runStart = k;
             continue;
           }
         }
-        out.appendCodePoint(cp) orelse panic();
         i = text.next(i);
       }
+      out.appendBetween(text, runStart, text.end);
       out.toString()
     }
 

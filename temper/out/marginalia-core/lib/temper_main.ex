@@ -553,62 +553,74 @@ defmodule Temper.MarginaliaCore do
       out = TemperCore.List.builder()
       piece = TemperCore.StringBuilder.new()
       newlines = 0
+      runStart = TemperCore.String.begin()
       i = TemperCore.String.begin()
-      ex_loop_1 = fn ex_loop_1, i, newlines ->
+      ex_loop_1 = fn ex_loop_1, i, newlines, runStart ->
         if TemperCore.String.has_index(text, i) do
-          cp = TemperCore.String.get(text, i)
           after_ = TemperCore.String.next(text, i)
-          _t = nil
-          t = if cp == 13 do
+          _crlf = nil
+          crlf = if TemperCore.String.get(text, i) == 13 do
             if TemperCore.String.has_index(text, after_) do
-              t = TemperCore.String.get(text, after_) == 10
-              t
+              crlf = TemperCore.String.get(text, after_) == 10
+              crlf
             else
-              t = false
-              t
+              crlf = false
+              crlf
             end
           else
-            t = false
+            crlf = false
+            crlf
+          end
+          _t = nil
+          t = if TemperCore.String.get(text, i) == 10 do
+            t = true
+            t
+          else
+            t = crlf
             t
           end
-          {cp, i} = if t do
-            i = after_
-            cp = 10
-            {cp, i}
-          else
-            {cp, i}
-          end
-          newlines = if cp == 10 do
-            newlines = TemperCore.int32(newlines + 1)
-            newlines
-          else
-            cond do
-              newlines >= 2 ->
+          {i, newlines, runStart} = cond do
+            t ->
+              if newlines == 0 do
+                TemperCore.StringBuilder.append_between(piece, text, runStart, i)
+                nil
+              else
+                nil
+              end
+              newlines = TemperCore.int32(newlines + 1)
+              if crlf do
+                i = after_
+                {i, newlines, runStart}
+              else
+                {i, newlines, runStart}
+              end
+            newlines > 0 ->
+              if newlines >= 2 do
                 Temper.MarginaliaCore.flushParagraph(piece, out)
                 nil
-              newlines == 1 ->
+              else
                 TemperCore.StringBuilder.append(piece, "\n")
                 nil
-              true ->
-                nil
-            end
-            newlines = 0
-            try do
-              TemperCore.StringBuilder.append_code_point(piece, cp)
-              nil
-            rescue
-              _ in TemperCore.Bubble ->
-                raise(TemperCore.Bubble)
-            end
-            newlines
+              end
+              newlines = 0
+              runStart = i
+              {i, newlines, runStart}
+            true ->
+              {i, newlines, runStart}
           end
           i = TemperCore.String.next(text, i)
-          ex_loop_1.(ex_loop_1, i, newlines)
+          ex_loop_1.(ex_loop_1, i, newlines, runStart)
         else
-          {i, newlines}
+          {i, newlines, runStart}
         end
       end
-      {_i, newlines} = ex_loop_1.(ex_loop_1, i, newlines)
+      {_i, newlines, runStart} = ex_loop_1.(ex_loop_1, i, newlines, runStart)
+      if newlines == 0 do
+        TemperCore.StringBuilder.append_between(piece, text, runStart, TemperCore.String.end_of(text))
+        nil
+      else
+        nil
+      end
       if newlines == 1 do
         TemperCore.StringBuilder.append(piece, "\n")
         nil
@@ -622,41 +634,42 @@ defmodule Temper.MarginaliaCore do
   def alignmentKey(p) do
     out = TemperCore.StringBuilder.new()
     inSpace = false
+    runStart = TemperCore.String.begin()
     i = TemperCore.String.begin()
-    ex_loop_1 = fn ex_loop_1, i, inSpace ->
+    ex_loop_1 = fn ex_loop_1, i, inSpace, runStart ->
       if TemperCore.String.has_index(p, i) do
-        cp = TemperCore.String.get(p, i)
-        inSpace = if Temper.MarginaliaCore.isRegexSpace(cp) do
-          inSpace = true
-          inSpace
-        else
-          if inSpace do
-            TemperCore.StringBuilder.append(out, " ")
+        {inSpace, runStart} = if Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(p, i)) do
+          if not inSpace do
+            TemperCore.StringBuilder.append_between(out, p, runStart, i)
             nil
           else
             nil
           end
-          inSpace = false
-          try do
-            TemperCore.StringBuilder.append_code_point(out, cp)
-            nil
-          rescue
-            _ in TemperCore.Bubble ->
-              raise(TemperCore.Bubble)
+          inSpace = true
+          {inSpace, runStart}
+        else
+          runStart = if inSpace do
+            TemperCore.StringBuilder.append(out, " ")
+            runStart = i
+            runStart
+          else
+            runStart
           end
-          inSpace
+          inSpace = false
+          {inSpace, runStart}
         end
         i = TemperCore.String.next(p, i)
-        ex_loop_1.(ex_loop_1, i, inSpace)
+        ex_loop_1.(ex_loop_1, i, inSpace, runStart)
       else
-        {i, inSpace}
+        {i, inSpace, runStart}
       end
     end
-    {_i, inSpace} = ex_loop_1.(ex_loop_1, i, inSpace)
+    {_i, inSpace, runStart} = ex_loop_1.(ex_loop_1, i, inSpace, runStart)
     if inSpace do
       TemperCore.StringBuilder.append(out, " ")
       nil
     else
+      TemperCore.StringBuilder.append_between(out, p, runStart, TemperCore.String.end_of(p))
       nil
     end
     Temper.MarginaliaCore.trim(TemperCore.StringBuilder.to_string(out))
@@ -1962,48 +1975,57 @@ defmodule Temper.MarginaliaCore do
     unixed = Temper.MarginaliaCore.joinWith(TemperCore.String.split(Temper.MarginaliaCore.joinWith(TemperCore.String.split(raw, "\r\n"), "\n"), "\r"), "\n")
     out = TemperCore.StringBuilder.new()
     newlines = 0
+    runStart = TemperCore.String.begin()
     i = TemperCore.String.begin()
-    ex_loop_1 = fn ex_loop_1, i, newlines ->
+    ex_loop_1 = fn ex_loop_1, i, newlines, runStart ->
       if TemperCore.String.has_index(unixed, i) do
-        cp = TemperCore.String.get(unixed, i)
-        newlines = if cp == 10 do
-          newlines = TemperCore.int32(newlines + 1)
-          newlines
-        else
-          if newlines >= 3 do
-            TemperCore.StringBuilder.append(out, "\n\n")
-            nil
-          else
-            k2 = 0
-            ex_loop_3 = fn ex_loop_3, k2 ->
-              if k2 < newlines do
-                TemperCore.StringBuilder.append(out, "\n")
-                k2 = TemperCore.int32(k2 + 1)
-                ex_loop_3.(ex_loop_3, k2)
-              else
-                k2
-              end
+        {newlines, runStart} = cond do
+          TemperCore.String.get(unixed, i) == 10 ->
+            if newlines == 0 do
+              TemperCore.StringBuilder.append_between(out, unixed, runStart, i)
+              nil
+            else
+              nil
             end
-            _k2 = ex_loop_3.(ex_loop_3, k2)
-            nil
-          end
-          newlines = 0
-          try do
-            TemperCore.StringBuilder.append_code_point(out, cp)
-            nil
-          rescue
-            _ in TemperCore.Bubble ->
-              raise(TemperCore.Bubble)
-          end
-          newlines
+            newlines = TemperCore.int32(newlines + 1)
+            {newlines, runStart}
+          newlines > 0 ->
+            if newlines >= 3 do
+              TemperCore.StringBuilder.append(out, "\n\n")
+              nil
+            else
+              k2 = 0
+              ex_loop_3 = fn ex_loop_3, k2 ->
+                if k2 < newlines do
+                  TemperCore.StringBuilder.append(out, "\n")
+                  k2 = TemperCore.int32(k2 + 1)
+                  ex_loop_3.(ex_loop_3, k2)
+                else
+                  k2
+                end
+              end
+              _k2 = ex_loop_3.(ex_loop_3, k2)
+              nil
+            end
+            newlines = 0
+            runStart = i
+            {newlines, runStart}
+          true ->
+            {newlines, runStart}
         end
         i = TemperCore.String.next(unixed, i)
-        ex_loop_1.(ex_loop_1, i, newlines)
+        ex_loop_1.(ex_loop_1, i, newlines, runStart)
       else
-        {i, newlines}
+        {i, newlines, runStart}
       end
     end
-    {_i, newlines} = ex_loop_1.(ex_loop_1, i, newlines)
+    {_i, newlines, runStart} = ex_loop_1.(ex_loop_1, i, newlines, runStart)
+    if newlines == 0 do
+      TemperCore.StringBuilder.append_between(out, unixed, runStart, TemperCore.String.end_of(unixed))
+      nil
+    else
+      nil
+    end
     if newlines >= 3 do
       TemperCore.StringBuilder.append(out, "\n\n")
       nil
@@ -4004,8 +4026,9 @@ defmodule Temper.MarginaliaCore do
   end
   def breakSentences(text) do
     out = TemperCore.StringBuilder.new()
+    runStart = TemperCore.String.begin()
     i = TemperCore.String.begin()
-    ex_loop_1 = fn ex_loop_1, i ->
+    ex_loop_1 = fn ex_loop_1, i, runStart ->
       if TemperCore.String.has_index(text, i) do
         ex_step_15 = try do
           cp = TemperCore.String.get(text, i)
@@ -4021,7 +4044,7 @@ defmodule Temper.MarginaliaCore do
               t1 = cp == 63
               t1
           end
-          i = if t1 do
+          {i, runStart} = if t1 do
             j = TemperCore.String.next(text, i)
             ex_loop_9 = fn ex_loop_9, j ->
               if true do
@@ -4107,25 +4130,19 @@ defmodule Temper.MarginaliaCore do
               t2
             end
             if t2 do
-              TemperCore.StringBuilder.append(out, TemperCore.String.slice(text, i, j))
+              TemperCore.StringBuilder.append_between(out, text, runStart, j)
               TemperCore.StringBuilder.append(out, "\n")
               i = k
-              throw({:temper_continue, :ex_loop_2, i})
+              runStart = k
+              throw({:temper_continue, :ex_loop_2, {i, runStart}})
             else
-              i
+              {i, runStart}
             end
           else
-            i
-          end
-          try do
-            TemperCore.StringBuilder.append_code_point(out, cp)
-            nil
-          rescue
-            _ in TemperCore.Bubble ->
-              raise(TemperCore.Bubble)
+            {i, runStart}
           end
           i = TemperCore.String.next(text, i)
-          {:temper_next, i}
+          {:temper_next, {i, runStart}}
         catch
           {:temper_continue, :ex_loop_2, ex_vars_16} ->
             {:temper_next, ex_vars_16}
@@ -4133,16 +4150,17 @@ defmodule Temper.MarginaliaCore do
             {:temper_done, ex_vars_16}
         end
         case ex_step_15 do
-          {:temper_next, i} ->
-            ex_loop_1.(ex_loop_1, i)
+          {:temper_next, {i, runStart}} ->
+            ex_loop_1.(ex_loop_1, i, runStart)
           {:temper_done, ex_vars_16} ->
             ex_vars_16
         end
       else
-        i
+        {i, runStart}
       end
     end
-    _i = ex_loop_1.(ex_loop_1, i)
+    {_i, runStart} = ex_loop_1.(ex_loop_1, i, runStart)
+    TemperCore.StringBuilder.append_between(out, text, runStart, TemperCore.String.end_of(text))
     TemperCore.StringBuilder.to_string(out)
   end
   def startsAWord(line, at) do
@@ -4305,46 +4323,59 @@ defmodule Temper.MarginaliaCore do
   end
   def squeezeBlanks(text) do
     out = TemperCore.StringBuilder.new()
-    inBlank = false
+    runStart = TemperCore.String.begin()
     i = TemperCore.String.begin()
-    ex_loop_1 = fn ex_loop_1, i, inBlank ->
+    ex_loop_1 = fn ex_loop_1, i, runStart ->
       if TemperCore.String.has_index(text, i) do
-        cp = TemperCore.String.get(text, i)
-        _t = nil
-        t = if cp == 32 do
-          t = true
-          t
+        _t1 = nil
+        t1 = if TemperCore.String.get(text, i) == 32 do
+          t1 = true
+          t1
         else
-          t = cp == 9
-          t
+          t1 = TemperCore.String.get(text, i) == 9
+          t1
         end
-        inBlank = if t do
-          if not inBlank do
-            TemperCore.StringBuilder.append(out, " ")
-            nil
-          else
-            nil
+        if t1 do
+          TemperCore.StringBuilder.append_between(out, text, runStart, i)
+          TemperCore.StringBuilder.append(out, " ")
+          ex_loop_3 = fn ex_loop_3, i ->
+            if true do
+              _t2 = nil
+              t2 = if TemperCore.String.has_index(text, i) do
+                if TemperCore.String.get(text, i) == 32 do
+                  t2 = true
+                  t2
+                else
+                  t2 = TemperCore.String.get(text, i) == 9
+                  t2
+                end
+              else
+                t2 = false
+                t2
+              end
+              if not t2 do
+                i
+              else
+                i = TemperCore.String.next(text, i)
+                ex_loop_3.(ex_loop_3, i)
+              end
+            else
+              i
+            end
           end
-          inBlank = true
-          inBlank
+          i = ex_loop_3.(ex_loop_3, i)
+          runStart = i
+          ex_loop_1.(ex_loop_1, i, runStart)
         else
-          inBlank = false
-          try do
-            TemperCore.StringBuilder.append_code_point(out, cp)
-            nil
-          rescue
-            _ in TemperCore.Bubble ->
-              raise(TemperCore.Bubble)
-          end
-          inBlank
+          i = TemperCore.String.next(text, i)
+          ex_loop_1.(ex_loop_1, i, runStart)
         end
-        i = TemperCore.String.next(text, i)
-        ex_loop_1.(ex_loop_1, i, inBlank)
       else
-        {i, inBlank}
+        {i, runStart}
       end
     end
-    {_i, _inBlank} = ex_loop_1.(ex_loop_1, i, inBlank)
+    {_i, runStart} = ex_loop_1.(ex_loop_1, i, runStart)
+    TemperCore.StringBuilder.append_between(out, text, runStart, TemperCore.String.end_of(text))
     TemperCore.StringBuilder.to_string(out)
   end
   def unwrap(block) do

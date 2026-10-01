@@ -245,15 +245,15 @@ generated code (median of 15 runs):
 ```
                                               Elixir    Temper   ratio
 word diff, 2,000-word section, 4% edited        4 ms     13 ms   3.2x
-paragraph diff, 60 paragraphs                   8 ms     13 ms   1.6x
-sentences reflow, 5,400 words                   2 ms      4 ms   1.9x
+paragraph diff, 60 paragraphs                   8 ms     10 ms   1.2x
+sentences reflow, 5,400 words                   2 ms      2 ms   1.1x
 PDF page reflow, 400 lines                     11 ms      2 ms   0.2x
-segmenter, 11,700-word manuscript              20 ms     50 ms   2.4x
+segmenter, 11,700-word manuscript              20 ms     30 ms   1.5x
 ```
 
 Every one is a few milliseconds on a whole document, against an app that
 waits seconds on a language model. The first numbers were worse, 3x to 5x.
-Three causes were cheap to fix:
+Four causes were cheap to fix:
 
 - Internal helpers had been exported, and an exported function runs
   through the library's entry check once per character.
@@ -262,9 +262,15 @@ Three causes were cheap to fix:
 - In be-elixir's runtime, every `StringBuilder` append was a field-map
   update plus a write barrier. It is now a single `:erlang.put`
   ([temper-blimp#146](https://github.com/notactuallytreyanastasio/temper-blimp/pull/146)).
+- The ports built strings a code point at a time, because that is how a
+  regex replacement reads. Five functions (`normalize`, `squeezeBlanks`,
+  `breakSentences`, `paragraphs`, `alignmentKey`) now copy each run of
+  unchanged text with `appendBetween` and only append what they change.
+  That cut the segmenter's appends from 375,000 to a few thousand.
 
-What remains is mostly a call per code point, where the originals
-matched regexes on whole binaries.
+The word diff is what remains. Its time is spread over the Myers loop's
+list and integer operations, with no single cause, where Elixir's
+`List.myers_difference/2` walks native lists.
 
 ## A bug the port found
 

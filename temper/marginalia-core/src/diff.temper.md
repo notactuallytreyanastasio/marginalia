@@ -24,28 +24,29 @@ with `String.split(~r/\n{2,}/, trim: true)` and `String.trim/1`.
       let out = new ListBuilder<String>();
       let piece = new StringBuilder();
       var newlines = 0;
+      // text between newlines is copied a run at a time
+      var runStart = String.begin;
       var i = String.begin;
       while (text.hasIndex(i)) {
-        var cp = text[i];
         let after = text.next(i);
         // \r\n is one newline
-        if (cp == 13 && text.hasIndex(after) && text[after] == 10) {
-          i = after;
-          cp = 10;
-        }
-        if (cp == 10) {
+        let crlf = text[i] == 13 && text.hasIndex(after) && text[after] == 10;
+        if (text[i] == 10 || crlf) {
+          if (newlines == 0) { piece.appendBetween(text, runStart, i); }
           newlines += 1;
-        } else {
+          if (crlf) { i = after; }
+        } else if (newlines > 0) {
           if (newlines >= 2) {
             flushParagraph(piece, out);
-          } else if (newlines == 1) {
+          } else {
             piece.append("\n");
           }
           newlines = 0;
-          piece.appendCodePoint(cp) orelse panic();
+          runStart = i;
         }
         i = text.next(i);
       }
+      if (newlines == 0) { piece.appendBetween(text, runStart, text.end); }
       if (newlines == 1) { piece.append("\n"); }
       flushParagraph(piece, out);
       out.toList()
@@ -63,19 +64,22 @@ whitespace become one space, then trim. A rewrap is not an edit.
     let alignmentKey(p: String): String {
       let out = new StringBuilder();
       var inSpace = false;
+      var runStart = String.begin;
       var i = String.begin;
       while (p.hasIndex(i)) {
-        let cp = p[i];
-        if (isRegexSpace(cp)) {
+        if (isRegexSpace(p[i])) {
+          if (!inSpace) { out.appendBetween(p, runStart, i); }
           inSpace = true;
         } else {
-          if (inSpace) { out.append(" "); }
+          if (inSpace) {
+            out.append(" ");
+            runStart = i;
+          }
           inSpace = false;
-          out.appendCodePoint(cp) orelse panic();
         }
         i = p.next(i);
       }
-      if (inSpace) { out.append(" "); }
+      if (inSpace) { out.append(" "); } else { out.appendBetween(p, runStart, p.end); }
       trim(out.toString())
     }
 
