@@ -171,45 +171,8 @@ defmodule Marginalia.Reading do
   """
   def split(nil), do: []
 
-  def split(body) do
-    body
-    |> String.split("\n")
-    |> Enum.reduce({[], [], nil}, fn line, {blocks, current, fence} ->
-      cond do
-        # inside a fence: only its matching closer ends it
-        fence && String.starts_with?(String.trim_leading(line), fence) ->
-          {[Enum.reverse([line | current]) | blocks], [], nil}
-
-        fence ->
-          {blocks, [line | current], fence}
-
-        opener = fence_opener(line) ->
-          # a fence starts a block of its own, so flush whatever came before
-          {flush(blocks, current), [line], opener}
-
-        String.trim(line) == "" ->
-          {flush(blocks, current), [], nil}
-
-        true ->
-          {blocks, [line | current], nil}
-      end
-    end)
-    |> then(fn {blocks, current, _fence} -> flush(blocks, current) end)
-    |> Enum.reverse()
-    |> Enum.map(&Enum.join(&1, "\n"))
-    |> Enum.map(&String.trim_trailing/1)
-    |> Enum.reject(&(String.trim(&1) == ""))
-  end
-
-  defp flush(blocks, []), do: blocks
-  defp flush(blocks, current), do: [Enum.reverse(current) | blocks]
-
-  defp fence_opener(line) do
-    case Regex.run(~r/^\s*(`{3,}|~{3,})/, line) do
-      [_, ticks] -> ticks
-      nil -> nil
-    end
-  end
+  # written in Temper: temper/marginalia-core/src/blocks.temper.md
+  def split(body), do: body |> Temper.MarginaliaCore.blocks() |> Enum.to_list()
 
   @doc """
   One block, rendered as markdown, with its anchored span marked.

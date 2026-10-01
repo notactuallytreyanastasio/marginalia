@@ -33,3 +33,43 @@ definitions differ, and keeping them apart is what keeps the output the same.
       while (e > String.begin && isTrimSpace(s[s.prev(e)])) { e = s.prev(e); }
       e
     }
+
+    /** Where `String.trim_leading/1` would cut: the end of the leading whitespace. */
+    export let leadingEnd(s: String): StringIndex {
+      var b = String.begin;
+      while (s.hasIndex(b) && isTrimSpace(s[b])) { b = s.next(b); }
+      b
+    }
+
+    export let trimLeading(s: String): String { s.slice(leadingEnd(s), s.end) }
+
+    export let trimTrailing(s: String): String { s.slice(String.begin, trailingStart(s)) }
+
+    /** Whether `s` begins with `prefix`. */
+    export let startsWith(s: String, prefix: String): Boolean {
+      var i = String.begin;
+      var j = String.begin;
+      while (prefix.hasIndex(j)) {
+        if (!s.hasIndex(i) || s[i] != prefix[j]) { return false; }
+        i = s.next(i);
+        j = prefix.next(j);
+      }
+      true
+    }
+
+    /** Whether `s` ends with `suffix`, the suffix ending at `end`. */
+    export let endsWithAt(s: String, end: StringIndex, suffix: String): Boolean {
+      var i = end;
+      var j = suffix.end;
+      while (j > String.begin) {
+        if (i <= String.begin) { return false; }
+        i = s.prev(i);
+        j = suffix.prev(j);
+        if (s[i] != suffix[j]) { return false; }
+      }
+      true
+    }
+
+    export let joinWith(parts: List<String>, sep: String): String {
+      parts.join(sep) { (p): String => p }
+    }

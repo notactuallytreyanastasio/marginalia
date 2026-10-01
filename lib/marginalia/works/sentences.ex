@@ -44,100 +44,16 @@ defmodule Marginalia.Works.Sentences do
   Idempotent: reflowing reflowed text changes nothing.
   """
 
-  # A period after one of these is not the end of a sentence. Single
-  # capitals cover initials ("J. K. Rowling"). The list is short by design:
-  # a missed abbreviation costs one wrong line break, a wrong entry costs a
-  # missed sentence boundary on every draft.
-  @abbrev ~r/(?:^|\s)(?:e\.g|i\.e|vs|etc|cf|viz|ca|Mr|Mrs|Ms|Dr|Prof|St|No|Fig|Jr|Sr|Inc|Ltd|Co|[A-Z])\.["'”’)\]]*$/u
-
-  # Sentence end: terminal punctuation, any closing quotes or brackets,
-  # whitespace, then something that starts a sentence: an opening quote or
-  # bracket or markdown delimiter, a capital, or a digit.
-  @boundary ~r/([.!?]["'”’)\]]*)\s+(?=["'“‘(\[*_`]*(?:\p{Lu}|\d))/u
+  # The rules (sentence ends, abbreviations, what counts as prose) are
+  # written in Temper, temper/marginalia-core/src/sentences.temper.md, and
+  # generated into Temper.MarginaliaCore. The three Unicode classes its
+  # regexes used (\s, \d and \p{Lu} under the `u` flag) are answered by PCRE
+  # itself, in temper/marginalia-core/src/_connected.ex.
 
   @doc "Every prose paragraph in `text` reflowed to one sentence per line."
   def reflow(nil), do: nil
-  def reflow(""), do: ""
-
-  def reflow(text) when is_binary(text) do
-    text
-    |> Marginalia.Reading.split()
-    |> Enum.map_join("\n\n", &reflow_block/1)
-  end
+  def reflow(text) when is_binary(text), do: Temper.MarginaliaCore.reflow(text)
 
   @doc "One paragraph's sentences, each on its own line. Non-prose blocks come back as they were."
-  def reflow_block(block) do
-    cond do
-      not prose?(block) ->
-        block
-
-      # A quote can hold paragraphs of its own, separated by a bare ">"
-      # line, so the stripped text goes through the whole reflow and not
-      # one block's worth; the bare line comes back as a bare ">".
-      quoted?(block) ->
-        block
-        |> String.split("\n")
-        |> Enum.map_join("\n", &String.replace(&1, ~r/^\s*>\s?/, ""))
-        |> reflow()
-        |> String.split("\n")
-        |> Enum.map_join("\n", fn
-          "" -> ">"
-          line -> "> " <> line
-        end)
-
-      true ->
-        block
-        |> String.split(~r/\s*\n\s*/)
-        |> Enum.join(" ")
-        |> String.replace(~r/[ \t]+/, " ")
-        |> String.trim()
-        |> split_sentences()
-    end
-  end
-
-  # One line holds one sentence, except where the "sentence" ended on an
-  # abbreviation, which is rejoined with the next.
-  defp split_sentences(joined) do
-    @boundary
-    |> Regex.replace(joined, "\\1\n")
-    |> String.split("\n")
-    |> Enum.reduce([], fn line, acc ->
-      case acc do
-        [prev | rest] ->
-          if Regex.match?(@abbrev, prev), do: [prev <> " " <> line | rest], else: [line | acc]
-
-        [] ->
-          [line]
-      end
-    end)
-    |> Enum.reverse()
-    |> Enum.join("\n")
-  end
-
-  defp quoted?(block), do: Regex.match?(~r/^\s*>/, block)
-
-  # Prose is what is left after every block shape markdown gives a meaning
-  # to line breaks in.
-  defp prose?(block) do
-    first = block |> String.split("\n", parts: 2) |> hd() |> String.trim_leading()
-    lines = String.split(block, "\n")
-    second = Enum.at(lines, 1, "") |> String.trim()
-
-    cond do
-      # setext heading ("Title" over a line of = or -), and a table whose
-      # rows have no leading pipe (a delimiter row on line two gives it away)
-      Regex.match?(~r/^(=+|-+)$/, second) -> false
-      Regex.match?(~r/^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?$/, second) -> false
-      Regex.match?(~r/^(`{3,}|~{3,})/, first) -> false
-      Regex.match?(~r/^\#{1,6}\s/, first) -> false
-      Regex.match?(~r/^(\s{4,}|\t)/, block) -> false
-      Regex.match?(~r/^[-*+]\s|^\d+[.)]\s/, first) -> false
-      Regex.match?(~r/^<[a-zA-Z!\/]/, first) -> false
-      # a lone image or link: the "sentence" inside the brackets is a caption
-      Regex.match?(~r/^!?\[[^\]]*\]\([^)]*\)\s*$/, block) -> false
-      Regex.match?(~r/^(-{3,}|\*{3,}|_{3,})\s*$/, first) -> false
-      Enum.all?(lines, &String.starts_with?(String.trim_leading(&1), "|")) -> false
-      true -> true
-    end
-  end
+  def reflow_block(block), do: Temper.MarginaliaCore.reflowBlock(block)
 end
