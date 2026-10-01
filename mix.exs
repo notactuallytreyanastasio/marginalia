@@ -44,6 +44,9 @@ defmodule Marginalia.MixProject do
       {:phoenix, "~> 1.8.9"},
       {:swoosh, "~> 1.16"},
       {:req, "~> 0.5"},
+      # Marginalia's text logic, written in Temper and generated into Elixir
+      # by bin/temper-gen; the generated code is committed in temper/out
+      {:temper_marginalia_core, path: "temper/out/marginalia-core"},
       {:mdex, "~> 0.9"},
       # reading an article off the web: Req fetches, Floki takes it apart
       {:floki, "~> 0.36"},
@@ -99,7 +102,15 @@ defmodule Marginalia.MixProject do
         "esbuild marginalia --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      "temper.gen": ["cmd bin/temper-gen"],
+      "temper.check": ["cmd bin/temper-gen --check"],
+      precommit: [
+        "temper.check",
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "test"
+      ]
     ]
   end
 end

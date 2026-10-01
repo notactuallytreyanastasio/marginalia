@@ -44,3 +44,8 @@ npm-debug.log
 
 # rsync deploy marker
 .deployed
+
+# a Temper build run in temper/ by hand; bin/temper-gen builds elsewhere
+/temper/temper.out/
+/temper/*/temper.out/
+/temper/temper.keep/

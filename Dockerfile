@@ -43,6 +43,8 @@ ENV MIX_ENV="prod"
 
 # install mix dependencies
 COPY mix.exs mix.lock ./
+# the Elixir generated from temper/ by bin/temper-gen: committed, path deps
+COPY temper/out temper/out
 RUN mix deps.get --only $MIX_ENV
 RUN mkdir config
 

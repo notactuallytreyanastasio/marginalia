@@ -471,93 +471,19 @@ defmodule Marginalia.Rewrite do
   rather than re-reading two similar sentences and hoping.
   """
   def diff(a, b) do
-    aw = words(a)
-    bw = words(b)
-    ak = Enum.map(aw, &String.trim/1)
-    bk = Enum.map(bw, &String.trim/1)
-
-    if unrelated?(ak, bk) do
-      merge(Enum.map(aw, &{:del, &1}) ++ Enum.map(bw, &{:ins, &1}))
-    else
-      ak
-      |> List.myers_difference(bk)
-      |> attach(aw, bw, [])
-      |> merge()
-    end
-  end
-
-  # Myers is linear when two texts are alike and quadratic when they share
-  # nothing, and two long spans that share nothing is the one case where a
-  # word diff says nothing anyway: every word deleted, every word inserted,
-  # in alternating specks. Shown as one deletion and one insertion instead,
-  # decided by vocabulary, which costs one pass over each side.
-  @unrelated_from 200
-  @unrelated_below 0.05
-
-  defp unrelated?(ak, bk) when length(ak) >= @unrelated_from and length(bk) >= @unrelated_from do
-    a = MapSet.new(ak)
-    b = MapSet.new(bk)
-    shared = MapSet.size(MapSet.intersection(a, b))
-    shared < @unrelated_below * min(MapSet.size(a), MapSet.size(b))
-  end
-
-  defp unrelated?(_ak, _bk), do: false
-
-  defp words(nil), do: []
-  defp words(t), do: Regex.scan(~r/\S+\s*/, t) |> Enum.map(&hd/1)
-
-  # `List.myers_difference/2` rather than a longest-common-subsequence table
-  # of our own. The table was a Map with one entry per pair of words, built
-  # bottom-up, and the spans it was written for are a sentence or two, where
-  # that is nothing. The revision log then started diffing whole sections:
-  # a 2,000-word section against its rewrite is four million Map writes,
-  # about a second and a half each, and a draft with five such revisions
-  # took thirteen seconds to render. LiveView renders twice, once for the
-  # HTML and once when the socket connects, so the page never connected at
-  # all. Myers is O((n+m)·d): the same twelve revisions take two hundred
-  # milliseconds, and the result is just as deterministic.
-  #
-  # Myers compares the trimmed words, so a word is the same word whatever
-  # whitespace followed it, and the whitespace each word actually carried
-  # comes back from the original lists as the script is walked.
-  defp attach([], _aw, _bw, acc), do: Enum.reverse(acc)
-
-  # A shared word is rendered on both sides, so it has to carry whitespace
-  # that is right for both. Take the new side's, and when the new side has
-  # none, because the word ends its paragraph there, take the old side's:
-  # otherwise the old side reads "word38only118" where two words met.
-  defp attach([{:eq, ws} | rest], aw, bw, acc) do
-    n = length(ws)
-    {from_a, aw} = Enum.split(aw, n)
-    {from_b, bw} = Enum.split(bw, n)
-
-    acc =
-      Enum.zip(from_a, from_b)
-      |> Enum.reduce(acc, fn {ta, tb}, acc ->
-        token = if String.trim_trailing(tb) == tb, do: String.trim(tb) <> trailing(ta), else: tb
-        [{:same, token} | acc]
-      end)
-
-    attach(rest, aw, bw, acc)
-  end
-
-  defp attach([{:del, ws} | rest], aw, bw, acc) do
-    {taken, aw} = Enum.split(aw, length(ws))
-    attach(rest, aw, bw, Enum.reduce(taken, acc, &[{:del, &1} | &2]))
-  end
-
-  defp attach([{:ins, ws} | rest], aw, bw, acc) do
-    {taken, bw} = Enum.split(bw, length(ws))
-    attach(rest, aw, bw, Enum.reduce(taken, acc, &[{:ins, &1} | &2]))
-  end
-
-  defp trailing(token), do: String.slice(token, String.length(String.trim_trailing(token))..-1//1)
-
-  defp merge(parts) do
-    parts
-    |> Enum.chunk_by(&elem(&1, 0))
-    |> Enum.map(fn chunk ->
-      {elem(hd(chunk), 0), chunk |> Enum.map(&elem(&1, 1)) |> Enum.join()}
+    Temper.MarginaliaCore.diff(a || "", b || "")
+    |> Enum.map(fn %Temper.MarginaliaCore.Part{kind: kind, text: text} ->
+      {part_kind(kind), text}
     end)
   end
+
+  # The word diff is written in Temper (temper/marginalia-core/src/words.temper.md):
+  # Myers over the trimmed words, ported step for step from
+  # `List.myers_difference/2` so it breaks ties the same way, with each word's
+  # own whitespace put back. Two long spans that share almost no vocabulary
+  # come back as one deletion and one insertion. Myers replaced a Map-backed
+  # LCS table that took thirteen seconds to render a draft's revisions.
+  defp part_kind("same"), do: :same
+  defp part_kind("del"), do: :del
+  defp part_kind("ins"), do: :ins
 end
