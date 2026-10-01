@@ -43,6 +43,23 @@ defmodule Marginalia.Works.SegmenterTest do
     assert Enum.at(sections, 0).title =~ "Chapter 1"
   end
 
+  # The original pattern had `—{3,}` without the `u` flag, which repeats only
+  # the em dash's last byte and so never matched: a scene break drawn with
+  # em dashes was not a break, while one drawn with hyphens was.
+  test "a run of em dashes is a section marker, as hyphens are" do
+    text = """
+    ——— One
+    #{String.duplicate("one ", 300)}
+
+    ———
+    #{String.duplicate("two ", 300)}
+    """
+
+    sections = Segmenter.split(text)
+    assert length(sections) == 2
+    assert Enum.at(sections, 0).title == "——— One"
+  end
+
   test "prose before the first marker is kept, not dropped" do
     text = """
     #{String.duplicate("prologue ", 300)}

@@ -319,7 +319,7 @@ defmodule Temper.MarginaliaCore do
       TemperCore.List.join(parts, sep, fn_)
     end)
   end
-  def flushBlock__418(current, out) do
+  def flushBlock__419(current, out) do
     if not TemperCore.List.is_empty(current) do
       TemperCore.List.add(out, Temper.MarginaliaCore.joinWith(TemperCore.List.to_list(current), "\n"))
       TemperCore.List.clear(current)
@@ -329,7 +329,7 @@ defmodule Temper.MarginaliaCore do
     end
     nil
   end
-  def fenceOpener__419(line) do
+  def fenceOpener__420(line) do
     try do
       _return = nil
       return = if true do
@@ -510,23 +510,23 @@ defmodule Temper.MarginaliaCore do
             open2 = open1
             TemperCore.List.add(current, line)
             if Temper.MarginaliaCore.startsWith(Temper.MarginaliaCore.trimLeading(line), open2) do
-              Temper.MarginaliaCore.flushBlock__418(current, out)
+              Temper.MarginaliaCore.flushBlock__419(current, out)
               fence = nil
               fence
             else
               fence
             end
           else
-            opener1 = Temper.MarginaliaCore.fenceOpener__419(line)
+            opener1 = Temper.MarginaliaCore.fenceOpener__420(line)
             cond do
               not (opener1 === nil) ->
                 opener2 = opener1
-                Temper.MarginaliaCore.flushBlock__418(current, out)
+                Temper.MarginaliaCore.flushBlock__419(current, out)
                 TemperCore.List.add(current, line)
                 fence = opener2
                 fence
               TemperCore.String.is_empty(Temper.MarginaliaCore.trim(line)) ->
-                Temper.MarginaliaCore.flushBlock__418(current, out)
+                Temper.MarginaliaCore.flushBlock__419(current, out)
                 fence
               true ->
                 TemperCore.List.add(current, line)
@@ -540,7 +540,7 @@ defmodule Temper.MarginaliaCore do
         end
       end
       {_fence, _k1} = ex_loop_64.(ex_loop_64, fence, k1)
-      Temper.MarginaliaCore.flushBlock__418(current, out)
+      Temper.MarginaliaCore.flushBlock__419(current, out)
       kept = TemperCore.List.builder()
       all = TemperCore.List.to_list(out)
       k2 = 0
@@ -563,7 +563,7 @@ defmodule Temper.MarginaliaCore do
       TemperCore.List.to_list(kept)
     end)
   end
-  def flushParagraph__420(piece, out) do
+  def flushParagraph__421(piece, out) do
     p = Temper.MarginaliaCore.trim(TemperCore.StringBuilder.to_string(piece))
     if not TemperCore.String.is_empty(p) do
       TemperCore.List.add(out, p)
@@ -611,7 +611,7 @@ defmodule Temper.MarginaliaCore do
           else
             cond do
               newlines >= 2 ->
-                Temper.MarginaliaCore.flushParagraph__420(piece, out)
+                Temper.MarginaliaCore.flushParagraph__421(piece, out)
                 nil
               newlines == 1 ->
                 TemperCore.StringBuilder.append(piece, "\n")
@@ -642,11 +642,11 @@ defmodule Temper.MarginaliaCore do
       else
         nil
       end
-      Temper.MarginaliaCore.flushParagraph__420(piece, out)
+      Temper.MarginaliaCore.flushParagraph__421(piece, out)
       TemperCore.List.to_list(out)
     end)
   end
-  def alignmentKey__421(p) do
+  def alignmentKey__422(p) do
     out = TemperCore.StringBuilder.new()
     inSpace = false
     i = TemperCore.String.begin()
@@ -688,7 +688,7 @@ defmodule Temper.MarginaliaCore do
     end
     Temper.MarginaliaCore.trim(TemperCore.StringBuilder.to_string(out))
   end
-  def flushRun__422(dels, ins, out) do
+  def flushRun__423(dels, ins, out) do
     _longer = nil
     longer = if TemperCore.List.length(dels) > TemperCore.List.length(ins) do
       longer = TemperCore.List.length(dels)
@@ -736,11 +736,11 @@ defmodule Temper.MarginaliaCore do
       a = Temper.MarginaliaCore.paragraphs(before)
       b = Temper.MarginaliaCore.paragraphs(after_)
       fn_1 = fn p1 ->
-        Temper.MarginaliaCore.alignmentKey__421(p1)
+        Temper.MarginaliaCore.alignmentKey__422(p1)
       end
       ak = TemperCore.List.map(a, fn_1)
       fn_2 = fn p2 ->
-        Temper.MarginaliaCore.alignmentKey__421(p2)
+        Temper.MarginaliaCore.alignmentKey__422(p2)
       end
       bk = TemperCore.List.map(b, fn_2)
       n = TemperCore.List.length(a)
@@ -829,7 +829,7 @@ defmodule Temper.MarginaliaCore do
               t2
             end
             if t2 do
-              Temper.MarginaliaCore.flushRun__422(dels, ins, out)
+              Temper.MarginaliaCore.flushRun__423(dels, ins, out)
               TemperCore.List.add(out, Temper.MarginaliaCore.Row.new("same", TemperCore.List.get(a, i2), TemperCore.List.get(a, i2)))
               i2 = TemperCore.int32(i2 + 1)
               j1 = TemperCore.int32(j1 + 1)
@@ -864,7 +864,7 @@ defmodule Temper.MarginaliaCore do
         end
       end
       {_i2, _j1} = ex_loop_87.(ex_loop_87, i2, j1)
-      Temper.MarginaliaCore.flushRun__422(dels, ins, out)
+      Temper.MarginaliaCore.flushRun__423(dels, ins, out)
       TemperCore.List.to_list(out)
     end)
   end
@@ -959,7 +959,7 @@ defmodule Temper.MarginaliaCore do
       end
     end)
   end
-  def isWordChar__435(cp) do
+  def isWordChar__436(cp) do
     cond do
       cp == 8217 ->
         true
@@ -971,12 +971,12 @@ defmodule Temper.MarginaliaCore do
         Temper.MarginaliaCore.isUnicodeNumber(cp)
     end
   end
-  def intactHyphens__436(text) do
+  def intactHyphens__437(text) do
     found = TemperCore.Map.builder()
     i = TemperCore.String.begin()
     ex_loop_98 = fn ex_loop_98, i ->
       if TemperCore.String.has_index(text, i) do
-        if not Temper.MarginaliaCore.isWordChar__435(TemperCore.String.get(text, i)) do
+        if not Temper.MarginaliaCore.isWordChar__436(TemperCore.String.get(text, i)) do
           i = TemperCore.String.next(text, i)
           ex_loop_98.(ex_loop_98, i)
         else
@@ -985,7 +985,7 @@ defmodule Temper.MarginaliaCore do
             if true do
               _t2 = nil
               t2 = if TemperCore.String.has_index(text, i) do
-                t2 = Temper.MarginaliaCore.isWordChar__435(TemperCore.String.get(text, i))
+                t2 = Temper.MarginaliaCore.isWordChar__436(TemperCore.String.get(text, i))
                 t2
               else
                 t2 = false
@@ -1014,7 +1014,7 @@ defmodule Temper.MarginaliaCore do
             after_ = TemperCore.String.next(text, i)
             _t3 = nil
             t3 = if TemperCore.String.has_index(text, after_) do
-              t3 = Temper.MarginaliaCore.isWordChar__435(TemperCore.String.get(text, after_))
+              t3 = Temper.MarginaliaCore.isWordChar__436(TemperCore.String.get(text, after_))
               t3
             else
               t3 = false
@@ -1026,7 +1026,7 @@ defmodule Temper.MarginaliaCore do
                 if true do
                   _t4 = nil
                   t4 = if TemperCore.String.has_index(text, e) do
-                    t4 = Temper.MarginaliaCore.isWordChar__435(TemperCore.String.get(text, e))
+                    t4 = Temper.MarginaliaCore.isWordChar__436(TemperCore.String.get(text, e))
                     t4
                   else
                     t4 = false
@@ -1060,10 +1060,10 @@ defmodule Temper.MarginaliaCore do
     _i = ex_loop_98.(ex_loop_98, i)
     found
   end
-  def normalizeNewlines__423(text) do
+  def normalizeNewlines__424(text) do
     Temper.MarginaliaCore.joinWith(TemperCore.String.split(text, "\r\n"), "\n")
   end
-  def isJudgeLine__432(line) do
+  def isJudgeLine__433(line) do
     try do
       _return = nil
       return = if true do
@@ -1197,7 +1197,7 @@ defmodule Temper.MarginaliaCore do
         ex_value_113
     end
   end
-  def allAsciiDigits__431(s, from, to) do
+  def allAsciiDigits__432(s, from, to) do
     try do
       return = nil
       return = try do
@@ -1235,11 +1235,11 @@ defmodule Temper.MarginaliaCore do
         ex_value_119
     end
   end
-  def isPageNumber__430(line) do
+  def isPageNumber__431(line) do
     n = TemperCore.String.count_between(line, TemperCore.String.begin(), TemperCore.String.end_of(line))
     if n >= 1 do
       if n <= 3 do
-        Temper.MarginaliaCore.allAsciiDigits__431(line, TemperCore.String.begin(), TemperCore.String.end_of(line))
+        Temper.MarginaliaCore.allAsciiDigits__432(line, TemperCore.String.begin(), TemperCore.String.end_of(line))
       else
         false
       end
@@ -1247,7 +1247,7 @@ defmodule Temper.MarginaliaCore do
       false
     end
   end
-  def withoutPageNumbers__434(line) do
+  def withoutPageNumbers__435(line) do
     s = line
     i = TemperCore.String.begin()
     digits = 0
@@ -1409,11 +1409,11 @@ defmodule Temper.MarginaliaCore do
     end
     s
   end
-  def isCaption__433(line) do
+  def isCaption__434(line) do
     try do
       _return = nil
       return = if true do
-        body = Temper.MarginaliaCore.withoutPageNumbers__434(line)
+        body = Temper.MarginaliaCore.withoutPageNumbers__435(line)
         letters = 0
         upper = 0
         i = TemperCore.String.begin()
@@ -1460,7 +1460,7 @@ defmodule Temper.MarginaliaCore do
         ex_value_134
     end
   end
-  def isFurniture__429(line) do
+  def isFurniture__430(line) do
     cond do
       Temper.MarginaliaCore.startsWith(line, "Cite as:") ->
         true
@@ -1470,15 +1470,15 @@ defmodule Temper.MarginaliaCore do
         true
       line == "Per Curiam" ->
         true
-      Temper.MarginaliaCore.isJudgeLine__432(line) ->
+      Temper.MarginaliaCore.isJudgeLine__433(line) ->
         true
-      Temper.MarginaliaCore.isPageNumber__430(line) ->
+      Temper.MarginaliaCore.isPageNumber__431(line) ->
         true
       true ->
-        Temper.MarginaliaCore.isCaption__433(line)
+        Temper.MarginaliaCore.isCaption__434(line)
     end
   end
-  def contains__428(chars, cp) do
+  def contains__429(chars, cp) do
     try do
       return = nil
       return = try do
@@ -1508,14 +1508,14 @@ defmodule Temper.MarginaliaCore do
         ex_value_141
     end
   end
-  def allIn__427(s, chars) do
+  def allIn__428(s, chars) do
     try do
       return = nil
       return = try do
         i = TemperCore.String.begin()
         ex_loop_144 = fn ex_loop_144, i, return ->
           if TemperCore.String.has_index(s, i) do
-            if not Temper.MarginaliaCore.contains__428(chars, TemperCore.String.get(s, i)) do
+            if not Temper.MarginaliaCore.contains__429(chars, TemperCore.String.get(s, i)) do
               return = false
               throw({:temper_break, :ex_block_143, return})
             else
@@ -1538,7 +1538,7 @@ defmodule Temper.MarginaliaCore do
         ex_value_147
     end
   end
-  def isHeading__426(line) do
+  def isHeading__427(line) do
     try do
       return = nil
       return = try do
@@ -1619,7 +1619,7 @@ defmodule Temper.MarginaliaCore do
         _t2 = nil
         t2 = if n >= 1 do
           if n <= 5 do
-            t2 = Temper.MarginaliaCore.allIn__427(line, "IVXL")
+            t2 = Temper.MarginaliaCore.allIn__428(line, "IVXL")
             t2
           else
             t2 = false
@@ -1652,7 +1652,7 @@ defmodule Temper.MarginaliaCore do
         ex_value_155
     end
   end
-  def chunkParagraphs__425(lines, measure) do
+  def chunkParagraphs__426(lines, measure) do
     done = TemperCore.List.builder()
     current = TemperCore.List.builder()
     k = 0
@@ -1660,7 +1660,7 @@ defmodule Temper.MarginaliaCore do
       if k < TemperCore.List.length(lines) do
         line = TemperCore.List.get(lines, k)
         cond do
-          Temper.MarginaliaCore.isHeading__426(line) ->
+          Temper.MarginaliaCore.isHeading__427(line) ->
             TemperCore.List.add(done, TemperCore.List.to_list(current))
             TemperCore.List.add(done, %TemperCore.Vec{t: {line}})
             TemperCore.List.clear(current)
@@ -1687,7 +1687,7 @@ defmodule Temper.MarginaliaCore do
     end
     TemperCore.List.filter(TemperCore.List.to_list(done), fn_)
   end
-  def measure__424(lines) do
+  def measure__425(lines) do
     try do
       _return = nil
       return = if true do
@@ -1751,7 +1751,7 @@ defmodule Temper.MarginaliaCore do
       end
     end)
   end
-  def withoutTrailingHyphens__439(s) do
+  def withoutTrailingHyphens__440(s) do
     e = TemperCore.String.end_of(s)
     ex_loop_172 = fn ex_loop_172, e ->
       if true do
@@ -1776,7 +1776,7 @@ defmodule Temper.MarginaliaCore do
     e = ex_loop_172.(ex_loop_172, e)
     TemperCore.String.slice(s, TemperCore.String.begin(), e)
   end
-  def lastAsciiSpaceField__440(s) do
+  def lastAsciiSpaceField__441(s) do
     b = TemperCore.String.end_of(s)
     ex_loop_175 = fn ex_loop_175, b ->
       if true do
@@ -1801,7 +1801,7 @@ defmodule Temper.MarginaliaCore do
     b = ex_loop_175.(ex_loop_175, b)
     TemperCore.String.slice(s, b, TemperCore.String.end_of(s))
   end
-  def firstAsciiSpaceField__441(s) do
+  def firstAsciiSpaceField__442(s) do
     e = TemperCore.String.begin()
     ex_loop_178 = fn ex_loop_178, e ->
       if true do
@@ -1826,13 +1826,13 @@ defmodule Temper.MarginaliaCore do
     e = ex_loop_178.(ex_loop_178, e)
     TemperCore.String.slice(s, TemperCore.String.begin(), e)
   end
-  def stripTrailingPunct__442(word) do
+  def stripTrailingPunct__443(word) do
     e = TemperCore.String.end_of(word)
     ex_loop_181 = fn ex_loop_181, e ->
       if true do
         _t = nil
         t = if e > TemperCore.String.begin() do
-          if not Temper.MarginaliaCore.isWordChar__435(TemperCore.String.get(word, TemperCore.String.prev(word, e))) do
+          if not Temper.MarginaliaCore.isWordChar__436(TemperCore.String.get(word, TemperCore.String.prev(word, e))) do
             t = TemperCore.String.get(word, TemperCore.String.prev(word, e)) != 45
             t
           else
@@ -1856,18 +1856,18 @@ defmodule Temper.MarginaliaCore do
     e = ex_loop_181.(ex_loop_181, e)
     TemperCore.String.slice(word, TemperCore.String.begin(), e)
   end
-  def mend__438(acc, line, keep) do
-    unhyphened = Temper.MarginaliaCore.withoutTrailingHyphens__439(acc)
-    stem = Temper.MarginaliaCore.lastAsciiSpaceField__440(unhyphened)
-    head = Temper.MarginaliaCore.firstAsciiSpaceField__441(line)
-    word = Temper.MarginaliaCore.downcase(stem <> "-" <> Temper.MarginaliaCore.stripTrailingPunct__442(head))
+  def mend__439(acc, line, keep) do
+    unhyphened = Temper.MarginaliaCore.withoutTrailingHyphens__440(acc)
+    stem = Temper.MarginaliaCore.lastAsciiSpaceField__441(unhyphened)
+    head = Temper.MarginaliaCore.firstAsciiSpaceField__442(line)
+    word = Temper.MarginaliaCore.downcase(stem <> "-" <> Temper.MarginaliaCore.stripTrailingPunct__443(head))
     if TemperCore.Map.has(keep, word) do
       acc <> line
     else
       unhyphened <> line
     end
   end
-  def join__437(lines, keep) do
+  def join__438(lines, keep) do
     acc = ""
     k = 0
     ex_loop_185 = fn ex_loop_185, acc, k ->
@@ -1878,7 +1878,7 @@ defmodule Temper.MarginaliaCore do
             acc = line
             acc
           Temper.MarginaliaCore.endsWithAt(acc, TemperCore.String.end_of(acc), "-") ->
-            acc = Temper.MarginaliaCore.mend__438(acc, line, keep)
+            acc = Temper.MarginaliaCore.mend__439(acc, line, keep)
             acc
           true ->
             acc = acc <> " " <> line
@@ -1903,15 +1903,15 @@ defmodule Temper.MarginaliaCore do
             return = text
             return
           else
-            keep = Temper.MarginaliaCore.intactHyphens__436(text)
-            raw = TemperCore.String.split(Temper.MarginaliaCore.normalizeNewlines__423(text), "\n")
+            keep = Temper.MarginaliaCore.intactHyphens__437(text)
+            raw = TemperCore.String.split(Temper.MarginaliaCore.normalizeNewlines__424(text), "\n")
             lines = TemperCore.List.builder()
             k1 = 0
             ex_loop_189 = fn ex_loop_189, k1 ->
               if k1 < TemperCore.List.length(raw) do
                 line = Temper.MarginaliaCore.trim(TemperCore.List.get(raw, k1))
                 _t = nil
-                t = if not Temper.MarginaliaCore.isFurniture__429(line) do
+                t = if not Temper.MarginaliaCore.isFurniture__430(line) do
                   t = not TemperCore.String.is_empty(line)
                   t
                 else
@@ -1932,12 +1932,12 @@ defmodule Temper.MarginaliaCore do
             end
             _k1 = ex_loop_189.(ex_loop_189, k1)
             all = TemperCore.List.to_list(lines)
-            paragraphs = Temper.MarginaliaCore.chunkParagraphs__425(all, Temper.MarginaliaCore.measure__424(all))
+            paragraphs = Temper.MarginaliaCore.chunkParagraphs__426(all, Temper.MarginaliaCore.measure__425(all))
             out = TemperCore.List.builder()
             k2 = 0
             ex_loop_191 = fn ex_loop_191, k2 ->
               if k2 < TemperCore.List.length(paragraphs) do
-                p = Temper.MarginaliaCore.join__437(TemperCore.List.get(paragraphs, k2), keep)
+                p = Temper.MarginaliaCore.join__438(TemperCore.List.get(paragraphs, k2), keep)
                 if not TemperCore.String.is_empty(p) do
                   TemperCore.List.add(out, p)
                   nil
@@ -1964,7 +1964,7 @@ defmodule Temper.MarginaliaCore do
   def align(quote_, source) do
     Temper.MarginaliaCore.__temper_init__()
     TemperCore.Heap.entry(fn ->
-      raw = TemperCore.String.split(Temper.MarginaliaCore.normalizeNewlines__423(quote_), "\n")
+      raw = TemperCore.String.split(Temper.MarginaliaCore.normalizeNewlines__424(quote_), "\n")
       lines = TemperCore.List.builder()
       k = 0
       ex_loop_195 = fn ex_loop_195, k ->
@@ -1983,13 +1983,13 @@ defmodule Temper.MarginaliaCore do
         end
       end
       _k = ex_loop_195.(ex_loop_195, k)
-      Temper.MarginaliaCore.join__437(TemperCore.List.to_list(lines), Temper.MarginaliaCore.intactHyphens__436(source))
+      Temper.MarginaliaCore.join__438(TemperCore.List.to_list(lines), Temper.MarginaliaCore.intactHyphens__437(source))
     end)
   end
   def graphemePrefix(s, n) do
     TemperConnected.graphemePrefix(s, n)
   end
-  def normalize__443(raw) do
+  def normalize__444(raw) do
     unixed = Temper.MarginaliaCore.joinWith(TemperCore.String.split(Temper.MarginaliaCore.joinWith(TemperCore.String.split(raw, "\r\n"), "\n"), "\r"), "\n")
     out = TemperCore.StringBuilder.new()
     newlines = 0
@@ -2054,7 +2054,7 @@ defmodule Temper.MarginaliaCore do
     end
     Temper.MarginaliaCore.trim(TemperCore.StringBuilder.to_string(out))
   end
-  def isMarkdownHead__444(line) do
+  def isMarkdownHead__445(line) do
     try do
       _return = nil
       return = if true do
@@ -2131,7 +2131,7 @@ defmodule Temper.MarginaliaCore do
         ex_value_210
     end
   end
-  def wordCount__459(s) do
+  def wordCount__460(s) do
     n = 0
     inWord = false
     i = TemperCore.String.begin()
@@ -2159,7 +2159,7 @@ defmodule Temper.MarginaliaCore do
     {_i, _inWord, n} = ex_loop_212.(ex_loop_212, i, inWord, n)
     n
   end
-  def paragraphPieces__457(text) do
+  def paragraphPieces__458(text) do
     out = TemperCore.List.builder()
     start = TemperCore.String.begin()
     i = TemperCore.String.begin()
@@ -2238,14 +2238,14 @@ defmodule Temper.MarginaliaCore do
     end
     TemperCore.List.to_list(out)
   end
-  def window__458(text) do
-    pieces = Temper.MarginaliaCore.paragraphPieces__457(text)
+  def window__459(text) do
+    pieces = Temper.MarginaliaCore.paragraphPieces__458(text)
     windows = TemperCore.List.builder()
     k = 0
     ex_loop_222 = fn ex_loop_222, k ->
       if k < TemperCore.List.length(pieces) do
         para = Temper.MarginaliaCore.trim(TemperCore.List.get(pieces, k))
-        words = Temper.MarginaliaCore.wordCount__459(para)
+        words = Temper.MarginaliaCore.wordCount__460(para)
         n = TemperCore.List.length(windows)
         _t = nil
         t = if n > 0 do
@@ -2278,15 +2278,15 @@ defmodule Temper.MarginaliaCore do
     end
     TemperCore.List.map(TemperCore.List.to_list(windows), fn_)
   end
-  def subdivide__462(chunk) do
+  def subdivide__463(chunk) do
     try do
       _return = nil
       return = if true do
-        if Temper.MarginaliaCore.wordCount__459(Temper.MarginaliaCore.Section.get_body(chunk)) <= 4000 do
+        if Temper.MarginaliaCore.wordCount__460(Temper.MarginaliaCore.Section.get_body(chunk)) <= 4000 do
           return = %TemperCore.Vec{t: {chunk}}
           return
         else
-          parts = Temper.MarginaliaCore.window__458(Temper.MarginaliaCore.Section.get_body(chunk))
+          parts = Temper.MarginaliaCore.window__459(Temper.MarginaliaCore.Section.get_body(chunk))
           n = TemperCore.List.length(parts)
           if n < 2 do
             return = %TemperCore.Vec{t: {chunk}}
@@ -2314,7 +2314,7 @@ defmodule Temper.MarginaliaCore do
         ex_value_229
     end
   end
-  def finish__461(chunks) do
+  def finish__462(chunks) do
     kept = TemperCore.List.builder()
     k1 = 0
     ex_loop_231 = fn ex_loop_231, k1 ->
@@ -2327,8 +2327,8 @@ defmodule Temper.MarginaliaCore do
             n = TemperCore.List.length(kept)
             _t = nil
             t = if n > 0 do
-              if Temper.MarginaliaCore.wordCount__459(Temper.MarginaliaCore.Section.get_body(chunk)) < 250 do
-                t = Temper.MarginaliaCore.wordCount__459(Temper.MarginaliaCore.Section.get_body(TemperCore.List.get(kept, TemperCore.int32(n - 1)))) < 1800
+              if Temper.MarginaliaCore.wordCount__460(Temper.MarginaliaCore.Section.get_body(chunk)) < 250 do
+                t = Temper.MarginaliaCore.wordCount__460(Temper.MarginaliaCore.Section.get_body(TemperCore.List.get(kept, TemperCore.int32(n - 1)))) < 1800
                 t
               else
                 t = false
@@ -2360,7 +2360,7 @@ defmodule Temper.MarginaliaCore do
     k2 = 0
     ex_loop_234 = fn ex_loop_234, k2 ->
       if k2 < TemperCore.List.length(all) do
-        TemperCore.List.add_all(out, Temper.MarginaliaCore.subdivide__462(TemperCore.List.get(all, k2)))
+        TemperCore.List.add_all(out, Temper.MarginaliaCore.subdivide__463(TemperCore.List.get(all, k2)))
         k2 = TemperCore.int32(k2 + 1)
         ex_loop_234.(ex_loop_234, k2)
       else
@@ -2374,7 +2374,7 @@ defmodule Temper.MarginaliaCore do
       TemperCore.List.to_list(out)
     end
   end
-  def asciiCaselessPrefix__452(line, at, word) do
+  def asciiCaselessPrefix__453(line, at, word) do
     try do
       return = nil
       return = try do
@@ -2426,7 +2426,7 @@ defmodule Temper.MarginaliaCore do
         ex_value_241
     end
   end
-  def isAsciiLetter__450(cp) do
+  def isAsciiLetter__451(cp) do
     _t = nil
     t = if cp >= 65 do
       t = cp <= 90
@@ -2444,7 +2444,7 @@ defmodule Temper.MarginaliaCore do
         false
     end
   end
-  def isRomanLetter__451(cp) do
+  def isRomanLetter__452(cp) do
     cond do
       cp == 73 ->
         true
@@ -2468,7 +2468,7 @@ defmodule Temper.MarginaliaCore do
         cp == 99
     end
   end
-  def markerHead__449(line, at) do
+  def markerHead__450(line, at) do
     try do
       return = nil
       return = try do
@@ -2476,22 +2476,22 @@ defmodule Temper.MarginaliaCore do
         k = 0
         ex_loop_246 = fn ex_loop_246, k, return ->
           if k < TemperCore.List.length(keywords) do
-            after_1 = Temper.MarginaliaCore.asciiCaselessPrefix__452(line, at, TemperCore.List.get(keywords, k))
+            after_1 = Temper.MarginaliaCore.asciiCaselessPrefix__453(line, at, TemperCore.List.get(keywords, k))
             return = if not (after_1 === nil) do
               after_2 = after_1
               i = after_2
               spaces = 0
               ex_loop_248 = fn ex_loop_248, i, spaces ->
                 if true do
-                  _t7 = nil
-                  t7 = if TemperCore.String.has_index(line, i) do
-                    t7 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, i))
-                    t7
+                  _t8 = nil
+                  t8 = if TemperCore.String.has_index(line, i) do
+                    t8 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, i))
+                    t8
                   else
-                    t7 = false
-                    t7
+                    t8 = false
+                    t8
                   end
-                  if not t7 do
+                  if not t8 do
                     {i, spaces}
                   else
                     spaces = TemperCore.int32(spaces + 1)
@@ -2503,42 +2503,42 @@ defmodule Temper.MarginaliaCore do
                 end
               end
               {i, spaces} = ex_loop_248.(ex_loop_248, i, spaces)
-              _t5 = nil
-              t5 = if spaces >= 1 do
-                t5 = TemperCore.String.has_index(line, i)
-                t5
+              _t6 = nil
+              t6 = if spaces >= 1 do
+                t6 = TemperCore.String.has_index(line, i)
+                t6
               else
-                t5 = false
-                t5
+                t6 = false
+                t6
               end
-              if t5 do
+              if t6 do
                 cp = TemperCore.String.get(line, i)
-                _t8 = nil
-                t8 = if cp >= 48 do
-                  t8 = cp <= 57
-                  t8
+                _t9 = nil
+                t9 = if cp >= 48 do
+                  t9 = cp <= 57
+                  t9
                 else
-                  t8 = false
-                  t8
+                  t9 = false
+                  t9
                 end
                 cond do
-                  t8 ->
+                  t9 ->
                     ex_loop_250 = fn ex_loop_250, i ->
                       if true do
-                        _t10 = nil
-                        t10 = if TemperCore.String.has_index(line, i) do
+                        _t11 = nil
+                        t11 = if TemperCore.String.has_index(line, i) do
                           if TemperCore.String.get(line, i) >= 48 do
-                            t10 = TemperCore.String.get(line, i) <= 57
-                            t10
+                            t11 = TemperCore.String.get(line, i) <= 57
+                            t11
                           else
-                            t10 = false
-                            t10
+                            t11 = false
+                            t11
                           end
                         else
-                          t10 = false
-                          t10
+                          t11 = false
+                          t11
                         end
-                        if not t10 do
+                        if not t11 do
                           i
                         else
                           i = TemperCore.String.next(line, i)
@@ -2551,18 +2551,18 @@ defmodule Temper.MarginaliaCore do
                     i = ex_loop_250.(ex_loop_250, i)
                     return = i
                     throw({:temper_break, :ex_block_245, return})
-                  Temper.MarginaliaCore.isAsciiLetter__450(cp) ->
+                  Temper.MarginaliaCore.isAsciiLetter__451(cp) ->
                     ex_loop_252 = fn ex_loop_252, i ->
                       if true do
-                        _t11 = nil
-                        t11 = if TemperCore.String.has_index(line, i) do
-                          t11 = Temper.MarginaliaCore.isAsciiLetter__450(TemperCore.String.get(line, i))
-                          t11
+                        _t12 = nil
+                        t12 = if TemperCore.String.has_index(line, i) do
+                          t12 = Temper.MarginaliaCore.isAsciiLetter__451(TemperCore.String.get(line, i))
+                          t12
                         else
-                          t11 = false
-                          t11
+                          t12 = false
+                          t12
                         end
-                        if not t11 do
+                        if not t12 do
                           i
                         else
                           i = TemperCore.String.next(line, i)
@@ -2597,7 +2597,7 @@ defmodule Temper.MarginaliaCore do
           if true do
             _t3 = nil
             t3 = if TemperCore.String.has_index(line, r) do
-              t3 = Temper.MarginaliaCore.isRomanLetter__451(TemperCore.String.get(line, r))
+              t3 = Temper.MarginaliaCore.isRomanLetter__452(TemperCore.String.get(line, r))
               t3
             else
               t3 = false
@@ -2652,15 +2652,15 @@ defmodule Temper.MarginaliaCore do
               if stars < 3 do
                 ex_loop_258 = fn ex_loop_258, s ->
                   if true do
-                    _t9 = nil
-                    t9 = if TemperCore.String.has_index(line, s) do
-                      t9 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, s))
-                      t9
+                    _t10 = nil
+                    t10 = if TemperCore.String.has_index(line, s) do
+                      t10 = Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(line, s))
+                      t10
                     else
-                      t9 = false
-                      t9
+                      t10 = false
+                      t10
                     end
-                    if not t9 do
+                    if not t10 do
                       s
                     else
                       s = TemperCore.String.next(line, s)
@@ -2671,15 +2671,15 @@ defmodule Temper.MarginaliaCore do
                   end
                 end
                 s = ex_loop_258.(ex_loop_258, s)
-                _t6 = nil
-                t6 = if not TemperCore.String.has_index(line, s) do
-                  t6 = true
-                  t6
+                _t7 = nil
+                t7 = if not TemperCore.String.has_index(line, s) do
+                  t7 = true
+                  t7
                 else
-                  t6 = TemperCore.String.get(line, s) != 42
-                  t6
+                  t7 = TemperCore.String.get(line, s) != 42
+                  t7
                 end
-                if t6 do
+                if t7 do
                   {s, stars}
                 else
                   stars = TemperCore.int32(stars + 1)
@@ -2700,51 +2700,80 @@ defmodule Temper.MarginaliaCore do
           else
             return
           end
-          d = at
-          dashes = 0
-          ex_loop_260 = fn ex_loop_260, d, dashes ->
+          m = at
+          emDashes = 0
+          ex_loop_260 = fn ex_loop_260, emDashes, m ->
             if true do
               _t4 = nil
-              t4 = if TemperCore.String.has_index(line, d) do
-                t4 = TemperCore.String.get(line, d) == 45
+              t4 = if TemperCore.String.has_index(line, m) do
+                t4 = TemperCore.String.get(line, m) == 8212
                 t4
               else
                 t4 = false
                 t4
               end
               if not t4 do
-                {d, dashes}
+                {emDashes, m}
               else
-                dashes = TemperCore.int32(dashes + 1)
-                d = TemperCore.String.next(line, d)
-                ex_loop_260.(ex_loop_260, d, dashes)
+                emDashes = TemperCore.int32(emDashes + 1)
+                m = TemperCore.String.next(line, m)
+                ex_loop_260.(ex_loop_260, emDashes, m)
               end
             else
-              {d, dashes}
+              {emDashes, m}
             end
           end
-          {d, dashes} = ex_loop_260.(ex_loop_260, d, dashes)
-          if dashes >= 3 do
-            return = d
+          {emDashes, m} = ex_loop_260.(ex_loop_260, emDashes, m)
+          if emDashes >= 3 do
+            return = m
             return
           else
-            throw({:temper_return, :ex_return_244, nil})
+            d = at
+            dashes = 0
+            ex_loop_262 = fn ex_loop_262, d, dashes ->
+              if true do
+                _t5 = nil
+                t5 = if TemperCore.String.has_index(line, d) do
+                  t5 = TemperCore.String.get(line, d) == 45
+                  t5
+                else
+                  t5 = false
+                  t5
+                end
+                if not t5 do
+                  {d, dashes}
+                else
+                  dashes = TemperCore.int32(dashes + 1)
+                  d = TemperCore.String.next(line, d)
+                  ex_loop_262.(ex_loop_262, d, dashes)
+                end
+              else
+                {d, dashes}
+              end
+            end
+            {d, dashes} = ex_loop_262.(ex_loop_262, d, dashes)
+            if dashes >= 3 do
+              return = d
+              return
+            else
+              throw({:temper_return, :ex_return_244, nil})
+            end
           end
         end
       catch
-        {:temper_break, :ex_block_245, ex_vars_262} ->
-          ex_vars_262
+        {:temper_break, :ex_block_245, ex_vars_264} ->
+          ex_vars_264
       end
       return
     catch
-      {:temper_return, :ex_return_244, ex_value_263} ->
-        ex_value_263
+      {:temper_return, :ex_return_244, ex_value_265} ->
+        ex_value_265
     end
   end
-  def utf8Length__448(s, from) do
+  def utf8Length__449(s, from) do
     n = 0
     i = from
-    ex_loop_265 = fn ex_loop_265, i, n ->
+    ex_loop_267 = fn ex_loop_267, i, n ->
       if TemperCore.String.has_index(s, i) do
         _t1 = nil
         cp = TemperCore.String.get(s, i)
@@ -2765,15 +2794,15 @@ defmodule Temper.MarginaliaCore do
         end
         n = TemperCore.int32(t2 + t1)
         i = TemperCore.String.next(s, i)
-        ex_loop_265.(ex_loop_265, i, n)
+        ex_loop_267.(ex_loop_267, i, n)
       else
         {i, n}
       end
     end
-    {_i, n} = ex_loop_265.(ex_loop_265, i, n)
+    {_i, n} = ex_loop_267.(ex_loop_267, i, n)
     n
   end
-  def isMarker__447(line) do
+  def isMarker__448(line) do
     try do
       _return = nil
       return = if true do
@@ -2783,7 +2812,7 @@ defmodule Temper.MarginaliaCore do
           return
         else
           i = TemperCore.String.begin()
-          ex_loop_269 = fn ex_loop_269, i ->
+          ex_loop_271 = fn ex_loop_271, i ->
             if true do
               _t2 = nil
               t2 = if TemperCore.String.has_index(line, i) do
@@ -2797,14 +2826,14 @@ defmodule Temper.MarginaliaCore do
                 i
               else
                 i = TemperCore.String.next(line, i)
-                ex_loop_269.(ex_loop_269, i)
+                ex_loop_271.(ex_loop_271, i)
               end
             else
               i
             end
           end
-          i = ex_loop_269.(ex_loop_269, i)
-          head = Temper.MarginaliaCore.markerHead__449(line, i)
+          i = ex_loop_271.(ex_loop_271, i)
+          head = Temper.MarginaliaCore.markerHead__450(line, i)
           if head === nil do
             return = false
             return
@@ -2822,7 +2851,7 @@ defmodule Temper.MarginaliaCore do
                 t1
             end
             i = t1
-            ex_loop_271 = fn ex_loop_271, i ->
+            ex_loop_273 = fn ex_loop_273, i ->
               if true do
                 _t3 = nil
                 t3 = if TemperCore.String.has_index(line, i) do
@@ -2836,13 +2865,13 @@ defmodule Temper.MarginaliaCore do
                   i
                 else
                   i = TemperCore.String.next(line, i)
-                  ex_loop_271.(ex_loop_271, i)
+                  ex_loop_273.(ex_loop_273, i)
                 end
               else
                 i
               end
             end
-            i = ex_loop_271.(ex_loop_271, i)
+            i = ex_loop_273.(ex_loop_273, i)
             spare = 0
             {i, spare} = if TemperCore.String.has_index(line, i) do
               cp = TemperCore.String.get(line, i)
@@ -2860,7 +2889,7 @@ defmodule Temper.MarginaliaCore do
               end
               if t4 do
                 i = TemperCore.String.next(line, i)
-                ex_loop_273 = fn ex_loop_273, i ->
+                ex_loop_275 = fn ex_loop_275, i ->
                   if true do
                     _t6 = nil
                     t6 = if TemperCore.String.has_index(line, i) do
@@ -2874,13 +2903,13 @@ defmodule Temper.MarginaliaCore do
                       i
                     else
                       i = TemperCore.String.next(line, i)
-                      ex_loop_273.(ex_loop_273, i)
+                      ex_loop_275.(ex_loop_275, i)
                     end
                   else
                     i
                   end
                 end
-                i = ex_loop_273.(ex_loop_273, i)
+                i = ex_loop_275.(ex_loop_275, i)
                 {i, spare}
               else
                 _t5 = nil
@@ -2901,19 +2930,19 @@ defmodule Temper.MarginaliaCore do
             else
               {i, spare}
             end
-            throw({:temper_return, :ex_return_267, TemperCore.int32(Temper.MarginaliaCore.utf8Length__448(line, i) - spare) <= 80})
+            throw({:temper_return, :ex_return_269, TemperCore.int32(Temper.MarginaliaCore.utf8Length__449(line, i) - spare) <= 80})
           end
         end
       end
       return
     catch
-      {:temper_return, :ex_return_267, ex_value_275} ->
-        ex_value_275
+      {:temper_return, :ex_return_269, ex_value_277} ->
+        ex_value_277
     end
   end
-  def markdownTitle__445(line) do
+  def markdownTitle__446(line) do
     i = TemperCore.String.begin()
-    ex_loop_277 = fn ex_loop_277, i ->
+    ex_loop_279 = fn ex_loop_279, i ->
       if true do
         _t1 = nil
         t1 = if TemperCore.String.has_index(line, i) do
@@ -2927,14 +2956,14 @@ defmodule Temper.MarginaliaCore do
           i
         else
           i = TemperCore.String.next(line, i)
-          ex_loop_277.(ex_loop_277, i)
+          ex_loop_279.(ex_loop_279, i)
         end
       else
         i
       end
     end
-    i = ex_loop_277.(ex_loop_277, i)
-    ex_loop_279 = fn ex_loop_279, i ->
+    i = ex_loop_279.(ex_loop_279, i)
+    ex_loop_281 = fn ex_loop_281, i ->
       if true do
         _t2 = nil
         t2 = if TemperCore.String.has_index(line, i) do
@@ -2948,41 +2977,41 @@ defmodule Temper.MarginaliaCore do
           i
         else
           i = TemperCore.String.next(line, i)
-          ex_loop_279.(ex_loop_279, i)
+          ex_loop_281.(ex_loop_281, i)
         end
       else
         i
       end
     end
-    i = ex_loop_279.(ex_loop_279, i)
+    i = ex_loop_281.(ex_loop_281, i)
     Temper.MarginaliaCore.trim(TemperCore.String.slice(line, i, TemperCore.String.end_of(line)))
   end
-  def untitledIfBlank__455(title) do
+  def untitledIfBlank__456(title) do
     if TemperCore.String.is_empty(title) do
       "Untitled"
     else
       Temper.MarginaliaCore.graphemePrefix(title, 120)
     end
   end
-  def chunkOn__454(lines, markdown) do
+  def chunkOn__455(lines, markdown) do
     chunks = TemperCore.List.builder()
     k = 0
-    ex_loop_283 = fn ex_loop_283, k ->
+    ex_loop_285 = fn ex_loop_285, k ->
       if k < TemperCore.List.length(lines) do
         line = TemperCore.List.get(lines, k)
         _isHead = nil
         isHead = if markdown do
-          isHead = Temper.MarginaliaCore.isMarkdownHead__444(line)
+          isHead = Temper.MarginaliaCore.isMarkdownHead__445(line)
           isHead
         else
-          isHead = Temper.MarginaliaCore.isMarker__447(line)
+          isHead = Temper.MarginaliaCore.isMarker__448(line)
           isHead
         end
         cond do
           isHead ->
             _title = nil
             title = if markdown do
-              title = Temper.MarginaliaCore.markdownTitle__445(line)
+              title = Temper.MarginaliaCore.markdownTitle__446(line)
               title
             else
               title = Temper.MarginaliaCore.trim(line)
@@ -3000,90 +3029,90 @@ defmodule Temper.MarginaliaCore do
             nil
         end
         k = TemperCore.int32(k + 1)
-        ex_loop_283.(ex_loop_283, k)
+        ex_loop_285.(ex_loop_285, k)
       else
         k
       end
     end
-    _k = ex_loop_283.(ex_loop_283, k)
+    _k = ex_loop_285.(ex_loop_285, k)
     fn_ = fn c ->
-      Temper.MarginaliaCore.Section.new(Temper.MarginaliaCore.untitledIfBlank__455(Temper.MarginaliaCore.HeadChunk.get_title(c)), Temper.MarginaliaCore.trim(Temper.MarginaliaCore.joinWith(TemperCore.List.to_list(Temper.MarginaliaCore.HeadChunk.get_lines(c)), "\n")))
+      Temper.MarginaliaCore.Section.new(Temper.MarginaliaCore.untitledIfBlank__456(Temper.MarginaliaCore.HeadChunk.get_title(c)), Temper.MarginaliaCore.trim(Temper.MarginaliaCore.joinWith(TemperCore.List.to_list(Temper.MarginaliaCore.HeadChunk.get_lines(c)), "\n")))
     end
     TemperCore.List.map(TemperCore.List.to_list(chunks), fn_)
   end
-  def byMarkdown__446(text) do
+  def byMarkdown__447(text) do
     try do
       _return = nil
       return = if true do
         lines = TemperCore.String.split(text, "\n")
         fn_ = fn l ->
-          Temper.MarginaliaCore.isMarkdownHead__444(l)
+          Temper.MarginaliaCore.isMarkdownHead__445(l)
         end
         if TemperCore.List.length(TemperCore.List.filter(lines, fn_)) < 2 do
           return = nil
           return
         else
-          throw({:temper_return, :ex_return_286, Temper.MarginaliaCore.finish__461(Temper.MarginaliaCore.chunkOn__454(lines, true))})
+          throw({:temper_return, :ex_return_288, Temper.MarginaliaCore.finish__462(Temper.MarginaliaCore.chunkOn__455(lines, true))})
         end
       end
       return
     catch
-      {:temper_return, :ex_return_286, ex_value_289} ->
-        ex_value_289
+      {:temper_return, :ex_return_288, ex_value_291} ->
+        ex_value_291
     end
   end
-  def byMarker__453(text) do
+  def byMarker__454(text) do
     try do
       _return = nil
       return = if true do
         lines = TemperCore.String.split(text, "\n")
         fn_ = fn l ->
-          Temper.MarginaliaCore.isMarker__447(l)
+          Temper.MarginaliaCore.isMarker__448(l)
         end
         if TemperCore.List.length(TemperCore.List.filter(lines, fn_)) < 2 do
           return = nil
           return
         else
-          throw({:temper_return, :ex_return_290, Temper.MarginaliaCore.finish__461(Temper.MarginaliaCore.chunkOn__454(lines, false))})
+          throw({:temper_return, :ex_return_292, Temper.MarginaliaCore.finish__462(Temper.MarginaliaCore.chunkOn__455(lines, false))})
         end
       end
       return
     catch
-      {:temper_return, :ex_return_290, ex_value_293} ->
-        ex_value_293
+      {:temper_return, :ex_return_292, ex_value_295} ->
+        ex_value_295
     end
   end
-  def allOf__477(s, from, to, cp) do
+  def allOf__478(s, from, to, cp) do
     try do
       return = nil
       return = try do
         i = from
-        ex_loop_296 = fn ex_loop_296, i, return ->
+        ex_loop_298 = fn ex_loop_298, i, return ->
           if i < to do
             if TemperCore.String.get(s, i) != cp do
               return = false
-              throw({:temper_break, :ex_block_295, return})
+              throw({:temper_break, :ex_block_297, return})
             else
               i = TemperCore.String.next(s, i)
-              ex_loop_296.(ex_loop_296, i, return)
+              ex_loop_298.(ex_loop_298, i, return)
             end
           else
             {i, return}
           end
         end
-        {_i, _return} = ex_loop_296.(ex_loop_296, i, return)
-        throw({:temper_return, :ex_return_294, true})
+        {_i, _return} = ex_loop_298.(ex_loop_298, i, return)
+        throw({:temper_return, :ex_return_296, true})
       catch
-        {:temper_break, :ex_block_295, ex_vars_298} ->
-          ex_vars_298
+        {:temper_break, :ex_block_297, ex_vars_300} ->
+          ex_vars_300
       end
       return
     catch
-      {:temper_return, :ex_return_294, ex_value_299} ->
-        ex_value_299
+      {:temper_return, :ex_return_296, ex_value_301} ->
+        ex_value_301
     end
   end
-  def isUnderline__476(s) do
+  def isUnderline__477(s) do
     try do
       _return = nil
       return = if true do
@@ -3104,22 +3133,22 @@ defmodule Temper.MarginaliaCore do
             return = false
             return
           else
-            throw({:temper_return, :ex_return_300, Temper.MarginaliaCore.allOf__477(s, TemperCore.String.begin(), TemperCore.String.end_of(s), mark)})
+            throw({:temper_return, :ex_return_302, Temper.MarginaliaCore.allOf__478(s, TemperCore.String.begin(), TemperCore.String.end_of(s), mark)})
           end
         end
       end
       return
     catch
-      {:temper_return, :ex_return_300, ex_value_302} ->
-        ex_value_302
+      {:temper_return, :ex_return_302, ex_value_304} ->
+        ex_value_304
     end
   end
-  def delimiterCell__479(s, at) do
+  def delimiterCell__480(s, at) do
     try do
       _return = nil
       return = if true do
         i = at
-        ex_loop_305 = fn ex_loop_305, i ->
+        ex_loop_307 = fn ex_loop_307, i ->
           if true do
             _t3 = nil
             t3 = if TemperCore.String.has_index(s, i) do
@@ -3133,13 +3162,13 @@ defmodule Temper.MarginaliaCore do
               i
             else
               i = TemperCore.String.next(s, i)
-              ex_loop_305.(ex_loop_305, i)
+              ex_loop_307.(ex_loop_307, i)
             end
           else
             i
           end
         end
-        i = ex_loop_305.(ex_loop_305, i)
+        i = ex_loop_307.(ex_loop_307, i)
         _t1 = nil
         t1 = if TemperCore.String.has_index(s, i) do
           t1 = TemperCore.String.get(s, i) == 58
@@ -3155,7 +3184,7 @@ defmodule Temper.MarginaliaCore do
           i
         end
         dashes = 0
-        ex_loop_307 = fn ex_loop_307, dashes, i ->
+        ex_loop_309 = fn ex_loop_309, dashes, i ->
           if true do
             _t4 = nil
             t4 = if TemperCore.String.has_index(s, i) do
@@ -3170,13 +3199,13 @@ defmodule Temper.MarginaliaCore do
             else
               dashes = TemperCore.int32(dashes + 1)
               i = TemperCore.String.next(s, i)
-              ex_loop_307.(ex_loop_307, dashes, i)
+              ex_loop_309.(ex_loop_309, dashes, i)
             end
           else
             {dashes, i}
           end
         end
-        {dashes, i} = ex_loop_307.(ex_loop_307, dashes, i)
+        {dashes, i} = ex_loop_309.(ex_loop_309, dashes, i)
         if dashes < 3 do
           return = nil
           return
@@ -3195,7 +3224,7 @@ defmodule Temper.MarginaliaCore do
           else
             i
           end
-          ex_loop_309 = fn ex_loop_309, i ->
+          ex_loop_311 = fn ex_loop_311, i ->
             if true do
               _t5 = nil
               t5 = if TemperCore.String.has_index(s, i) do
@@ -3209,23 +3238,23 @@ defmodule Temper.MarginaliaCore do
                 i
               else
                 i = TemperCore.String.next(s, i)
-                ex_loop_309.(ex_loop_309, i)
+                ex_loop_311.(ex_loop_311, i)
               end
             else
               i
             end
           end
-          i = ex_loop_309.(ex_loop_309, i)
-          throw({:temper_return, :ex_return_303, i})
+          i = ex_loop_311.(ex_loop_311, i)
+          throw({:temper_return, :ex_return_305, i})
         end
       end
       return
     catch
-      {:temper_return, :ex_return_303, ex_value_311} ->
-        ex_value_311
+      {:temper_return, :ex_return_305, ex_value_313} ->
+        ex_value_313
     end
   end
-  def isTableDelimiter__478(s) do
+  def isTableDelimiter__479(s) do
     return = nil
     return = if true do
       t1 = nil
@@ -3244,7 +3273,7 @@ defmodule Temper.MarginaliaCore do
       else
         i
       end
-      first = Temper.MarginaliaCore.delimiterCell__479(s, i)
+      first = Temper.MarginaliaCore.delimiterCell__480(s, i)
       if first === nil do
         return = false
         return
@@ -3262,7 +3291,7 @@ defmodule Temper.MarginaliaCore do
             t1
         end
         i = t1
-        ex_loop_314 = fn ex_loop_314, i, return ->
+        ex_loop_316 = fn ex_loop_316, i, return ->
           if true do
             cond do
               not TemperCore.String.has_index(s, i) ->
@@ -3273,7 +3302,7 @@ defmodule Temper.MarginaliaCore do
                 {i, return}
               true ->
                 after_ = TemperCore.String.next(s, i)
-                cell = Temper.MarginaliaCore.delimiterCell__479(s, after_)
+                cell = Temper.MarginaliaCore.delimiterCell__480(s, after_)
                 if cell === nil do
                   return = not TemperCore.String.has_index(s, after_)
                   {i, return}
@@ -3290,23 +3319,23 @@ defmodule Temper.MarginaliaCore do
                       raise(TemperCore.Panic)
                       i
                   end
-                  ex_loop_314.(ex_loop_314, i, return)
+                  ex_loop_316.(ex_loop_316, i, return)
                 end
             end
           else
             {i, return}
           end
         end
-        {_i, return} = ex_loop_314.(ex_loop_314, i, return)
+        {_i, return} = ex_loop_316.(ex_loop_316, i, return)
         return
       end
     end
     return
   end
-  def isAtxHeading__480(s) do
+  def isAtxHeading__481(s) do
     i = TemperCore.String.begin()
     hashes = 0
-    ex_loop_317 = fn ex_loop_317, hashes, i ->
+    ex_loop_319 = fn ex_loop_319, hashes, i ->
       if true do
         _t = nil
         t = if TemperCore.String.has_index(s, i) do
@@ -3321,13 +3350,13 @@ defmodule Temper.MarginaliaCore do
         else
           hashes = TemperCore.int32(hashes + 1)
           i = TemperCore.String.next(s, i)
-          ex_loop_317.(ex_loop_317, hashes, i)
+          ex_loop_319.(ex_loop_319, hashes, i)
         end
       else
         {hashes, i}
       end
     end
-    {hashes, i} = ex_loop_317.(ex_loop_317, hashes, i)
+    {hashes, i} = ex_loop_319.(ex_loop_319, hashes, i)
     if hashes >= 1 do
       if hashes <= 6 do
         if TemperCore.String.has_index(s, i) do
@@ -3342,7 +3371,7 @@ defmodule Temper.MarginaliaCore do
       false
     end
   end
-  def isIndentedCode__481(block) do
+  def isIndentedCode__482(block) do
     try do
       _return = nil
       return = if true do
@@ -3360,7 +3389,7 @@ defmodule Temper.MarginaliaCore do
         else
           i = TemperCore.String.begin()
           spaces = 0
-          ex_loop_321 = fn ex_loop_321, i, spaces ->
+          ex_loop_323 = fn ex_loop_323, i, spaces ->
             if true do
               _t2 = nil
               t2 = if TemperCore.String.has_index(block, i) do
@@ -3380,23 +3409,23 @@ defmodule Temper.MarginaliaCore do
               else
                 spaces = TemperCore.int32(spaces + 1)
                 i = TemperCore.String.next(block, i)
-                ex_loop_321.(ex_loop_321, i, spaces)
+                ex_loop_323.(ex_loop_323, i, spaces)
               end
             else
               {i, spaces}
             end
           end
-          {_i, spaces} = ex_loop_321.(ex_loop_321, i, spaces)
-          throw({:temper_return, :ex_return_319, spaces >= 4})
+          {_i, spaces} = ex_loop_323.(ex_loop_323, i, spaces)
+          throw({:temper_return, :ex_return_321, spaces >= 4})
         end
       end
       return
     catch
-      {:temper_return, :ex_return_319, ex_value_323} ->
-        ex_value_323
+      {:temper_return, :ex_return_321, ex_value_325} ->
+        ex_value_325
     end
   end
-  def isListItem__482(s) do
+  def isListItem__483(s) do
     try do
       _return = nil
       return = if true do
@@ -3437,7 +3466,7 @@ defmodule Temper.MarginaliaCore do
           else
             i = TemperCore.String.begin()
             digits = 0
-            ex_loop_326 = fn ex_loop_326, digits, i ->
+            ex_loop_328 = fn ex_loop_328, digits, i ->
               if true do
                 _t4 = nil
                 t4 = if TemperCore.String.has_index(s, i) do
@@ -3457,13 +3486,13 @@ defmodule Temper.MarginaliaCore do
                 else
                   digits = TemperCore.int32(digits + 1)
                   i = TemperCore.String.next(s, i)
-                  ex_loop_326.(ex_loop_326, digits, i)
+                  ex_loop_328.(ex_loop_328, digits, i)
                 end
               else
                 {digits, i}
               end
             end
-            {digits, i} = ex_loop_326.(ex_loop_326, digits, i)
+            {digits, i} = ex_loop_328.(ex_loop_328, digits, i)
             _t3 = nil
             t3 = cond do
               digits == 0 ->
@@ -3485,9 +3514,9 @@ defmodule Temper.MarginaliaCore do
             else
               next = TemperCore.String.next(s, i)
               if TemperCore.String.has_index(s, next) do
-                throw({:temper_return, :ex_return_324, Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, next))})
+                throw({:temper_return, :ex_return_326, Temper.MarginaliaCore.isRegexSpace(TemperCore.String.get(s, next))})
               else
-                throw({:temper_return, :ex_return_324, false})
+                throw({:temper_return, :ex_return_326, false})
               end
             end
           end
@@ -3495,11 +3524,11 @@ defmodule Temper.MarginaliaCore do
       end
       return
     catch
-      {:temper_return, :ex_return_324, ex_value_328} ->
-        ex_value_328
+      {:temper_return, :ex_return_326, ex_value_330} ->
+        ex_value_330
     end
   end
-  def isHtml__483(s) do
+  def isHtml__484(s) do
     try do
       _return = nil
       return = if true do
@@ -3530,7 +3559,7 @@ defmodule Temper.MarginaliaCore do
               t2
             end
             if t2 do
-              throw({:temper_return, :ex_return_329, true})
+              throw({:temper_return, :ex_return_331, true})
             else
               _t3 = nil
               t3 = if c >= 65 do
@@ -3542,11 +3571,11 @@ defmodule Temper.MarginaliaCore do
               end
               cond do
                 t3 ->
-                  throw({:temper_return, :ex_return_329, true})
+                  throw({:temper_return, :ex_return_331, true})
                 c == 33 ->
-                  throw({:temper_return, :ex_return_329, true})
+                  throw({:temper_return, :ex_return_331, true})
                 true ->
-                  throw({:temper_return, :ex_return_329, c == 47})
+                  throw({:temper_return, :ex_return_331, c == 47})
               end
             end
           end
@@ -3554,11 +3583,11 @@ defmodule Temper.MarginaliaCore do
       end
       return
     catch
-      {:temper_return, :ex_return_329, ex_value_331} ->
-        ex_value_331
+      {:temper_return, :ex_return_331, ex_value_333} ->
+        ex_value_333
     end
   end
-  def isLoneLinkOrImage__484(block) do
+  def isLoneLinkOrImage__485(block) do
     try do
       _return = nil
       return = if true do
@@ -3590,7 +3619,7 @@ defmodule Temper.MarginaliaCore do
           return
         else
           i = TemperCore.String.next(block, i)
-          ex_loop_334 = fn ex_loop_334, i ->
+          ex_loop_336 = fn ex_loop_336, i ->
             if true do
               _t4 = nil
               t4 = if TemperCore.String.has_index(block, i) do
@@ -3604,13 +3633,13 @@ defmodule Temper.MarginaliaCore do
                 i
               else
                 i = TemperCore.String.next(block, i)
-                ex_loop_334.(ex_loop_334, i)
+                ex_loop_336.(ex_loop_336, i)
               end
             else
               i
             end
           end
-          i = ex_loop_334.(ex_loop_334, i)
+          i = ex_loop_336.(ex_loop_336, i)
           if not TemperCore.String.has_index(block, i) do
             return = false
             return
@@ -3629,7 +3658,7 @@ defmodule Temper.MarginaliaCore do
               return
             else
               i = TemperCore.String.next(block, i)
-              ex_loop_336 = fn ex_loop_336, i ->
+              ex_loop_338 = fn ex_loop_338, i ->
                 if true do
                   _t5 = nil
                   t5 = if TemperCore.String.has_index(block, i) do
@@ -3643,19 +3672,19 @@ defmodule Temper.MarginaliaCore do
                     i
                   else
                     i = TemperCore.String.next(block, i)
-                    ex_loop_336.(ex_loop_336, i)
+                    ex_loop_338.(ex_loop_338, i)
                   end
                 else
                   i
                 end
               end
-              i = ex_loop_336.(ex_loop_336, i)
+              i = ex_loop_338.(ex_loop_338, i)
               if not TemperCore.String.has_index(block, i) do
                 return = false
                 return
               else
                 i = TemperCore.String.next(block, i)
-                ex_loop_338 = fn ex_loop_338, i ->
+                ex_loop_340 = fn ex_loop_340, i ->
                   if true do
                     _t6 = nil
                     t6 = if TemperCore.String.has_index(block, i) do
@@ -3669,14 +3698,14 @@ defmodule Temper.MarginaliaCore do
                       i
                     else
                       i = TemperCore.String.next(block, i)
-                      ex_loop_338.(ex_loop_338, i)
+                      ex_loop_340.(ex_loop_340, i)
                     end
                   else
                     i
                   end
                 end
-                i = ex_loop_338.(ex_loop_338, i)
-                throw({:temper_return, :ex_return_332, not TemperCore.String.has_index(block, i)})
+                i = ex_loop_340.(ex_loop_340, i)
+                throw({:temper_return, :ex_return_334, not TemperCore.String.has_index(block, i)})
               end
             end
           end
@@ -3684,11 +3713,11 @@ defmodule Temper.MarginaliaCore do
       end
       return
     catch
-      {:temper_return, :ex_return_332, ex_value_340} ->
-        ex_value_340
+      {:temper_return, :ex_return_334, ex_value_342} ->
+        ex_value_342
     end
   end
-  def isRule__485(s) do
+  def isRule__486(s) do
     try do
       _return = nil
       return = if true do
@@ -3716,7 +3745,7 @@ defmodule Temper.MarginaliaCore do
           else
             i = TemperCore.String.begin()
             count = 0
-            ex_loop_343 = fn ex_loop_343, count, i ->
+            ex_loop_345 = fn ex_loop_345, count, i ->
               if true do
                 _t2 = nil
                 t2 = if TemperCore.String.has_index(s, i) do
@@ -3731,14 +3760,14 @@ defmodule Temper.MarginaliaCore do
                 else
                   count = TemperCore.int32(count + 1)
                   i = TemperCore.String.next(s, i)
-                  ex_loop_343.(ex_loop_343, count, i)
+                  ex_loop_345.(ex_loop_345, count, i)
                 end
               else
                 {count, i}
               end
             end
-            {count, i} = ex_loop_343.(ex_loop_343, count, i)
-            ex_loop_345 = fn ex_loop_345, i ->
+            {count, i} = ex_loop_345.(ex_loop_345, count, i)
+            ex_loop_347 = fn ex_loop_347, i ->
               if true do
                 _t3 = nil
                 t3 = if TemperCore.String.has_index(s, i) do
@@ -3752,28 +3781,28 @@ defmodule Temper.MarginaliaCore do
                   i
                 else
                   i = TemperCore.String.next(s, i)
-                  ex_loop_345.(ex_loop_345, i)
+                  ex_loop_347.(ex_loop_347, i)
                 end
               else
                 i
               end
             end
-            i = ex_loop_345.(ex_loop_345, i)
+            i = ex_loop_347.(ex_loop_347, i)
             if count >= 3 do
-              throw({:temper_return, :ex_return_341, not TemperCore.String.has_index(s, i)})
+              throw({:temper_return, :ex_return_343, not TemperCore.String.has_index(s, i)})
             else
-              throw({:temper_return, :ex_return_341, false})
+              throw({:temper_return, :ex_return_343, false})
             end
           end
         end
       end
       return
     catch
-      {:temper_return, :ex_return_341, ex_value_347} ->
-        ex_value_347
+      {:temper_return, :ex_return_343, ex_value_349} ->
+        ex_value_349
     end
   end
-  def isProse__475(block) do
+  def isProse__476(block) do
     try do
       _return = nil
       return = if true do
@@ -3788,10 +3817,10 @@ defmodule Temper.MarginaliaCore do
           second
         end
         cond do
-          Temper.MarginaliaCore.isUnderline__476(second) ->
+          Temper.MarginaliaCore.isUnderline__477(second) ->
             return = false
             return
-          Temper.MarginaliaCore.isTableDelimiter__478(second) ->
+          Temper.MarginaliaCore.isTableDelimiter__479(second) ->
             return = false
             return
           true ->
@@ -3807,28 +3836,28 @@ defmodule Temper.MarginaliaCore do
               t ->
                 return = false
                 return
-              Temper.MarginaliaCore.isAtxHeading__480(first) ->
+              Temper.MarginaliaCore.isAtxHeading__481(first) ->
                 return = false
                 return
-              Temper.MarginaliaCore.isIndentedCode__481(block) ->
+              Temper.MarginaliaCore.isIndentedCode__482(block) ->
                 return = false
                 return
-              Temper.MarginaliaCore.isListItem__482(first) ->
+              Temper.MarginaliaCore.isListItem__483(first) ->
                 return = false
                 return
-              Temper.MarginaliaCore.isHtml__483(first) ->
+              Temper.MarginaliaCore.isHtml__484(first) ->
                 return = false
                 return
-              Temper.MarginaliaCore.isLoneLinkOrImage__484(block) ->
+              Temper.MarginaliaCore.isLoneLinkOrImage__485(block) ->
                 return = false
                 return
-              Temper.MarginaliaCore.isRule__485(first) ->
+              Temper.MarginaliaCore.isRule__486(first) ->
                 return = false
                 return
               true ->
                 allPiped = true
                 k = 0
-                ex_loop_350 = fn ex_loop_350, allPiped, k ->
+                ex_loop_352 = fn ex_loop_352, allPiped, k ->
                   if k < TemperCore.List.length(lines) do
                     allPiped = if not Temper.MarginaliaCore.startsWith(Temper.MarginaliaCore.trimLeading(TemperCore.List.get(lines, k)), "|") do
                       allPiped = false
@@ -3837,25 +3866,25 @@ defmodule Temper.MarginaliaCore do
                       allPiped
                     end
                     k = TemperCore.int32(k + 1)
-                    ex_loop_350.(ex_loop_350, allPiped, k)
+                    ex_loop_352.(ex_loop_352, allPiped, k)
                   else
                     {allPiped, k}
                   end
                 end
-                {allPiped, _k} = ex_loop_350.(ex_loop_350, allPiped, k)
-                throw({:temper_return, :ex_return_348, not allPiped})
+                {allPiped, _k} = ex_loop_352.(ex_loop_352, allPiped, k)
+                throw({:temper_return, :ex_return_350, not allPiped})
             end
         end
       end
       return
     catch
-      {:temper_return, :ex_return_348, ex_value_352} ->
-        ex_value_352
+      {:temper_return, :ex_return_350, ex_value_354} ->
+        ex_value_354
     end
   end
-  def isQuoted__467(block) do
+  def isQuoted__468(block) do
     i = TemperCore.String.begin()
-    ex_loop_354 = fn ex_loop_354, i ->
+    ex_loop_356 = fn ex_loop_356, i ->
       if true do
         _t = nil
         t = if TemperCore.String.has_index(block, i) do
@@ -3869,25 +3898,25 @@ defmodule Temper.MarginaliaCore do
           i
         else
           i = TemperCore.String.next(block, i)
-          ex_loop_354.(ex_loop_354, i)
+          ex_loop_356.(ex_loop_356, i)
         end
       else
         i
       end
     end
-    i = ex_loop_354.(ex_loop_354, i)
+    i = ex_loop_356.(ex_loop_356, i)
     if TemperCore.String.has_index(block, i) do
       TemperCore.String.get(block, i) == 62
     else
       false
     end
   end
-  def stripQuoteMark__466(line) do
+  def stripQuoteMark__467(line) do
     try do
       _return = nil
       return = if true do
         i = TemperCore.String.begin()
-        ex_loop_358 = fn ex_loop_358, i ->
+        ex_loop_360 = fn ex_loop_360, i ->
           if true do
             _t3 = nil
             t3 = if TemperCore.String.has_index(line, i) do
@@ -3901,13 +3930,13 @@ defmodule Temper.MarginaliaCore do
               i
             else
               i = TemperCore.String.next(line, i)
-              ex_loop_358.(ex_loop_358, i)
+              ex_loop_360.(ex_loop_360, i)
             end
           else
             i
           end
         end
-        i = ex_loop_358.(ex_loop_358, i)
+        i = ex_loop_360.(ex_loop_360, i)
         _t1 = nil
         t1 = if not TemperCore.String.has_index(line, i) do
           t1 = true
@@ -3935,19 +3964,19 @@ defmodule Temper.MarginaliaCore do
           else
             i
           end
-          throw({:temper_return, :ex_return_356, TemperCore.String.slice(line, i, TemperCore.String.end_of(line))})
+          throw({:temper_return, :ex_return_358, TemperCore.String.slice(line, i, TemperCore.String.end_of(line))})
         end
       end
       return
     catch
-      {:temper_return, :ex_return_356, ex_value_360} ->
-        ex_value_360
+      {:temper_return, :ex_return_358, ex_value_362} ->
+        ex_value_362
     end
   end
-  def reflowQuote__465(block) do
+  def reflowQuote__466(block) do
     lines = TemperCore.String.split(block, "\n")
     fn_1 = fn l1 ->
-      Temper.MarginaliaCore.stripQuoteMark__466(l1)
+      Temper.MarginaliaCore.stripQuoteMark__467(l1)
     end
     stripped = Temper.MarginaliaCore.joinWith(TemperCore.List.map(lines, fn_1), "\n")
     back = TemperCore.String.split(Temper.MarginaliaCore.reflow(stripped), "\n")
@@ -3960,7 +3989,7 @@ defmodule Temper.MarginaliaCore do
     end
     Temper.MarginaliaCore.joinWith(TemperCore.List.map(back, fn_2), "\n")
   end
-  def isCloser__463(cp) do
+  def isCloser__464(cp) do
     cond do
       cp == 34 ->
         true
@@ -3979,7 +4008,7 @@ defmodule Temper.MarginaliaCore do
   def isUnicodeSpace(cp) do
     TemperConnected.isUnicodeSpace(cp)
   end
-  def isOpener__464(cp) do
+  def isOpener__465(cp) do
     cond do
       cp == 34 ->
         true
@@ -4007,12 +4036,12 @@ defmodule Temper.MarginaliaCore do
   def isUnicodeDigit(cp) do
     TemperConnected.isUnicodeDigit(cp)
   end
-  def breakSentences__470(text) do
+  def breakSentences__471(text) do
     out = TemperCore.StringBuilder.new()
     i = TemperCore.String.begin()
-    ex_loop_367 = fn ex_loop_367, i ->
+    ex_loop_369 = fn ex_loop_369, i ->
       if TemperCore.String.has_index(text, i) do
-        ex_step_381 = try do
+        ex_step_383 = try do
           cp = TemperCore.String.get(text, i)
           _t1 = nil
           t1 = cond do
@@ -4028,11 +4057,11 @@ defmodule Temper.MarginaliaCore do
           end
           i = if t1 do
             j = TemperCore.String.next(text, i)
-            ex_loop_375 = fn ex_loop_375, j ->
+            ex_loop_377 = fn ex_loop_377, j ->
               if true do
                 _t3 = nil
                 t3 = if TemperCore.String.has_index(text, j) do
-                  t3 = Temper.MarginaliaCore.isCloser__463(TemperCore.String.get(text, j))
+                  t3 = Temper.MarginaliaCore.isCloser__464(TemperCore.String.get(text, j))
                   t3
                 else
                   t3 = false
@@ -4042,15 +4071,15 @@ defmodule Temper.MarginaliaCore do
                   j
                 else
                   j = TemperCore.String.next(text, j)
-                  ex_loop_375.(ex_loop_375, j)
+                  ex_loop_377.(ex_loop_377, j)
                 end
               else
                 j
               end
             end
-            j = ex_loop_375.(ex_loop_375, j)
+            j = ex_loop_377.(ex_loop_377, j)
             k = j
-            ex_loop_377 = fn ex_loop_377, k ->
+            ex_loop_379 = fn ex_loop_379, k ->
               if true do
                 _t4 = nil
                 t4 = if TemperCore.String.has_index(text, k) do
@@ -4064,19 +4093,19 @@ defmodule Temper.MarginaliaCore do
                   k
                 else
                   k = TemperCore.String.next(text, k)
-                  ex_loop_377.(ex_loop_377, k)
+                  ex_loop_379.(ex_loop_379, k)
                 end
               else
                 k
               end
             end
-            k = ex_loop_377.(ex_loop_377, k)
+            k = ex_loop_379.(ex_loop_379, k)
             m = k
-            ex_loop_379 = fn ex_loop_379, m ->
+            ex_loop_381 = fn ex_loop_381, m ->
               if true do
                 _t5 = nil
                 t5 = if TemperCore.String.has_index(text, m) do
-                  t5 = Temper.MarginaliaCore.isOpener__464(TemperCore.String.get(text, m))
+                  t5 = Temper.MarginaliaCore.isOpener__465(TemperCore.String.get(text, m))
                   t5
                 else
                   t5 = false
@@ -4086,13 +4115,13 @@ defmodule Temper.MarginaliaCore do
                   m
                 else
                   m = TemperCore.String.next(text, m)
-                  ex_loop_379.(ex_loop_379, m)
+                  ex_loop_381.(ex_loop_381, m)
                 end
               else
                 m
               end
             end
-            m = ex_loop_379.(ex_loop_379, m)
+            m = ex_loop_381.(ex_loop_381, m)
             _t2 = nil
             t2 = if k > j do
               if TemperCore.String.has_index(text, m) do
@@ -4115,7 +4144,7 @@ defmodule Temper.MarginaliaCore do
               TemperCore.StringBuilder.append(out, TemperCore.String.slice(text, i, j))
               TemperCore.StringBuilder.append(out, "\n")
               i = k
-              throw({:temper_continue, :ex_loop_368, i})
+              throw({:temper_continue, :ex_loop_370, i})
             else
               i
             end
@@ -4132,32 +4161,32 @@ defmodule Temper.MarginaliaCore do
           i = TemperCore.String.next(text, i)
           {:temper_next, i}
         catch
-          {:temper_continue, :ex_loop_368, ex_vars_382} ->
-            {:temper_next, ex_vars_382}
-          {:temper_break, :ex_loop_368, ex_vars_382} ->
-            {:temper_done, ex_vars_382}
+          {:temper_continue, :ex_loop_370, ex_vars_384} ->
+            {:temper_next, ex_vars_384}
+          {:temper_break, :ex_loop_370, ex_vars_384} ->
+            {:temper_done, ex_vars_384}
         end
-        case ex_step_381 do
+        case ex_step_383 do
           {:temper_next, i} ->
-            ex_loop_367.(ex_loop_367, i)
-          {:temper_done, ex_vars_382} ->
-            ex_vars_382
+            ex_loop_369.(ex_loop_369, i)
+          {:temper_done, ex_vars_384} ->
+            ex_vars_384
         end
       else
         i
       end
     end
-    _i = ex_loop_367.(ex_loop_367, i)
+    _i = ex_loop_369.(ex_loop_369, i)
     TemperCore.StringBuilder.to_string(out)
   end
-  def startsAWord__474(line, at) do
+  def startsAWord__475(line, at) do
     if at <= TemperCore.String.begin() do
       true
     else
       Temper.MarginaliaCore.isUnicodeSpace(TemperCore.String.get(line, TemperCore.String.prev(line, at)))
     end
   end
-  def abbreviationAt__473(line, dot, word) do
+  def abbreviationAt__474(line, dot, word) do
     try do
       _return = nil
       return = if true do
@@ -4167,35 +4196,35 @@ defmodule Temper.MarginaliaCore do
         else
           start = dot
           k = 0
-          ex_loop_386 = fn ex_loop_386, k, start ->
+          ex_loop_388 = fn ex_loop_388, k, start ->
             if k < TemperCore.String.count_between(word, TemperCore.String.begin(), TemperCore.String.end_of(word)) do
               start = TemperCore.String.prev(line, start)
               k = TemperCore.int32(k + 1)
-              ex_loop_386.(ex_loop_386, k, start)
+              ex_loop_388.(ex_loop_388, k, start)
             else
               {k, start}
             end
           end
-          {_k, start} = ex_loop_386.(ex_loop_386, k, start)
-          throw({:temper_return, :ex_return_384, Temper.MarginaliaCore.startsAWord__474(line, start)})
+          {_k, start} = ex_loop_388.(ex_loop_388, k, start)
+          throw({:temper_return, :ex_return_386, Temper.MarginaliaCore.startsAWord__475(line, start)})
         end
       end
       return
     catch
-      {:temper_return, :ex_return_384, ex_value_388} ->
-        ex_value_388
+      {:temper_return, :ex_return_386, ex_value_390} ->
+        ex_value_390
     end
   end
-  def endsOnAbbreviation__472(line) do
+  def endsOnAbbreviation__473(line) do
     try do
       return = nil
       return = try do
         e = TemperCore.String.end_of(line)
-        ex_loop_391 = fn ex_loop_391, e ->
+        ex_loop_393 = fn ex_loop_393, e ->
           if true do
             _t2 = nil
             t2 = if e > TemperCore.String.begin() do
-              t2 = Temper.MarginaliaCore.isCloser__463(TemperCore.String.get(line, TemperCore.String.prev(line, e)))
+              t2 = Temper.MarginaliaCore.isCloser__464(TemperCore.String.get(line, TemperCore.String.prev(line, e)))
               t2
             else
               t2 = false
@@ -4205,13 +4234,13 @@ defmodule Temper.MarginaliaCore do
               e
             else
               e = TemperCore.String.prev(line, e)
-              ex_loop_391.(ex_loop_391, e)
+              ex_loop_393.(ex_loop_393, e)
             end
           else
             e
           end
         end
-        e = ex_loop_391.(ex_loop_391, e)
+        e = ex_loop_393.(ex_loop_393, e)
         _t1 = nil
         t1 = if e <= TemperCore.String.begin() do
           t1 = true
@@ -4226,27 +4255,27 @@ defmodule Temper.MarginaliaCore do
         else
           dot = TemperCore.String.prev(line, e)
           k = 0
-          ex_loop_393 = fn ex_loop_393, k, return ->
-            if k < TemperCore.List.length(TemperCore.Global.get(:"Temper.MarginaliaCore.abbreviations__499")) do
-              if Temper.MarginaliaCore.abbreviationAt__473(line, dot, TemperCore.List.get(TemperCore.Global.get(:"Temper.MarginaliaCore.abbreviations__499"), k)) do
+          ex_loop_395 = fn ex_loop_395, k, return ->
+            if k < TemperCore.List.length(TemperCore.Global.get(:"Temper.MarginaliaCore.abbreviations__500")) do
+              if Temper.MarginaliaCore.abbreviationAt__474(line, dot, TemperCore.List.get(TemperCore.Global.get(:"Temper.MarginaliaCore.abbreviations__500"), k)) do
                 return = true
-                throw({:temper_break, :ex_block_390, return})
+                throw({:temper_break, :ex_block_392, return})
               else
                 k = TemperCore.int32(k + 1)
-                ex_loop_393.(ex_loop_393, k, return)
+                ex_loop_395.(ex_loop_395, k, return)
               end
             else
               {k, return}
             end
           end
-          {_k, return} = ex_loop_393.(ex_loop_393, k, return)
+          {_k, return} = ex_loop_395.(ex_loop_395, k, return)
           _return = if dot > TemperCore.String.begin() do
             c = TemperCore.String.prev(line, dot)
             cp = TemperCore.String.get(line, c)
             _t3 = nil
             t3 = if cp >= 65 do
               if cp <= 90 do
-                t3 = Temper.MarginaliaCore.startsAWord__474(line, c)
+                t3 = Temper.MarginaliaCore.startsAWord__475(line, c)
                 t3
               else
                 t3 = false
@@ -4258,35 +4287,35 @@ defmodule Temper.MarginaliaCore do
             end
             if t3 do
               return = true
-              throw({:temper_break, :ex_block_390, return})
+              throw({:temper_break, :ex_block_392, return})
             else
               return
             end
           else
             return
           end
-          throw({:temper_return, :ex_return_389, false})
+          throw({:temper_return, :ex_return_391, false})
         end
       catch
-        {:temper_break, :ex_block_390, ex_vars_395} ->
-          ex_vars_395
+        {:temper_break, :ex_block_392, ex_vars_397} ->
+          ex_vars_397
       end
       return
     catch
-      {:temper_return, :ex_return_389, ex_value_396} ->
-        ex_value_396
+      {:temper_return, :ex_return_391, ex_value_398} ->
+        ex_value_398
     end
   end
-  def splitSentences__471(joined) do
-    lines = TemperCore.String.split(Temper.MarginaliaCore.breakSentences__470(joined), "\n")
+  def splitSentences__472(joined) do
+    lines = TemperCore.String.split(Temper.MarginaliaCore.breakSentences__471(joined), "\n")
     out = TemperCore.List.builder()
     k = 0
-    ex_loop_398 = fn ex_loop_398, k ->
+    ex_loop_400 = fn ex_loop_400, k ->
       if k < TemperCore.List.length(lines) do
         n = TemperCore.List.length(out)
         _t = nil
         t = if n > 0 do
-          t = Temper.MarginaliaCore.endsOnAbbreviation__472(TemperCore.List.get(out, TemperCore.int32(n - 1)))
+          t = Temper.MarginaliaCore.endsOnAbbreviation__473(TemperCore.List.get(out, TemperCore.int32(n - 1)))
           t
         else
           t = false
@@ -4300,19 +4329,19 @@ defmodule Temper.MarginaliaCore do
           nil
         end
         k = TemperCore.int32(k + 1)
-        ex_loop_398.(ex_loop_398, k)
+        ex_loop_400.(ex_loop_400, k)
       else
         k
       end
     end
-    _k = ex_loop_398.(ex_loop_398, k)
+    _k = ex_loop_400.(ex_loop_400, k)
     Temper.MarginaliaCore.joinWith(TemperCore.List.to_list(out), "\n")
   end
-  def squeezeBlanks__469(text) do
+  def squeezeBlanks__470(text) do
     out = TemperCore.StringBuilder.new()
     inBlank = false
     i = TemperCore.String.begin()
-    ex_loop_401 = fn ex_loop_401, i, inBlank ->
+    ex_loop_403 = fn ex_loop_403, i, inBlank ->
       if TemperCore.String.has_index(text, i) do
         cp = TemperCore.String.get(text, i)
         _t = nil
@@ -4344,26 +4373,26 @@ defmodule Temper.MarginaliaCore do
           inBlank
         end
         i = TemperCore.String.next(text, i)
-        ex_loop_401.(ex_loop_401, i, inBlank)
+        ex_loop_403.(ex_loop_403, i, inBlank)
       else
         {i, inBlank}
       end
     end
-    {_i, _inBlank} = ex_loop_401.(ex_loop_401, i, inBlank)
+    {_i, _inBlank} = ex_loop_403.(ex_loop_403, i, inBlank)
     TemperCore.StringBuilder.to_string(out)
   end
-  def unwrap__468(block) do
+  def unwrap__469(block) do
     lines = TemperCore.String.split(block, "\n")
     last = TemperCore.int32(TemperCore.List.length(lines) - 1)
     pieces = TemperCore.List.builder()
     k = 0
-    ex_loop_404 = fn ex_loop_404, k ->
+    ex_loop_406 = fn ex_loop_406, k ->
       if k <= last do
         line = TemperCore.List.get(lines, k)
         b = TemperCore.String.begin()
         e = TemperCore.String.end_of(line)
         b = if k > 0 do
-          ex_loop_406 = fn ex_loop_406, b ->
+          ex_loop_408 = fn ex_loop_408, b ->
             if true do
               _t1 = nil
               t1 = if TemperCore.String.has_index(line, b) do
@@ -4377,19 +4406,19 @@ defmodule Temper.MarginaliaCore do
                 b
               else
                 b = TemperCore.String.next(line, b)
-                ex_loop_406.(ex_loop_406, b)
+                ex_loop_408.(ex_loop_408, b)
               end
             else
               b
             end
           end
-          b = ex_loop_406.(ex_loop_406, b)
+          b = ex_loop_408.(ex_loop_408, b)
           b
         else
           b
         end
         e = if k < last do
-          ex_loop_408 = fn ex_loop_408, e ->
+          ex_loop_410 = fn ex_loop_410, e ->
             if true do
               _t2 = nil
               t2 = if e > b do
@@ -4403,25 +4432,25 @@ defmodule Temper.MarginaliaCore do
                 e
               else
                 e = TemperCore.String.prev(line, e)
-                ex_loop_408.(ex_loop_408, e)
+                ex_loop_410.(ex_loop_410, e)
               end
             else
               e
             end
           end
-          e = ex_loop_408.(ex_loop_408, e)
+          e = ex_loop_410.(ex_loop_410, e)
           e
         else
           e
         end
         TemperCore.List.add(pieces, TemperCore.String.slice(line, b, e))
         k = TemperCore.int32(k + 1)
-        ex_loop_404.(ex_loop_404, k)
+        ex_loop_406.(ex_loop_406, k)
       else
         k
       end
     end
-    _k = ex_loop_404.(ex_loop_404, k)
+    _k = ex_loop_406.(ex_loop_406, k)
     Temper.MarginaliaCore.joinWith(TemperCore.List.to_list(pieces), " ")
   end
   def reflowBlock(block) do
@@ -4431,28 +4460,28 @@ defmodule Temper.MarginaliaCore do
         _return = nil
         return = if true do
           cond do
-            not Temper.MarginaliaCore.isProse__475(block) ->
+            not Temper.MarginaliaCore.isProse__476(block) ->
               return = block
               return
-            Temper.MarginaliaCore.isQuoted__467(block) ->
-              return = Temper.MarginaliaCore.reflowQuote__465(block)
+            Temper.MarginaliaCore.isQuoted__468(block) ->
+              return = Temper.MarginaliaCore.reflowQuote__466(block)
               return
             true ->
-              throw({:temper_return, :ex_return_410, Temper.MarginaliaCore.splitSentences__471(Temper.MarginaliaCore.trim(Temper.MarginaliaCore.squeezeBlanks__469(Temper.MarginaliaCore.unwrap__468(block))))})
+              throw({:temper_return, :ex_return_412, Temper.MarginaliaCore.splitSentences__472(Temper.MarginaliaCore.trim(Temper.MarginaliaCore.squeezeBlanks__470(Temper.MarginaliaCore.unwrap__469(block))))})
           end
         end
         return
       catch
-        {:temper_return, :ex_return_410, ex_value_412} ->
-          ex_value_412
+        {:temper_return, :ex_return_412, ex_value_414} ->
+          ex_value_414
       end
     end)
   end
-  def deriveTitle__460(body, i) do
+  def deriveTitle__461(body, i) do
     first = TemperCore.List.get(TemperCore.String.split(body, "\n"), 0)
     h = TemperCore.String.begin()
     hashes = 0
-    ex_loop_414 = fn ex_loop_414, h, hashes ->
+    ex_loop_416 = fn ex_loop_416, h, hashes ->
       if true do
         _t2 = nil
         t2 = if TemperCore.String.has_index(first, h) do
@@ -4472,13 +4501,13 @@ defmodule Temper.MarginaliaCore do
         else
           hashes = TemperCore.int32(hashes + 1)
           h = TemperCore.String.next(first, h)
-          ex_loop_414.(ex_loop_414, h, hashes)
+          ex_loop_416.(ex_loop_416, h, hashes)
         end
       else
         {h, hashes}
       end
     end
-    {h, hashes} = ex_loop_414.(ex_loop_414, h, hashes)
+    {h, hashes} = ex_loop_416.(ex_loop_416, h, hashes)
     _t1 = nil
     t1 = if hashes >= 1 do
       if hashes <= 6 do
@@ -4498,7 +4527,7 @@ defmodule Temper.MarginaliaCore do
       t1
     end
     {first, _h} = if t1 do
-      ex_loop_416 = fn ex_loop_416, h ->
+      ex_loop_418 = fn ex_loop_418, h ->
         if true do
           _t4 = nil
           t4 = if TemperCore.String.has_index(first, h) do
@@ -4512,13 +4541,13 @@ defmodule Temper.MarginaliaCore do
             h
           else
             h = TemperCore.String.next(first, h)
-            ex_loop_416.(ex_loop_416, h)
+            ex_loop_418.(ex_loop_418, h)
           end
         else
           h
         end
       end
-      h = ex_loop_416.(ex_loop_416, h)
+      h = ex_loop_418.(ex_loop_418, h)
       first = TemperCore.String.slice(first, h, TemperCore.String.end_of(first))
       {first, h}
     else
@@ -4526,7 +4555,7 @@ defmodule Temper.MarginaliaCore do
     end
     plain = TemperCore.StringBuilder.new()
     k = TemperCore.String.begin()
-    ex_loop_418 = fn ex_loop_418, k ->
+    ex_loop_420 = fn ex_loop_420, k ->
       if TemperCore.String.has_index(first, k) do
         cp = TemperCore.String.get(first, k)
         _t3 = nil
@@ -4555,12 +4584,12 @@ defmodule Temper.MarginaliaCore do
           nil
         end
         k = TemperCore.String.next(first, k)
-        ex_loop_418.(ex_loop_418, k)
+        ex_loop_420.(ex_loop_420, k)
       else
         k
       end
     end
-    _k = ex_loop_418.(ex_loop_418, k)
+    _k = ex_loop_420.(ex_loop_420, k)
     label = Temper.MarginaliaCore.graphemePrefix(Temper.MarginaliaCore.trim(TemperCore.StringBuilder.to_string(plain)), 60)
     if Temper.MarginaliaCore.graphemeLength(label) > 12 do
       TemperCore.int_to_string(i) <> ". " <> label <> "…"
@@ -4568,22 +4597,22 @@ defmodule Temper.MarginaliaCore do
       "Section " <> TemperCore.int_to_string(i)
     end
   end
-  def byWindows__456(text) do
-    bodies = Temper.MarginaliaCore.window__458(text)
+  def byWindows__457(text) do
+    bodies = Temper.MarginaliaCore.window__459(text)
     out = TemperCore.List.builder()
     k = 0
-    ex_loop_421 = fn ex_loop_421, k ->
+    ex_loop_423 = fn ex_loop_423, k ->
       if k < TemperCore.List.length(bodies) do
         body = Temper.MarginaliaCore.reflow(TemperCore.List.get(bodies, k))
-        TemperCore.List.add(out, Temper.MarginaliaCore.Section.new(Temper.MarginaliaCore.deriveTitle__460(body, TemperCore.int32(k + 1)), body))
+        TemperCore.List.add(out, Temper.MarginaliaCore.Section.new(Temper.MarginaliaCore.deriveTitle__461(body, TemperCore.int32(k + 1)), body))
         k = TemperCore.int32(k + 1)
-        ex_loop_421.(ex_loop_421, k)
+        ex_loop_423.(ex_loop_423, k)
       else
         k
       end
     end
-    _k = ex_loop_421.(ex_loop_421, k)
-    subject = Temper.MarginaliaCore.finish__461(TemperCore.List.to_list(out))
+    _k = ex_loop_423.(ex_loop_423, k)
+    subject = Temper.MarginaliaCore.finish__462(TemperCore.List.to_list(out))
     if subject === nil do
       %TemperCore.Vec{t: {}}
     else
@@ -4596,23 +4625,23 @@ defmodule Temper.MarginaliaCore do
       try do
         _return = nil
         return = if true do
-          text = Temper.MarginaliaCore.normalize__443(raw)
+          text = Temper.MarginaliaCore.normalize__444(raw)
           if TemperCore.String.is_empty(text) do
             return = %TemperCore.Vec{t: {}}
             return
           else
             _chunks = nil
             _t = nil
-            subject = Temper.MarginaliaCore.byMarkdown__446(text)
+            subject = Temper.MarginaliaCore.byMarkdown__447(text)
             t = if subject === nil do
-              t = Temper.MarginaliaCore.byMarker__453(text)
+              t = Temper.MarginaliaCore.byMarker__454(text)
               t
             else
               t = subject
               t
             end
             chunks = if t === nil do
-              chunks = Temper.MarginaliaCore.byWindows__456(text)
+              chunks = Temper.MarginaliaCore.byWindows__457(text)
               chunks
             else
               chunks = t
@@ -4621,13 +4650,13 @@ defmodule Temper.MarginaliaCore do
             fn_ = fn c ->
               Temper.MarginaliaCore.Section.new(Temper.MarginaliaCore.Section.get_title(c), Temper.MarginaliaCore.reflow(Temper.MarginaliaCore.Section.get_body(c)))
             end
-            throw({:temper_return, :ex_return_423, TemperCore.List.map(chunks, fn_)})
+            throw({:temper_return, :ex_return_425, TemperCore.List.map(chunks, fn_)})
           end
         end
         return
       catch
-        {:temper_return, :ex_return_423, ex_value_426} ->
-          ex_value_426
+        {:temper_return, :ex_return_425, ex_value_428} ->
+          ex_value_428
       end
     end)
   end
@@ -4636,7 +4665,7 @@ defmodule Temper.MarginaliaCore do
     TemperCore.Heap.entry(fn ->
       out = TemperCore.List.builder()
       i = TemperCore.String.begin()
-      ex_loop_428 = fn ex_loop_428, i ->
+      ex_loop_430 = fn ex_loop_430, i ->
         if true do
           _t1 = nil
           t1 = if TemperCore.String.has_index(text, i) do
@@ -4650,17 +4679,17 @@ defmodule Temper.MarginaliaCore do
             i
           else
             i = TemperCore.String.next(text, i)
-            ex_loop_428.(ex_loop_428, i)
+            ex_loop_430.(ex_loop_430, i)
           end
         else
           i
         end
       end
-      i = ex_loop_428.(ex_loop_428, i)
-      ex_loop_430 = fn ex_loop_430, i ->
+      i = ex_loop_430.(ex_loop_430, i)
+      ex_loop_432 = fn ex_loop_432, i ->
         if TemperCore.String.has_index(text, i) do
           start = i
-          ex_loop_432 = fn ex_loop_432, i ->
+          ex_loop_434 = fn ex_loop_434, i ->
             if true do
               _t2 = nil
               t2 = if TemperCore.String.has_index(text, i) do
@@ -4674,14 +4703,14 @@ defmodule Temper.MarginaliaCore do
                 i
               else
                 i = TemperCore.String.next(text, i)
-                ex_loop_432.(ex_loop_432, i)
+                ex_loop_434.(ex_loop_434, i)
               end
             else
               i
             end
           end
-          i = ex_loop_432.(ex_loop_432, i)
-          ex_loop_434 = fn ex_loop_434, i ->
+          i = ex_loop_434.(ex_loop_434, i)
+          ex_loop_436 = fn ex_loop_436, i ->
             if true do
               _t3 = nil
               t3 = if TemperCore.String.has_index(text, i) do
@@ -4695,39 +4724,39 @@ defmodule Temper.MarginaliaCore do
                 i
               else
                 i = TemperCore.String.next(text, i)
-                ex_loop_434.(ex_loop_434, i)
+                ex_loop_436.(ex_loop_436, i)
               end
             else
               i
             end
           end
-          i = ex_loop_434.(ex_loop_434, i)
+          i = ex_loop_436.(ex_loop_436, i)
           TemperCore.List.add(out, TemperCore.String.slice(text, start, i))
-          ex_loop_430.(ex_loop_430, i)
+          ex_loop_432.(ex_loop_432, i)
         else
           i
         end
       end
-      _i = ex_loop_430.(ex_loop_430, i)
+      _i = ex_loop_432.(ex_loop_432, i)
       TemperCore.List.to_list(out)
     end)
   end
-  def distinct__487(words) do
+  def distinct__488(words) do
     set = TemperCore.Map.builder()
     k = 0
-    ex_loop_437 = fn ex_loop_437, k ->
+    ex_loop_439 = fn ex_loop_439, k ->
       if k < TemperCore.List.length(words) do
         TemperCore.Map.set(set, TemperCore.List.get(words, k), true)
         k = TemperCore.int32(k + 1)
-        ex_loop_437.(ex_loop_437, k)
+        ex_loop_439.(ex_loop_439, k)
       else
         k
       end
     end
-    _k = ex_loop_437.(ex_loop_437, k)
+    _k = ex_loop_439.(ex_loop_439, k)
     set
   end
-  def unrelated__486(ak, bk) do
+  def unrelated__487(ak, bk) do
     try do
       _return = nil
       return = if true do
@@ -4743,12 +4772,12 @@ defmodule Temper.MarginaliaCore do
           return = false
           return
         else
-          a = TemperCore.Map.to_map(Temper.MarginaliaCore.distinct__487(ak))
-          b = TemperCore.Map.to_map(Temper.MarginaliaCore.distinct__487(bk))
+          a = TemperCore.Map.to_map(Temper.MarginaliaCore.distinct__488(ak))
+          b = TemperCore.Map.to_map(Temper.MarginaliaCore.distinct__488(bk))
           bKeys = TemperCore.Map.keys(b)
           shared = 0
           k = 0
-          ex_loop_441 = fn ex_loop_441, k, shared ->
+          ex_loop_443 = fn ex_loop_443, k, shared ->
             if k < TemperCore.List.length(bKeys) do
               shared = if TemperCore.Map.has(a, TemperCore.List.get(bKeys, k)) do
                 shared = TemperCore.int32(shared + 1)
@@ -4757,12 +4786,12 @@ defmodule Temper.MarginaliaCore do
                 shared
               end
               k = TemperCore.int32(k + 1)
-              ex_loop_441.(ex_loop_441, k, shared)
+              ex_loop_443.(ex_loop_443, k, shared)
             else
               {k, shared}
             end
           end
-          {_k, shared} = ex_loop_441.(ex_loop_441, k, shared)
+          {_k, shared} = ex_loop_443.(ex_loop_443, k, shared)
           aSize = TemperCore.List.length(TemperCore.Map.keys(a))
           bSize = TemperCore.List.length(bKeys)
           _smaller = nil
@@ -4773,25 +4802,25 @@ defmodule Temper.MarginaliaCore do
             smaller = bSize
             smaller
           end
-          throw({:temper_return, :ex_return_439, TemperCore.Float.lt(TemperCore.int_to_float(shared), TemperCore.Float.mul(0.05, TemperCore.int_to_float(smaller)))})
+          throw({:temper_return, :ex_return_441, TemperCore.Float.lt(TemperCore.int_to_float(shared), TemperCore.Float.mul(0.05, TemperCore.int_to_float(smaller)))})
         end
       end
       return
     catch
-      {:temper_return, :ex_return_439, ex_value_443} ->
-        ex_value_443
+      {:temper_return, :ex_return_441, ex_value_445} ->
+        ex_value_445
     end
   end
-  def attach__494(script, aw, bw, parts) do
+  def attach__495(script, aw, bw, parts) do
     ai = 0
     bi = 0
     c = 0
-    ex_loop_445 = fn ex_loop_445, ai, bi, c ->
+    ex_loop_447 = fn ex_loop_447, ai, bi, c ->
       if c < TemperCore.List.length(script) do
         chunk = TemperCore.List.get(script, c)
         count = TemperCore.List.length(Temper.MarginaliaCore.Chunk.get_words(chunk))
         k = 0
-        ex_loop_447 = fn ex_loop_447, ai, bi, k ->
+        ex_loop_449 = fn ex_loop_449, ai, bi, k ->
           if k < count do
             {ai, bi} = cond do
               Temper.MarginaliaCore.Chunk.get_kind(chunk) == 0 ->
@@ -4820,41 +4849,41 @@ defmodule Temper.MarginaliaCore do
                 {ai, bi}
             end
             k = TemperCore.int32(k + 1)
-            ex_loop_447.(ex_loop_447, ai, bi, k)
+            ex_loop_449.(ex_loop_449, ai, bi, k)
           else
             {ai, bi, k}
           end
         end
-        {ai, bi, _k} = ex_loop_447.(ex_loop_447, ai, bi, k)
+        {ai, bi, _k} = ex_loop_449.(ex_loop_449, ai, bi, k)
         c = TemperCore.int32(c + 1)
-        ex_loop_445.(ex_loop_445, ai, bi, c)
+        ex_loop_447.(ex_loop_447, ai, bi, c)
       else
         {ai, bi, c}
       end
     end
-    {_ai, _bi, _c} = ex_loop_445.(ex_loop_445, ai, bi, c)
+    {_ai, _bi, _c} = ex_loop_447.(ex_loop_447, ai, bi, c)
     nil
   end
-  def moveDown__489(p, a) do
+  def moveDown__490(p, a) do
     if Temper.MarginaliaCore.Path.get_i(p) < TemperCore.List.length(a) do
       Temper.MarginaliaCore.Path.new(TemperCore.int32(Temper.MarginaliaCore.Path.get_y(p) + 1), TemperCore.int32(Temper.MarginaliaCore.Path.get_i(p) + 1), Temper.MarginaliaCore.Path.get_j(p), Temper.MarginaliaCore.Edit.new(1, TemperCore.List.get(a, Temper.MarginaliaCore.Path.get_i(p)), Temper.MarginaliaCore.Path.get_edits(p)))
     else
       Temper.MarginaliaCore.Path.new(TemperCore.int32(Temper.MarginaliaCore.Path.get_y(p) + 1), Temper.MarginaliaCore.Path.get_i(p), Temper.MarginaliaCore.Path.get_j(p), Temper.MarginaliaCore.Path.get_edits(p))
     end
   end
-  def moveRight__488(p, b) do
+  def moveRight__489(p, b) do
     if Temper.MarginaliaCore.Path.get_j(p) < TemperCore.List.length(b) do
       Temper.MarginaliaCore.Path.new(Temper.MarginaliaCore.Path.get_y(p), Temper.MarginaliaCore.Path.get_i(p), TemperCore.int32(Temper.MarginaliaCore.Path.get_j(p) + 1), Temper.MarginaliaCore.Edit.new(2, TemperCore.List.get(b, Temper.MarginaliaCore.Path.get_j(p)), Temper.MarginaliaCore.Path.get_edits(p)))
     else
       p
     end
   end
-  def followSnake__490(p, a, b) do
+  def followSnake__491(p, a, b) do
     y = Temper.MarginaliaCore.Path.get_y(p)
     i = Temper.MarginaliaCore.Path.get_i(p)
     j = Temper.MarginaliaCore.Path.get_j(p)
     edits = Temper.MarginaliaCore.Path.get_edits(p)
-    ex_loop_452 = fn ex_loop_452, edits, i, j, y ->
+    ex_loop_454 = fn ex_loop_454, edits, i, j, y ->
       if true do
         _t = nil
         t = if i < TemperCore.List.length(a) do
@@ -4876,16 +4905,16 @@ defmodule Temper.MarginaliaCore do
           y = TemperCore.int32(y + 1)
           i = TemperCore.int32(i + 1)
           j = TemperCore.int32(j + 1)
-          ex_loop_452.(ex_loop_452, edits, i, j, y)
+          ex_loop_454.(ex_loop_454, edits, i, j, y)
         end
       else
         {edits, i, j, y}
       end
     end
-    {edits, i, j, y} = ex_loop_452.(ex_loop_452, edits, i, j, y)
+    {edits, i, j, y} = ex_loop_454.(ex_loop_454, edits, i, j, y)
     Temper.MarginaliaCore.Path.new(y, i, j, edits)
   end
-  def sameWords__493(x, y) do
+  def sameWords__494(x, y) do
     try do
       return = nil
       return = try do
@@ -4894,36 +4923,36 @@ defmodule Temper.MarginaliaCore do
           return
         else
           k = 0
-          ex_loop_456 = fn ex_loop_456, k, return ->
+          ex_loop_458 = fn ex_loop_458, k, return ->
             if k < TemperCore.List.length(x) do
               if TemperCore.List.get(x, k) != TemperCore.List.get(y, k) do
                 return = false
-                throw({:temper_break, :ex_block_455, return})
+                throw({:temper_break, :ex_block_457, return})
               else
                 k = TemperCore.int32(k + 1)
-                ex_loop_456.(ex_loop_456, k, return)
+                ex_loop_458.(ex_loop_458, k, return)
               end
             else
               {k, return}
             end
           end
-          {_k, _return} = ex_loop_456.(ex_loop_456, k, return)
-          throw({:temper_return, :ex_return_454, true})
+          {_k, _return} = ex_loop_458.(ex_loop_458, k, return)
+          throw({:temper_return, :ex_return_456, true})
         end
       catch
-        {:temper_break, :ex_block_455, ex_vars_458} ->
-          ex_vars_458
+        {:temper_break, :ex_block_457, ex_vars_460} ->
+          ex_vars_460
       end
       return
     catch
-      {:temper_return, :ex_return_454, ex_value_459} ->
-        ex_value_459
+      {:temper_return, :ex_return_456, ex_value_461} ->
+        ex_value_461
     end
   end
-  def compact__492(edits) do
+  def compact__493(edits) do
     out = TemperCore.List.builder()
     e = edits
-    ex_loop_461 = fn ex_loop_461, e ->
+    ex_loop_463 = fn ex_loop_463, e ->
       if not (e === nil) do
         edit = nil
         edit = try do
@@ -4950,14 +4979,14 @@ defmodule Temper.MarginaliaCore do
         if t1 do
           TemperCore.List.add(Temper.MarginaliaCore.Chunk.get_words(TemperCore.List.get(out, TemperCore.int32(n - 1))), Temper.MarginaliaCore.Edit.get_word(edit))
           e = Temper.MarginaliaCore.Edit.get_before(edit)
-          ex_loop_461.(ex_loop_461, e)
+          ex_loop_463.(ex_loop_463, e)
         else
           _t2 = nil
           t2 = if n >= 3 do
             if Temper.MarginaliaCore.Chunk.get_kind(TemperCore.List.get(out, TemperCore.int32(n - 1))) == 0 do
               if Temper.MarginaliaCore.Chunk.get_kind(TemperCore.List.get(out, TemperCore.int32(n - 2))) == 2 do
                 if Temper.MarginaliaCore.Chunk.get_kind(TemperCore.List.get(out, TemperCore.int32(n - 3))) == 0 do
-                  t2 = Temper.MarginaliaCore.sameWords__493(Temper.MarginaliaCore.Chunk.get_words(TemperCore.List.get(out, TemperCore.int32(n - 1))), Temper.MarginaliaCore.Chunk.get_words(TemperCore.List.get(out, TemperCore.int32(n - 2))))
+                  t2 = Temper.MarginaliaCore.sameWords__494(Temper.MarginaliaCore.Chunk.get_words(TemperCore.List.get(out, TemperCore.int32(n - 1))), Temper.MarginaliaCore.Chunk.get_words(TemperCore.List.get(out, TemperCore.int32(n - 2))))
                   t2
                 else
                   t2 = false
@@ -4984,45 +5013,45 @@ defmodule Temper.MarginaliaCore do
             TemperCore.List.add_all(merged, Temper.MarginaliaCore.Chunk.get_words(x))
             TemperCore.List.add(out, Temper.MarginaliaCore.Chunk.new(0, merged))
             TemperCore.List.add(out, ins)
-            ex_loop_461.(ex_loop_461, e)
+            ex_loop_463.(ex_loop_463, e)
           else
             words = TemperCore.List.builder()
             TemperCore.List.add(words, Temper.MarginaliaCore.Edit.get_word(edit))
             TemperCore.List.add(out, Temper.MarginaliaCore.Chunk.new(Temper.MarginaliaCore.Edit.get_kind(edit), words))
             e = Temper.MarginaliaCore.Edit.get_before(edit)
-            ex_loop_461.(ex_loop_461, e)
+            ex_loop_463.(ex_loop_463, e)
           end
         end
       else
         e
       end
     end
-    _e = ex_loop_461.(ex_loop_461, e)
+    _e = ex_loop_463.(ex_loop_463, e)
     TemperCore.List.reverse(out)
     k = 0
-    ex_loop_463 = fn ex_loop_463, k ->
+    ex_loop_465 = fn ex_loop_465, k ->
       if k < TemperCore.List.length(out) do
         TemperCore.List.reverse(Temper.MarginaliaCore.Chunk.get_words(TemperCore.List.get(out, k)))
         k = TemperCore.int32(k + 1)
-        ex_loop_463.(ex_loop_463, k)
+        ex_loop_465.(ex_loop_465, k)
       else
         k
       end
     end
-    _k = ex_loop_463.(ex_loop_463, k)
+    _k = ex_loop_465.(ex_loop_465, k)
     TemperCore.List.to_list(out)
   end
-  def myers__491(a, b) do
+  def myers__492(a, b) do
     return = nil
     return = try do
       paths = %TemperCore.Vec{t: {Temper.MarginaliaCore.Path.new(0, 0, 0, nil)}}
       envelope = 0
-      ex_loop_467 = fn ex_loop_467, envelope, paths, return ->
+      ex_loop_469 = fn ex_loop_469, envelope, paths, return ->
         if true do
           next = TemperCore.List.builder()
           at = 0
           diag = TemperCore.int32(-envelope)
-          ex_loop_469 = fn ex_loop_469, at, diag, return ->
+          ex_loop_471 = fn ex_loop_471, at, diag, return ->
             if diag <= envelope do
               left = TemperCore.int32(TemperCore.List.length(paths) - at)
               path = TemperCore.List.get(paths, at)
@@ -5039,7 +5068,7 @@ defmodule Temper.MarginaliaCore do
                   at = TemperCore.int32(at + 1)
                   {at, path}
                 diag == TemperCore.int32(-envelope) ->
-                  path = Temper.MarginaliaCore.moveDown__489(path, a)
+                  path = Temper.MarginaliaCore.moveDown__490(path, a)
                   {at, path}
                 true ->
                   _t3 = nil
@@ -5051,17 +5080,17 @@ defmodule Temper.MarginaliaCore do
                     t3
                   end
                   if t3 do
-                    path = Temper.MarginaliaCore.moveRight__488(path, b)
+                    path = Temper.MarginaliaCore.moveRight__489(path, b)
                     at = TemperCore.int32(at + 1)
                     {at, path}
                   else
                     _t4 = nil
                     second = TemperCore.List.get(paths, TemperCore.int32(at + 1))
                     t4 = if Temper.MarginaliaCore.Path.get_y(path) > Temper.MarginaliaCore.Path.get_y(second) do
-                      t4 = Temper.MarginaliaCore.moveRight__488(path, b)
+                      t4 = Temper.MarginaliaCore.moveRight__489(path, b)
                       t4
                     else
-                      t4 = Temper.MarginaliaCore.moveDown__489(second, a)
+                      t4 = Temper.MarginaliaCore.moveDown__490(second, a)
                       t4
                     end
                     path = t4
@@ -5069,7 +5098,7 @@ defmodule Temper.MarginaliaCore do
                     {at, path}
                   end
               end
-              path = Temper.MarginaliaCore.followSnake__490(path, a, b)
+              path = Temper.MarginaliaCore.followSnake__491(path, a, b)
               _t2 = nil
               t2 = if Temper.MarginaliaCore.Path.get_i(path) == TemperCore.List.length(a) do
                 t2 = Temper.MarginaliaCore.Path.get_j(path) == TemperCore.List.length(b)
@@ -5079,41 +5108,41 @@ defmodule Temper.MarginaliaCore do
                 t2
               end
               if t2 do
-                return = Temper.MarginaliaCore.compact__492(Temper.MarginaliaCore.Path.get_edits(path))
-                throw({:temper_break, :ex_block_466, return})
+                return = Temper.MarginaliaCore.compact__493(Temper.MarginaliaCore.Path.get_edits(path))
+                throw({:temper_break, :ex_block_468, return})
               else
                 TemperCore.List.add(next, path)
                 diag = TemperCore.int32(diag + 2)
-                ex_loop_469.(ex_loop_469, at, diag, return)
+                ex_loop_471.(ex_loop_471, at, diag, return)
               end
             else
               {at, diag, return}
             end
           end
-          {_at, _diag, return} = ex_loop_469.(ex_loop_469, at, diag, return)
+          {_at, _diag, return} = ex_loop_471.(ex_loop_471, at, diag, return)
           paths = TemperCore.List.to_list(next)
           envelope = TemperCore.int32(envelope + 1)
-          ex_loop_467.(ex_loop_467, envelope, paths, return)
+          ex_loop_469.(ex_loop_469, envelope, paths, return)
         else
           {envelope, paths, return}
         end
       end
-      {_envelope, _paths, return} = ex_loop_467.(ex_loop_467, envelope, paths, return)
+      {_envelope, _paths, return} = ex_loop_469.(ex_loop_469, envelope, paths, return)
       return
     catch
-      {:temper_break, :ex_block_466, ex_vars_471} ->
-        ex_vars_471
+      {:temper_break, :ex_block_468, ex_vars_473} ->
+        ex_vars_473
     end
     return
   end
-  def merge__495(parts) do
+  def merge__496(parts) do
     out = TemperCore.List.builder()
     k = 0
-    ex_loop_473 = fn ex_loop_473, k ->
+    ex_loop_475 = fn ex_loop_475, k ->
       if k < TemperCore.List.length(parts) do
         kind = Temper.MarginaliaCore.Part.get_kind(TemperCore.List.get(parts, k))
         text = TemperCore.StringBuilder.new()
-        ex_loop_475 = fn ex_loop_475, k ->
+        ex_loop_477 = fn ex_loop_477, k ->
           if true do
             _t = nil
             t = if k < TemperCore.List.length(parts) do
@@ -5128,20 +5157,20 @@ defmodule Temper.MarginaliaCore do
             else
               TemperCore.StringBuilder.append(text, Temper.MarginaliaCore.Part.get_text(TemperCore.List.get(parts, k)))
               k = TemperCore.int32(k + 1)
-              ex_loop_475.(ex_loop_475, k)
+              ex_loop_477.(ex_loop_477, k)
             end
           else
             k
           end
         end
-        k = ex_loop_475.(ex_loop_475, k)
+        k = ex_loop_477.(ex_loop_477, k)
         TemperCore.List.add(out, Temper.MarginaliaCore.Part.new(kind, TemperCore.StringBuilder.to_string(text)))
-        ex_loop_473.(ex_loop_473, k)
+        ex_loop_475.(ex_loop_475, k)
       else
         k
       end
     end
-    _k = ex_loop_473.(ex_loop_473, k)
+    _k = ex_loop_475.(ex_loop_475, k)
     TemperCore.List.to_list(out)
   end
   def diff(a, b) do
@@ -5158,46 +5187,46 @@ defmodule Temper.MarginaliaCore do
       end
       bk = TemperCore.List.map(bw, fn_2)
       parts = TemperCore.List.builder()
-      if Temper.MarginaliaCore.unrelated__486(ak, bk) do
+      if Temper.MarginaliaCore.unrelated__487(ak, bk) do
         k1 = 0
-        ex_loop_480 = fn ex_loop_480, k1 ->
+        ex_loop_482 = fn ex_loop_482, k1 ->
           if k1 < TemperCore.List.length(aw) do
             TemperCore.List.add(parts, Temper.MarginaliaCore.Part.new("del", TemperCore.List.get(aw, k1)))
             k1 = TemperCore.int32(k1 + 1)
-            ex_loop_480.(ex_loop_480, k1)
+            ex_loop_482.(ex_loop_482, k1)
           else
             k1
           end
         end
-        _k1 = ex_loop_480.(ex_loop_480, k1)
+        _k1 = ex_loop_482.(ex_loop_482, k1)
         k2 = 0
-        ex_loop_482 = fn ex_loop_482, k2 ->
+        ex_loop_484 = fn ex_loop_484, k2 ->
           if k2 < TemperCore.List.length(bw) do
             TemperCore.List.add(parts, Temper.MarginaliaCore.Part.new("ins", TemperCore.List.get(bw, k2)))
             k2 = TemperCore.int32(k2 + 1)
-            ex_loop_482.(ex_loop_482, k2)
+            ex_loop_484.(ex_loop_484, k2)
           else
             k2
           end
         end
-        _k2 = ex_loop_482.(ex_loop_482, k2)
+        _k2 = ex_loop_484.(ex_loop_484, k2)
         nil
       else
-        Temper.MarginaliaCore.attach__494(Temper.MarginaliaCore.myers__491(ak, bk), aw, bw, parts)
+        Temper.MarginaliaCore.attach__495(Temper.MarginaliaCore.myers__492(ak, bk), aw, bw, parts)
         nil
       end
-      Temper.MarginaliaCore.merge__495(TemperCore.List.to_list(parts))
+      Temper.MarginaliaCore.merge__496(TemperCore.List.to_list(parts))
     end)
   end
   def __temper_init__() do
     TemperCore.init_once(:"Temper.MarginaliaCore", fn ->
-      TemperCore.Global.put(:"Temper.MarginaliaCore.targetWords__496", 1800)
-      TemperCore.Global.put(:"Temper.MarginaliaCore.minWords__497", 250)
-      TemperCore.Global.put(:"Temper.MarginaliaCore.maxWords__498", 4000)
-      TemperCore.Global.put(:"Temper.MarginaliaCore.abbreviations__499", %TemperCore.Vec{t: {"e.g", "i.e", "vs", "etc", "cf", "viz", "ca", "Mr", "Mrs", "Ms", "Dr", "Prof", "St", "No", "Fig", "Jr", "Sr", "Inc", "Ltd", "Co"}})
-      TemperCore.Global.put(:"Temper.MarginaliaCore.v_EQ__500", 0)
-      TemperCore.Global.put(:"Temper.MarginaliaCore.v_DEL__501", 1)
-      TemperCore.Global.put(:"Temper.MarginaliaCore.v_INS__502", 2)
+      TemperCore.Global.put(:"Temper.MarginaliaCore.targetWords__497", 1800)
+      TemperCore.Global.put(:"Temper.MarginaliaCore.minWords__498", 250)
+      TemperCore.Global.put(:"Temper.MarginaliaCore.maxWords__499", 4000)
+      TemperCore.Global.put(:"Temper.MarginaliaCore.abbreviations__500", %TemperCore.Vec{t: {"e.g", "i.e", "vs", "etc", "cf", "viz", "ca", "Mr", "Mrs", "Ms", "Dr", "Prof", "St", "No", "Fig", "Jr", "Sr", "Inc", "Ltd", "Co"}})
+      TemperCore.Global.put(:"Temper.MarginaliaCore.v_EQ__501", 0)
+      TemperCore.Global.put(:"Temper.MarginaliaCore.v_DEL__502", 1)
+      TemperCore.Global.put(:"Temper.MarginaliaCore.v_INS__503", 2)
       nil
     end)
   end

@@ -93,9 +93,10 @@ At least two lines, each under 90 graphemes trimmed, matching
 case-insensitively and without the `u` flag. Without it, PCRE reads the
 pattern and the line as bytes, and that decides two things here:
 
-- `—{3,}` repeats only the last byte of the em dash, a sequence valid UTF-8
-  never contains, so that alternative never matches: `———` is not a
-  marker, while `---` is.
+- `—{3,}` repeated only the last byte of the em dash, a sequence valid
+  UTF-8 never contains, so that alternative never matched: `———` was not a
+  marker while `---` was. That was a bug, and here a run of three or more
+  em dashes is a marker, as the pattern meant.
 - `[:.\-—]` is a set of bytes, so it matches the first byte of any
   character in U+2000 to U+2FFF, and `.{0,80}` is 80 bytes, not
   characters.
@@ -182,6 +183,14 @@ Where the head alternatives end, or null.
         }
         if (stars == 3) { return s; }
       }
+      // —{3,}, as the pattern meant it: three or more em dashes
+      var m = at;
+      var emDashes = 0;
+      while (line.hasIndex(m) && line[m] == 0x2014) {
+        emDashes += 1;
+        m = line.next(m);
+      }
+      if (emDashes >= 3) { return m; }
       // -{3,}
       var d = at;
       var dashes = 0;
