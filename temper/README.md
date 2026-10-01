@@ -135,24 +135,27 @@ generated code (median of 15 runs):
 
 ```
                                               Elixir    Temper   ratio
-word diff, 2,000-word section, 4% edited        4 ms     14 ms   3.5x
-paragraph diff, 60 paragraphs                   8 ms     22 ms   2.7x
-sentences reflow, 5,400 words                   2 ms      8 ms   3.5x
-PDF page reflow, 400 lines                     11 ms      3 ms   0.3x
-segmenter, 11,700-word manuscript              20 ms     68 ms   3.4x
+word diff, 2,000-word section, 4% edited        4 ms     13 ms   3.2x
+paragraph diff, 60 paragraphs                   8 ms     13 ms   1.6x
+sentences reflow, 5,400 words                   2 ms      4 ms   1.9x
+PDF page reflow, 400 lines                     11 ms      2 ms   0.2x
+segmenter, 11,700-word manuscript              20 ms     50 ms   2.4x
 ```
 
 Every one is a few milliseconds on a whole document, against an app that
 waits seconds on a language model. The first numbers were worse, 3x to 5x.
-Two causes were cheap to fix:
+Three causes were cheap to fix:
 
 - Internal helpers had been exported, and an exported function runs
   through the library's entry check once per character.
 - The Unicode predicates asked PCRE about every character. ASCII is now
   answered directly, checked against PCRE on all 128 code points.
+- In be-elixir's runtime, every `StringBuilder` append was a field-map
+  update plus a write barrier. It is now a single `:erlang.put`
+  ([temper-blimp#146](https://github.com/notactuallytreyanastasio/temper-blimp/pull/146)).
 
-What remains is mostly code-point-at-a-time string walking, where the
-originals matched regexes on whole binaries.
+What remains is mostly a call per code point, where the originals
+matched regexes on whole binaries.
 
 ## A bug the port found
 

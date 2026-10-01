@@ -1415,14 +1415,13 @@ defmodule Temper.MarginaliaCore do
           return = false
           return
         else
-          ratio = nil
+          _ratio = nil
           ratio = try do
             ratio = TemperCore.Float.divide(TemperCore.int_to_float(upper), TemperCore.int_to_float(letters))
             ratio
           rescue
             _ in TemperCore.Bubble ->
               raise(TemperCore.Panic)
-              ratio
           end
           throw({:temper_return, :ex_return_130, TemperCore.Float.ge(ratio, 0.75)})
         end
@@ -2776,7 +2775,7 @@ defmodule Temper.MarginaliaCore do
     try do
       _return = nil
       return = if true do
-        t1 = nil
+        _t1 = nil
         if Temper.MarginaliaCore.graphemeLength(Temper.MarginaliaCore.trim__489(line)) >= 90 do
           return = false
           return
@@ -2818,7 +2817,6 @@ defmodule Temper.MarginaliaCore do
             rescue
               _ in TemperCore.Bubble ->
                 raise(TemperCore.Panic)
-                t1
             end
             i = t1
             ex_loop_273 = fn ex_loop_273, i ->
@@ -3227,7 +3225,7 @@ defmodule Temper.MarginaliaCore do
   def isTableDelimiter__479(s) do
     return = nil
     return = if true do
-      t1 = nil
+      _t1 = nil
       i = TemperCore.String.begin()
       _t2 = nil
       t2 = if TemperCore.String.has_index(s, i) do
@@ -3258,7 +3256,6 @@ defmodule Temper.MarginaliaCore do
         rescue
           _ in TemperCore.Bubble ->
             raise(TemperCore.Panic)
-            t1
         end
         i = t1
         ex_loop_316 = fn ex_loop_316, i, return ->
@@ -3287,7 +3284,6 @@ defmodule Temper.MarginaliaCore do
                   rescue
                     _ in TemperCore.Bubble ->
                       raise(TemperCore.Panic)
-                      i
                   end
                   ex_loop_316.(ex_loop_316, i, return)
                 end
@@ -4921,7 +4917,7 @@ defmodule Temper.MarginaliaCore do
     e = edits
     ex_loop_463 = fn ex_loop_463, e ->
       if not (e === nil) do
-        edit = nil
+        _edit = nil
         edit = try do
           if e === nil do
             raise(TemperCore.Bubble)
@@ -4932,7 +4928,6 @@ defmodule Temper.MarginaliaCore do
         rescue
           _ in TemperCore.Bubble ->
             raise(TemperCore.Panic)
-            edit
         end
         n = TemperCore.List.length(out)
         _t1 = nil
