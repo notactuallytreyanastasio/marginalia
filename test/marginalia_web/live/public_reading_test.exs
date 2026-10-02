@@ -66,8 +66,8 @@ defmodule MarginaliaWeb.PublicReadingTest do
     end
 
     test "a folder is private the moment it is made", %{folder: folder} do
-      assert is_nil(Repo.reload!(folder).published_at)
-      assert is_nil(Repo.reload!(folder).slug)
+      assert is_nil(reload(folder).published_at)
+      assert is_nil(reload(folder).slug)
     end
   end
 
@@ -109,7 +109,7 @@ defmodule MarginaliaWeb.PublicReadingTest do
     end
 
     test "publishing one folder publishes only that one", %{other: other} do
-      assert is_nil(Repo.reload!(other).published_at)
+      assert is_nil(reload(other).published_at)
       assert Folders.published() |> Enum.map(& &1.name) == ["A Backend For Something"]
     end
 
@@ -137,14 +137,14 @@ defmodule MarginaliaWeb.PublicReadingTest do
       assert {:error, {:live_redirect, %{to: "/reading"}}} =
                live(build_conn(), ~p"/reading/a-backend-for-something")
 
-      assert is_nil(Repo.reload!(folder).published_at)
+      assert is_nil(reload(folder).published_at)
     end
 
     test "a stranger cannot publish somebody's folder", %{folder: folder} do
       stranger = user_fixture()
 
       assert {:error, _} = Folders.publish(stranger.id, folder.id)
-      assert is_nil(Repo.reload!(folder).published_at)
+      assert is_nil(reload(folder).published_at)
     end
 
     test "not even the folder's own non-owner writer can publish it", %{owner: owner} do
@@ -152,7 +152,7 @@ defmodule MarginaliaWeb.PublicReadingTest do
       {:ok, theirs} = Folders.create_folder(writer.id, %{"name" => "Their drafts"})
 
       assert {:error, :not_owner} = Folders.publish(writer.id, theirs.id)
-      assert is_nil(Repo.reload!(theirs).published_at)
+      assert is_nil(reload(theirs).published_at)
       refute writer.id == owner.id
     end
 
@@ -161,4 +161,8 @@ defmodule MarginaliaWeb.PublicReadingTest do
                live(build_conn(), ~p"/reading/#{folder.slug || "x"}/1")
     end
   end
+
+  # A folder is a plain struct read through Alloy now, not an Ecto schema,
+  # so it is re-read through its context rather than with Repo.reload!/1.
+  defp reload(folder), do: Marginalia.Folders.get_folder(folder.user_id, folder.id)
 end

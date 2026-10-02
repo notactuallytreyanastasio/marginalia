@@ -101,6 +101,10 @@ defmodule Marginalia.DataCase do
       assert %{password: ["password is too short"]} = errors_on(changeset)
 
   """
+  # A folder write refused by Alloy's changeset or a unique index (see
+  # Marginalia.Folders.Invalid) carries its errors already traversed.
+  def errors_on(%Marginalia.Folders.Invalid{errors: errors}), do: errors
+
   def errors_on(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {message, opts} ->
       Regex.replace(~r"%{(\w+)}", message, fn _, key ->

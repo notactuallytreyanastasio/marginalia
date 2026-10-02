@@ -23,7 +23,9 @@ defmodule Marginalia.Stacks.Step do
     field :deep_dropped, {:array, :string}, default: []
     field :deepened_at, :utc_datetime
 
-    belongs_to :folder, Marginalia.Folders.Folder
+    # a folder is a plain struct whose rows Alloy reads and writes
+    # (Marginalia.Folders), so this is the column, not an Ecto association
+    field :folder_id, :id
     belongs_to :work, Marginalia.Works.Work
 
     timestamps(type: :utc_datetime)

@@ -204,23 +204,38 @@ defmodule Marginalia.Cuts do
     Cut
     |> where([c], c.user_id == ^user_id)
     |> order_by([c], desc: c.updated_at)
-    |> preload(:folder)
     |> Repo.all()
+    |> with_folders()
   end
 
   def get_cut(user_id, id) do
     Cut
     |> where([c], c.user_id == ^user_id and c.id == ^id)
-    |> preload(:folder)
     |> Repo.one()
+    |> with_folders()
   end
 
   @doc "The one reading a folder has, or nil."
   def get_folder_cut(user_id, folder_id) do
     Cut
     |> where([c], c.user_id == ^user_id and c.folder_id == ^folder_id)
-    |> preload(:folder)
     |> Repo.one()
+    |> with_folders()
+  end
+
+  # What `preload(:folder)` did, now that a folder is not an Ecto schema: one
+  # query for every folder the cuts name.
+  defp with_folders(nil), do: nil
+  defp with_folders(%Cut{} = cut), do: hd(with_folders([cut]))
+
+  defp with_folders(cuts) when is_list(cuts) do
+    folders =
+      cuts
+      |> Enum.map(& &1.folder_id)
+      |> Enum.reject(&is_nil/1)
+      |> Marginalia.Folders.folders_by_id()
+
+    Enum.map(cuts, &%{&1 | folder: Map.get(folders, &1.folder_id)})
   end
 
   def delete_cut(%Cut{} = cut), do: Repo.delete(cut)

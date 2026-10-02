@@ -12,32 +12,41 @@ defmodule Marginalia.Folders do
 
   Everything here is scoped by `user_id`, the same discipline as `Works`: no
   function returns or moves a folder without checking who is asking.
+
+  The SQL is built in Temper, with Alloy, in
+  `temper/marginalia-core/src/folders.temper.md`, and run by
+  `Marginalia.Alloy`. This module decides what to run and in what order,
+  and makes rows into `Folder` structs; it writes no SQL itself.
   """
 
-  import Ecto.Query
-
-  alias Marginalia.Repo
-  alias Marginalia.Folders.Folder
+  alias Marginalia.{Alloy, Repo}
+  alias Marginalia.Folders.{Folder, Invalid}
   alias Marginalia.Works
-  alias Marginalia.Works.Work
+  alias Temper.MarginaliaCore, as: Core
+
+  @taken "there is already a folder with that name here"
+  @sibling_indexes ~w(folders_sibling_name_index folders_root_name_index)
 
   @doc "Every folder this writer has, flat, in sibling order."
-  def list_folders(user_id) do
-    Folder
-    |> where([f], f.user_id == ^user_id)
-    |> order_by([f], asc: fragment("lower(?)", f.name), asc: f.id)
-    |> Repo.all()
-  end
+  def list_folders(user_id), do: all(Core.listFolders(user_id))
 
   @doc "Fetch a folder this user owns, or nil."
   def get_folder(user_id, id) do
     case cast_id(id) do
       nil -> nil
-      id -> Repo.one(from f in Folder, where: f.user_id == ^user_id and f.id == ^id)
+      id -> one(Core.getFolder(user_id, id))
     end
   end
 
-  def change_folder(folder \\ %Folder{}, attrs \\ %{}), do: Folder.changeset(folder, attrs)
+  @doc "A writer's folder by name, anywhere in the tree, or nil. The importers file into it."
+  def get_folder_by_name(user_id, name), do: one(Core.folderByName(user_id, name))
+
+  @doc "Folders by id, whoever owns them, keyed by id: what `preload(:folder)` used to fetch."
+  def folders_by_id([]), do: %{}
+
+  def folders_by_id(ids) do
+    ids |> Enum.uniq() |> Core.foldersByIds() |> all() |> Map.new(&{&1.id, &1})
+  end
 
   @doc """
   Make a folder, optionally inside another one.
@@ -48,16 +57,23 @@ defmodule Marginalia.Folders do
   """
   def create_folder(user_id, attrs, opts \\ []) do
     parent_id = attrs |> get_attr(:parent_id) |> owned_parent(user_id)
+    name = attrs |> get_attr(:name) |> to_string()
 
-    %Folder{user_id: user_id}
-    |> Folder.changeset(%{name: get_attr(attrs, :name), parent_id: parent_id})
-    |> Repo.insert(opts)
+    write(Core.createFolder(user_id, name, parent_id), savepoint: opts[:mode] == :savepoint)
   end
 
   def rename_folder(user_id, id, name) do
     case get_folder(user_id, id) do
-      nil -> {:error, :not_found}
-      folder -> folder |> Folder.changeset(%{name: name}) |> Repo.update()
+      nil ->
+        {:error, :not_found}
+
+      folder ->
+        prepared = Core.renameFolder(user_id, folder.id, to_string(name))
+
+        # an unchanged name is no write, as an unchanged Ecto changeset was none
+        if prepared.statement && String.trim(to_string(name)) == folder.name,
+          do: {:ok, folder},
+          else: write(prepared)
     end
   end
 
@@ -75,13 +91,13 @@ defmodule Marginalia.Folders do
 
       folder ->
         Repo.transaction(fn ->
-          from(w in Work, where: w.folder_id == ^folder.id)
-          |> Repo.update_all(set: [folder_id: folder.parent_id])
+          [lift_works, lift_folders, delete] =
+            Enum.to_list(Core.deleteFolder(folder.id, folder.parent_id))
 
-          from(f in Folder, where: f.parent_id == ^folder.id)
-          |> Repo.update_all(set: [parent_id: folder.parent_id])
-
-          Repo.delete!(folder)
+          Alloy.query!(lift_works)
+          Alloy.query!(lift_folders)
+          [row] = Alloy.query!(delete)
+          Folder.from_row(row)
         end)
     end
   end
@@ -99,10 +115,9 @@ defmodule Marginalia.Folders do
          parent_id = owned_parent(parent_id, user_id),
          false <- parent_id == folder.id,
          false <- descendant?(user_id, parent_id, folder.id) do
-      folder
-      |> Ecto.Changeset.change(parent_id: parent_id)
-      |> Folder.changeset(%{name: folder.name})
-      |> Repo.update()
+      if parent_id == folder.parent_id,
+        do: {:ok, folder},
+        else: write_statement(Core.moveFolder(user_id, folder.id, parent_id), [])
     else
       true -> {:error, :cycle}
       {:error, reason} -> {:error, reason}
@@ -116,9 +131,14 @@ defmodule Marginalia.Folders do
         {:error, :not_found}
 
       work ->
-        work
-        |> Ecto.Changeset.change(folder_id: owned_parent(folder_id, user_id))
-        |> Repo.update()
+        case owned_parent(folder_id, user_id) do
+          same when same == work.folder_id ->
+            {:ok, work}
+
+          folder_id ->
+            Alloy.query!(Core.moveWork(user_id, work.id, folder_id))
+            {:ok, Works.get_work(user_id, work.id)}
+        end
     end
   end
 
@@ -167,10 +187,8 @@ defmodule Marginalia.Folders do
   to tidy a pile that is already tidy is noise.
   """
   def unfiled_collection_count(user_id) do
-    from(w in Work,
-      where: w.user_id == ^user_id and not is_nil(w.collection) and is_nil(w.folder_id)
-    )
-    |> Repo.aggregate(:count)
+    [%{count: n}] = Alloy.query!(Core.unfiledCount(user_id))
+    n
   end
 
   @doc """
@@ -190,11 +208,7 @@ defmodule Marginalia.Folders do
   folder stays where it was put. Returns `{:ok, filed_count}`.
   """
   def backfill_from_collections(user_id, parent_name \\ "Cases") do
-    loose =
-      from(w in Work,
-        where: w.user_id == ^user_id and not is_nil(w.collection) and is_nil(w.folder_id)
-      )
-      |> Repo.all()
+    loose = Alloy.query!(Core.looseWorkCollections(user_id))
 
     case Enum.group_by(loose, & &1.collection) do
       groups when groups == %{} ->
@@ -208,11 +222,7 @@ defmodule Marginalia.Folders do
             folder = get_or_create(user_id, collection, parent && parent.id)
             ids = Enum.map(works, & &1.id)
 
-            {n, _} =
-              from(w in Work, where: w.id in ^ids)
-              |> Repo.update_all(set: [folder_id: folder.id])
-
-            filed + n
+            filed + Alloy.query!(Core.fileWorks(ids, folder.id))
           end)
         end)
     end
@@ -230,19 +240,9 @@ defmodule Marginalia.Folders do
   defp get_or_create(user_id, name, parent_id) do
     case create_folder(user_id, %{name: name, parent_id: parent_id}, mode: :savepoint) do
       {:ok, folder} -> folder
-      {:error, _changeset} -> Repo.one!(sibling(user_id, name, parent_id))
+      {:error, %Invalid{}} -> one!(Core.sibling(user_id, name, parent_id))
     end
   end
-
-  defp sibling(user_id, name, nil),
-    do:
-      from(f in Folder, where: f.user_id == ^user_id and f.name == ^name and is_nil(f.parent_id))
-
-  defp sibling(user_id, name, parent_id),
-    do:
-      from(f in Folder,
-        where: f.user_id == ^user_id and f.name == ^name and f.parent_id == ^parent_id
-      )
 
   @doc "Whether `id` sits somewhere under `ancestor_id`. `nil` is under nothing."
   def descendant?(_user_id, nil, _ancestor_id), do: false
@@ -308,12 +308,10 @@ defmodule Marginalia.Folders do
         {:error, :not_owner}
 
       folder = get_folder(user_id, id) ->
-        folder
-        |> Ecto.Changeset.change(
-          published_at: DateTime.utc_now() |> DateTime.truncate(:second),
-          slug: folder.slug || mint_slug(folder.name)
-        )
-        |> Repo.update()
+        [row] =
+          Alloy.query!(Core.publish(user_id, folder.id, folder.slug || mint_slug(folder.name)))
+
+        {:ok, Folder.from_row(row)}
 
       true ->
         {:error, :not_found}
@@ -324,24 +322,18 @@ defmodule Marginalia.Folders do
   def unpublish(user_id, id) do
     case get_folder(user_id, id) do
       nil -> {:error, :not_found}
-      folder -> folder |> Ecto.Changeset.change(published_at: nil) |> Repo.update()
+      %Folder{published_at: nil} = folder -> {:ok, folder}
+      folder -> write_statement(Core.unpublish(user_id, folder.id), [])
     end
   end
 
   @doc "A published folder by its slug, for anybody, or nil."
-  def get_published(slug) when is_binary(slug) do
-    Repo.one(from f in Folder, where: f.slug == ^slug and not is_nil(f.published_at))
-  end
+  def get_published(slug) when is_binary(slug), do: one(Core.publishedBySlug(slug))
 
   def get_published(_), do: nil
 
   @doc "Every published folder, newest first."
-  def published do
-    Folder
-    |> where([f], not is_nil(f.published_at))
-    |> order_by([f], desc: f.published_at)
-    |> Repo.all()
-  end
+  def published, do: all(Core.published())
 
   defp mint_slug(name) do
     base =
@@ -355,10 +347,54 @@ defmodule Marginalia.Folders do
 
     # A second folder that slugs to the same thing gets a suffix rather than
     # a constraint violation the caller cannot do anything about.
-    if Repo.exists?(from f in Folder, where: f.slug == ^base) do
+    if Alloy.query!(Core.slugTaken(base)) != [] do
       base <> "-" <> (:crypto.strong_rand_bytes(3) |> Base.url_encode64(padding: false))
     else
       base
     end
   end
+
+  # ==========================================================================
+  # Running Alloy's statements
+  # ==========================================================================
+
+  # A write a changeset may refuse: Alloy's validation errors, or the row.
+  defp write(prepared, opts \\ [])
+
+  defp write(%Core.Prepared{statement: nil, errors: errors}, _opts) do
+    {:error, %Invalid{errors: Enum.group_by(errors, &String.to_atom(&1.field), & &1.message)}}
+  end
+
+  defp write(%Core.Prepared{statement: statement}, opts), do: write_statement(statement, opts)
+
+  # The sibling-name indexes are the one rule only Postgres can check; their
+  # violation is the same error on `name` the Ecto changeset reported.
+  defp write_statement(statement, opts) do
+    case Alloy.query(statement, opts) do
+      {:ok, [row]} ->
+        {:ok, Folder.from_row(row)}
+
+      {:ok, []} ->
+        {:error, :not_found}
+
+      {:error, %Postgrex.Error{postgres: %{code: :unique_violation, constraint: c}}}
+      when c in @sibling_indexes ->
+        {:error, %Invalid{errors: %{name: [@taken]}}}
+
+      {:error, error} ->
+        raise error
+    end
+  end
+
+  defp all(statement), do: statement |> Alloy.query!() |> Enum.map(&Folder.from_row/1)
+
+  defp one(statement) do
+    case all(statement) do
+      [] -> nil
+      [folder] -> folder
+      many -> raise ArgumentError, "expected at most one folder, got #{length(many)}"
+    end
+  end
+
+  defp one!(statement), do: one(statement) || raise(ArgumentError, "expected a folder, got none")
 end

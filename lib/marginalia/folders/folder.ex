@@ -1,36 +1,41 @@
 defmodule Marginalia.Folders.Folder do
-  @moduledoc "A bucket of drafts, which may sit inside another bucket."
-  use Ecto.Schema
-  import Ecto.Changeset
+  @moduledoc """
+  A bucket of drafts, which may sit inside another bucket.
 
-  schema "folders" do
-    field :name, :string
+  A plain struct. Its rows are read and written with SQL that Alloy builds
+  (`temper/marginalia-core/src/folders.temper.md`), so there is no Ecto
+  schema here. The fields are the ones the schema had. Timestamps come back
+  from Postgres as naive UTC and are made `DateTime`s, as Ecto's
+  `:utc_datetime` did.
+  """
 
-    # nil means private, which is every folder until somebody says otherwise
-    field :published_at, :utc_datetime
-    field :slug, :string
+  defstruct [:id, :name, :published_at, :slug, :user_id, :parent_id, :inserted_at, :updated_at]
 
-    belongs_to :user, Marginalia.Accounts.User
-    belongs_to :parent, __MODULE__
-    has_many :children, __MODULE__, foreign_key: :parent_id
-    has_many :works, Marginalia.Works.Work
+  @type t :: %__MODULE__{
+          id: integer() | nil,
+          name: String.t() | nil,
+          published_at: DateTime.t() | nil,
+          slug: String.t() | nil,
+          user_id: integer() | nil,
+          parent_id: integer() | nil,
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
 
-    timestamps(type: :utc_datetime)
+  @doc "A folder from a row `Marginalia.Alloy` returned."
+  def from_row(row) do
+    %__MODULE__{
+      id: row.id,
+      name: row.name,
+      published_at: utc(row.published_at),
+      slug: row.slug,
+      user_id: row.user_id,
+      parent_id: row.parent_id,
+      inserted_at: utc(row.inserted_at),
+      updated_at: utc(row.updated_at)
+    }
   end
 
-  def changeset(folder, attrs) do
-    folder
-    |> cast(attrs, [:name, :parent_id])
-    |> update_change(:name, &String.trim/1)
-    |> validate_required([:name])
-    |> validate_length(:name, max: 80)
-    |> unique_constraint(:name,
-      name: :folders_sibling_name_index,
-      message: "there is already a folder with that name here"
-    )
-    |> unique_constraint(:name,
-      name: :folders_root_name_index,
-      message: "there is already a folder with that name here"
-    )
-  end
+  defp utc(nil), do: nil
+  defp utc(%NaiveDateTime{} = naive), do: DateTime.from_naive!(naive, "Etc/UTC")
 end

@@ -139,7 +139,7 @@ defmodule Marginalia.Import.Bulk do
         nil
 
       name ->
-        case Repo.one(from f in Folders.Folder, where: f.user_id == ^user_id and f.name == ^name) do
+        case Folders.get_folder_by_name(user_id, name) do
           nil ->
             case Folders.create_folder(user_id, %{name: name}) do
               {:ok, folder} -> folder
