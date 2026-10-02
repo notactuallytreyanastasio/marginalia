@@ -1,48 +1,3 @@
-defmodule Temper.Std.Test do
-  def __temper_supertypes__() do
-    [Temper.Std.Test]
-  end
-  def softFailToHard(this) do
-    if Temper.Std.Test.get_hasUnhandledFail(this) do
-      TemperCore.Heap.put(this, :u_failedOnAssert, true)
-      TemperCore.Test.bail(this)
-      nil
-    else
-      nil
-    end
-    nil
-  end
-  def get_hasUnhandledFail(this) do
-    _t = nil
-    t = if TemperCore.Heap.get(this, :u_failedOnAssert) do
-      t = true
-      t
-    else
-      t = TemperCore.Heap.get(this, :u_passing)
-      t
-    end
-    not t
-  end
-  def messagesCombined(this) do
-    if TemperCore.List.is_empty(TemperCore.Heap.get(this, :u_messages)) do
-      nil
-    else
-      fn_ = fn it ->
-        it
-      end
-      TemperCore.List.join(TemperCore.Heap.get(this, :u_messages), ", ", fn_)
-    end
-  end
-  def new() do
-    Temper.Std.__temper_init__()
-    this = TemperCore.Heap.new(Temper.Std.Test, %{:u_failedOnAssert => nil, :u_passing => nil, :u_messages => nil})
-    TemperCore.Heap.put(this, :u_failedOnAssert, false)
-    TemperCore.Heap.put(this, :u_passing, true)
-    t = TemperCore.List.builder()
-    TemperCore.Heap.put(this, :u_messages, t)
-    this
-  end
-end
 defmodule Temper.Std.InterchangeContext do
   def __temper_supertypes__() do
     [Temper.Std.InterchangeContext]
@@ -1047,6 +1002,236 @@ defmodule Temper.Std.OrNullJsonAdapter do
     Temper.Std.__temper_init__()
     this = TemperCore.Heap.new(Temper.Std.OrNullJsonAdapter, %{:adapterForT => nil})
     TemperCore.Heap.put(this, :adapterForT, adapterForT)
+    this
+  end
+end
+defmodule Temper.Std.DateJsonAdapter do
+  def __temper_supertypes__() do
+    [Temper.Std.DateJsonAdapter, Temper.Std.JsonAdapter]
+  end
+  def encodeToJson(_this, x, p) do
+    Temper.Std.Date.encodeToJson(x, p)
+    nil
+  end
+  def decodeFromJson(_this, t, ic) do
+    Temper.Std.Date.decodeFromJson(t, ic)
+  end
+  def new() do
+    this = TemperCore.Heap.new(Temper.Std.DateJsonAdapter, %{})
+    this
+  end
+end
+defmodule Temper.Std.Date do
+  defstruct [:year, :month, :day]
+  def __temper_supertypes__() do
+    [Temper.Std.Date]
+  end
+  def new(year, month, day) do
+    Temper.Std.__temper_init__()
+    this = %Temper.Std.Date{}
+    _t1 = nil
+    t1 = if 1 <= month do
+      if month <= 12 do
+        if 1 <= day do
+          _t2 = nil
+          t2 = if month != 2 do
+            t2 = true
+            t2
+          else
+            t2 = day != 29
+            t2
+          end
+          if t2 do
+            t1 = day <= TemperCore.List.get(TemperCore.Global.get(:"Temper.Std.daysInMonth"), month)
+            t1
+          else
+            t1 = Temper.Std.isLeapYear(year)
+            t1
+          end
+        else
+          t1 = false
+          t1
+        end
+      else
+        t1 = false
+        t1
+      end
+    else
+      t1 = false
+      t1
+    end
+    if t1 do
+      this = %{this | :year => year}
+      this = %{this | :month => month}
+      this = %{this | :day => day}
+      this
+    else
+      raise(TemperCore.Bubble)
+    end
+  end
+  def toString(this) do
+    sb = TemperCore.StringBuilder.new()
+    Temper.Std.padTo(4, this.year, sb)
+    TemperCore.StringBuilder.append(sb, "-")
+    Temper.Std.padTo(2, this.month, sb)
+    TemperCore.StringBuilder.append(sb, "-")
+    Temper.Std.padTo(2, this.day, sb)
+    TemperCore.StringBuilder.to_string(sb)
+  end
+  def fromIsoString(isoString) do
+    end_ = TemperCore.String.end_of(isoString)
+    strIndex = TemperCore.String.prev(isoString, TemperCore.String.prev(isoString, end_))
+    beforeDay = strIndex
+    strIndex = TemperCore.String.prev(isoString, strIndex)
+    afterMonth = strIndex
+    _t1 = nil
+    t1 = if not TemperCore.String.has_index(isoString, afterMonth) do
+      t1 = true
+      t1
+    else
+      t1 = TemperCore.String.get(isoString, strIndex) != 45
+      t1
+    end
+    if t1 do
+      raise(TemperCore.Bubble)
+    else
+      strIndex = TemperCore.String.prev(isoString, TemperCore.String.prev(isoString, strIndex))
+      beforeMonth = strIndex
+      strIndex = TemperCore.String.prev(isoString, strIndex)
+      _t2 = nil
+      t2 = if TemperCore.String.get(isoString, strIndex) != 45 do
+        t2 = true
+        t2
+      else
+        t2 = not TemperCore.String.has_at_least(isoString, TemperCore.String.begin(), strIndex, 4)
+        t2
+      end
+      if t2 do
+        raise(TemperCore.Bubble)
+      else
+        day = TemperCore.String.to_int32(TemperCore.String.slice(isoString, beforeDay, end_), 10)
+        month = TemperCore.String.to_int32(TemperCore.String.slice(isoString, beforeMonth, afterMonth), 10)
+        year = TemperCore.String.to_int32(TemperCore.String.slice(isoString, TemperCore.String.begin(), strIndex), 10)
+        Temper.Std.Date.new(year, month, day)
+      end
+    end
+  end
+  def yearsBetween(start, end_) do
+    _t1 = nil
+    yearDelta = TemperCore.int32(Temper.Std.Date.get_year(end_) - Temper.Std.Date.get_year(start))
+    monthDelta = TemperCore.int32(Temper.Std.Date.get_month(end_) - Temper.Std.Date.get_month(start))
+    _t2 = nil
+    t2 = cond do
+      monthDelta < 0 ->
+        t2 = true
+        t2
+      monthDelta == 0 ->
+        t2 = Temper.Std.Date.get_day(end_) < Temper.Std.Date.get_day(start)
+        t2
+      true ->
+        t2 = false
+        t2
+    end
+    t1 = if t2 do
+      t1 = 1
+      t1
+    else
+      t1 = 0
+      t1
+    end
+    TemperCore.int32(yearDelta - t1)
+  end
+  def get_dayOfWeek(this) do
+    y = this.year
+    _c = nil
+    c = if y >= 0 do
+      c = TemperCore.int32(div(y, 100))
+      c
+    else
+      c = TemperCore.int32(-TemperCore.int32(div(TemperCore.int32(-y), 100)))
+      c
+    end
+    yy = TemperCore.int32(y - TemperCore.int32(c * 100))
+    janFirst = rem(TemperCore.int32(TemperCore.int32(TemperCore.int32(8 + TemperCore.int32(5 * rem(TemperCore.int32(yy + 3), 4))) + TemperCore.int32(3 * TemperCore.int32(yy - 1))) + TemperCore.int32(5 * rem(c, 4))), 7)
+    _table = nil
+    table = if Temper.Std.isLeapYear(y) do
+      table = TemperCore.Global.get(:"Temper.Std.dayOfWeekLookupTableLeapy")
+      table
+    else
+      table = TemperCore.Global.get(:"Temper.Std.dayOfWeekLookupTableNotLeapy")
+      table
+    end
+    monthOffset = TemperCore.List.get(table, this.month)
+    gaussWeekday = rem(TemperCore.int32(TemperCore.int32(janFirst + TemperCore.int32(this.day + 6)) + monthOffset), 7)
+    if gaussWeekday == 0 do
+      7
+    else
+      gaussWeekday
+    end
+  end
+  def encodeToJson(this, p) do
+    TemperCore.call(p, :stringValue, [Temper.Std.Date.toString(this)])
+    nil
+  end
+  def decodeFromJson(t1, _ic) do
+    t2 = TemperCore.cast(t1, Temper.Std.JsonString)
+    Temper.Std.Date.fromIsoString(Temper.Std.JsonString.get_content(t2))
+  end
+  def get_year(this) do
+    this.year
+  end
+  def get_month(this) do
+    this.month
+  end
+  def get_day(this) do
+    this.day
+  end
+  def jsonAdapter() do
+    Temper.Std.DateJsonAdapter.new()
+  end
+end
+defmodule Temper.Std.Test do
+  def __temper_supertypes__() do
+    [Temper.Std.Test]
+  end
+  def softFailToHard(this) do
+    if Temper.Std.Test.get_hasUnhandledFail(this) do
+      TemperCore.Heap.put(this, :u_failedOnAssert, true)
+      TemperCore.Test.bail(this)
+      nil
+    else
+      nil
+    end
+    nil
+  end
+  def get_hasUnhandledFail(this) do
+    _t = nil
+    t = if TemperCore.Heap.get(this, :u_failedOnAssert) do
+      t = true
+      t
+    else
+      t = TemperCore.Heap.get(this, :u_passing)
+      t
+    end
+    not t
+  end
+  def messagesCombined(this) do
+    if TemperCore.List.is_empty(TemperCore.Heap.get(this, :u_messages)) do
+      nil
+    else
+      fn_ = fn it ->
+        it
+      end
+      TemperCore.List.join(TemperCore.Heap.get(this, :u_messages), ", ", fn_)
+    end
+  end
+  def new() do
+    Temper.Std.__temper_init__()
+    this = TemperCore.Heap.new(Temper.Std.Test, %{:u_failedOnAssert => nil, :u_passing => nil, :u_messages => nil})
+    TemperCore.Heap.put(this, :u_failedOnAssert, false)
+    TemperCore.Heap.put(this, :u_passing, true)
+    t = TemperCore.List.builder()
+    TemperCore.Heap.put(this, :u_messages, t)
     this
   end
 end
@@ -2116,412 +2301,7 @@ defmodule Temper.Std.Word do
     Temper.Std.Regex.split(TemperCore.call(this, :compiled, []), text)
   end
 end
-defmodule Temper.Std.DateJsonAdapter do
-  def __temper_supertypes__() do
-    [Temper.Std.DateJsonAdapter, Temper.Std.JsonAdapter]
-  end
-  def encodeToJson(_this, x, p) do
-    Temper.Std.Date.encodeToJson(x, p)
-    nil
-  end
-  def decodeFromJson(_this, t, ic) do
-    Temper.Std.Date.decodeFromJson(t, ic)
-  end
-  def new() do
-    this = TemperCore.Heap.new(Temper.Std.DateJsonAdapter, %{})
-    this
-  end
-end
-defmodule Temper.Std.Date do
-  defstruct [:year, :month, :day]
-  def __temper_supertypes__() do
-    [Temper.Std.Date]
-  end
-  def new(year, month, day) do
-    Temper.Std.__temper_init__()
-    this = %Temper.Std.Date{}
-    _t1 = nil
-    t1 = if 1 <= month do
-      if month <= 12 do
-        if 1 <= day do
-          _t2 = nil
-          t2 = if month != 2 do
-            t2 = true
-            t2
-          else
-            t2 = day != 29
-            t2
-          end
-          if t2 do
-            t1 = day <= TemperCore.List.get(TemperCore.Global.get(:"Temper.Std.daysInMonth"), month)
-            t1
-          else
-            t1 = Temper.Std.isLeapYear(year)
-            t1
-          end
-        else
-          t1 = false
-          t1
-        end
-      else
-        t1 = false
-        t1
-      end
-    else
-      t1 = false
-      t1
-    end
-    if t1 do
-      this = %{this | :year => year}
-      this = %{this | :month => month}
-      this = %{this | :day => day}
-      this
-    else
-      raise(TemperCore.Bubble)
-    end
-  end
-  def toString(this) do
-    sb = TemperCore.StringBuilder.new()
-    Temper.Std.padTo(4, this.year, sb)
-    TemperCore.StringBuilder.append(sb, "-")
-    Temper.Std.padTo(2, this.month, sb)
-    TemperCore.StringBuilder.append(sb, "-")
-    Temper.Std.padTo(2, this.day, sb)
-    TemperCore.StringBuilder.to_string(sb)
-  end
-  def fromIsoString(isoString) do
-    end_ = TemperCore.String.end_of(isoString)
-    strIndex = TemperCore.String.prev(isoString, TemperCore.String.prev(isoString, end_))
-    beforeDay = strIndex
-    strIndex = TemperCore.String.prev(isoString, strIndex)
-    afterMonth = strIndex
-    _t1 = nil
-    t1 = if not TemperCore.String.has_index(isoString, afterMonth) do
-      t1 = true
-      t1
-    else
-      t1 = TemperCore.String.get(isoString, strIndex) != 45
-      t1
-    end
-    if t1 do
-      raise(TemperCore.Bubble)
-    else
-      strIndex = TemperCore.String.prev(isoString, TemperCore.String.prev(isoString, strIndex))
-      beforeMonth = strIndex
-      strIndex = TemperCore.String.prev(isoString, strIndex)
-      _t2 = nil
-      t2 = if TemperCore.String.get(isoString, strIndex) != 45 do
-        t2 = true
-        t2
-      else
-        t2 = not TemperCore.String.has_at_least(isoString, TemperCore.String.begin(), strIndex, 4)
-        t2
-      end
-      if t2 do
-        raise(TemperCore.Bubble)
-      else
-        day = TemperCore.String.to_int32(TemperCore.String.slice(isoString, beforeDay, end_), 10)
-        month = TemperCore.String.to_int32(TemperCore.String.slice(isoString, beforeMonth, afterMonth), 10)
-        year = TemperCore.String.to_int32(TemperCore.String.slice(isoString, TemperCore.String.begin(), strIndex), 10)
-        Temper.Std.Date.new(year, month, day)
-      end
-    end
-  end
-  def yearsBetween(start, end_) do
-    _t1 = nil
-    yearDelta = TemperCore.int32(Temper.Std.Date.get_year(end_) - Temper.Std.Date.get_year(start))
-    monthDelta = TemperCore.int32(Temper.Std.Date.get_month(end_) - Temper.Std.Date.get_month(start))
-    _t2 = nil
-    t2 = cond do
-      monthDelta < 0 ->
-        t2 = true
-        t2
-      monthDelta == 0 ->
-        t2 = Temper.Std.Date.get_day(end_) < Temper.Std.Date.get_day(start)
-        t2
-      true ->
-        t2 = false
-        t2
-    end
-    t1 = if t2 do
-      t1 = 1
-      t1
-    else
-      t1 = 0
-      t1
-    end
-    TemperCore.int32(yearDelta - t1)
-  end
-  def get_dayOfWeek(this) do
-    y = this.year
-    _c = nil
-    c = if y >= 0 do
-      c = TemperCore.int32(div(y, 100))
-      c
-    else
-      c = TemperCore.int32(-TemperCore.int32(div(TemperCore.int32(-y), 100)))
-      c
-    end
-    yy = TemperCore.int32(y - TemperCore.int32(c * 100))
-    janFirst = rem(TemperCore.int32(TemperCore.int32(TemperCore.int32(8 + TemperCore.int32(5 * rem(TemperCore.int32(yy + 3), 4))) + TemperCore.int32(3 * TemperCore.int32(yy - 1))) + TemperCore.int32(5 * rem(c, 4))), 7)
-    _table = nil
-    table = if Temper.Std.isLeapYear(y) do
-      table = TemperCore.Global.get(:"Temper.Std.dayOfWeekLookupTableLeapy")
-      table
-    else
-      table = TemperCore.Global.get(:"Temper.Std.dayOfWeekLookupTableNotLeapy")
-      table
-    end
-    monthOffset = TemperCore.List.get(table, this.month)
-    gaussWeekday = rem(TemperCore.int32(TemperCore.int32(janFirst + TemperCore.int32(this.day + 6)) + monthOffset), 7)
-    if gaussWeekday == 0 do
-      7
-    else
-      gaussWeekday
-    end
-  end
-  def encodeToJson(this, p) do
-    TemperCore.call(p, :stringValue, [Temper.Std.Date.toString(this)])
-    nil
-  end
-  def decodeFromJson(t1, _ic) do
-    t2 = TemperCore.cast(t1, Temper.Std.JsonString)
-    Temper.Std.Date.fromIsoString(Temper.Std.JsonString.get_content(t2))
-  end
-  def get_year(this) do
-    this.year
-  end
-  def get_month(this) do
-    this.month
-  end
-  def get_day(this) do
-    this.day
-  end
-  def jsonAdapter() do
-    Temper.Std.DateJsonAdapter.new()
-  end
-end
 defmodule Temper.Std do
-  def processTestCases(testCases) do
-    Temper.Std.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      fn_ = fn testCase ->
-        key = TemperCore.Pair.get_key(testCase)
-        fun = TemperCore.Pair.get_value(testCase)
-        test = Temper.Std.Test.new()
-        hadBubble = false
-        hadBubble = try do
-          fun.(test)
-          hadBubble
-        rescue
-          _ in TemperCore.Bubble ->
-            hadBubble = true
-            hadBubble
-        end
-        messages = TemperCore.Test.messages(test)
-        _failures = nil
-        _t1 = nil
-        t1 = if TemperCore.Test.passing(test) do
-          t1 = not hadBubble
-          t1
-        else
-          t1 = false
-          t1
-        end
-        failures = if t1 do
-          failures = %TemperCore.Vec{t: {}}
-          failures
-        else
-          _t2 = nil
-          t2 = if hadBubble do
-            t2 = not TemperCore.Test.failed_on_assert(test)
-            t2
-          else
-            t2 = false
-            t2
-          end
-          if t2 do
-            allMessages = TemperCore.List.to_builder(messages)
-            TemperCore.List.add(allMessages, "Bubble")
-            failures = TemperCore.List.to_list(allMessages)
-            failures
-          else
-            failures = messages
-            failures
-          end
-        end
-        TemperCore.Pair.new(key, failures)
-      end
-      TemperCore.List.map(testCases, fn_)
-    end)
-  end
-  def escapeXml(s) do
-    sb = TemperCore.StringBuilder.new()
-    end_ = TemperCore.String.end_of(s)
-    emitted = TemperCore.String.begin()
-    i = TemperCore.String.begin()
-    ex_loop_1 = fn ex_loop_1, emitted, i ->
-      if i < end_ do
-        emitted = try do
-          c = TemperCore.String.get(s, i)
-          _esc = nil
-          esc = cond do
-            c == 38 ->
-              esc = "&amp;"
-              esc
-            c == 60 ->
-              esc = "&lt;"
-              esc
-            c == 62 ->
-              esc = "&gt;"
-              esc
-            c == 39 ->
-              esc = "&\#39;"
-              esc
-            c == 34 ->
-              esc = "&\#34;"
-              esc
-            true ->
-              _t1 = nil
-              t1 = cond do
-                c == 10 ->
-                  t1 = true
-                  t1
-                c == 13 ->
-                  t1 = true
-                  t1
-                true ->
-                  t1 = c == 9
-                  t1
-              end
-              if t1 do
-                throw({:temper_break, :ex_block_3, emitted})
-              else
-                _t2 = nil
-                t2 = cond do
-                  c < 32 ->
-                    t2 = true
-                    t2
-                  c == 65534 ->
-                    t2 = true
-                    t2
-                  true ->
-                    t2 = c == 65535
-                    t2
-                end
-                if t2 do
-                  esc = "[0x" <> TemperCore.int_to_string(c, 16) <> "]"
-                  esc
-                else
-                  throw({:temper_break, :ex_block_3, emitted})
-                end
-              end
-          end
-          TemperCore.StringBuilder.append_between(sb, s, emitted, i)
-          TemperCore.StringBuilder.append(sb, esc)
-          emitted = TemperCore.String.next(s, i)
-          emitted
-        catch
-          {:temper_break, :ex_block_3, ex_vars_4} ->
-            ex_vars_4
-        end
-        i = TemperCore.String.next(s, i)
-        ex_loop_1.(ex_loop_1, emitted, i)
-      else
-        {emitted, i}
-      end
-    end
-    {emitted, _i} = ex_loop_1.(ex_loop_1, emitted, i)
-    if emitted == TemperCore.String.begin() do
-      s
-    else
-      TemperCore.StringBuilder.append_between(sb, s, emitted, end_)
-      TemperCore.StringBuilder.to_string(sb)
-    end
-  end
-  def reportTestResults(testResults, writeLine) do
-    Temper.Std.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      writeLine.("<testsuites>")
-      total = TemperCore.int_to_string(TemperCore.List.length(testResults))
-      fn_1 = fn fails1, testResult1 ->
-        _t = nil
-        t = if TemperCore.List.is_empty(TemperCore.Pair.get_value(testResult1)) do
-          t = 0
-          t
-        else
-          t = 1
-          t
-        end
-        TemperCore.int32(fails1 + t)
-      end
-      fails2 = TemperCore.int_to_string(TemperCore.List.reduce_from(testResults, 0, fn_1))
-      totals = "tests='" <> total <> "' failures='" <> fails2 <> "'"
-      writeLine.("  <testsuite name='suite' " <> totals <> " time='0.0'>")
-      i = 0
-      ex_loop_2 = fn ex_loop_2, i ->
-        if i < TemperCore.List.length(testResults) do
-          testResult2 = TemperCore.List.get(testResults, i)
-          failureMessages = TemperCore.Pair.get_value(testResult2)
-          name = Temper.Std.escapeXml(TemperCore.Pair.get_key(testResult2))
-          basics = "name='" <> name <> "' classname='" <> name <> "' time='0.0'"
-          if TemperCore.List.is_empty(failureMessages) do
-            writeLine.("    <testcase " <> basics <> " />")
-            nil
-          else
-            writeLine.("    <testcase " <> basics <> ">")
-            fn_2 = fn it ->
-              it
-            end
-            message = Temper.Std.escapeXml(TemperCore.List.join(failureMessages, ", ", fn_2))
-            writeLine.("      <failure message='" <> message <> "' />")
-            writeLine.("    </testcase>")
-            nil
-          end
-          i = TemperCore.int32(i + 1)
-          ex_loop_2.(ex_loop_2, i)
-        else
-          i
-        end
-      end
-      _i = ex_loop_2.(ex_loop_2, i)
-      writeLine.("  </testsuite>")
-      writeLine.("</testsuites>")
-      nil
-    end)
-  end
-  def runTestCases(testCases) do
-    Temper.Std.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      report = TemperCore.StringBuilder.new()
-      fn_ = fn line ->
-        TemperCore.StringBuilder.append(report, line)
-        TemperCore.StringBuilder.append(report, "\n")
-        nil
-      end
-      Temper.Std.reportTestResults(TemperCore.Test.process(testCases), fn_)
-      TemperCore.StringBuilder.to_string(report)
-    end)
-  end
-  def runTest(testFun) do
-    Temper.Std.__temper_init__()
-    TemperCore.Heap.entry(fn ->
-      test = Temper.Std.Test.new()
-      try do
-        testFun.(test)
-        nil
-      rescue
-        _ in TemperCore.Bubble ->
-          fn_ = fn ->
-            "bubble during test running"
-          end
-          TemperCore.Test.assert(test, false, fn_)
-          nil
-      end
-      Temper.Std.Test.softFailToHard(test)
-      nil
-    end)
-  end
   def parseJsonValue(sourceText, i, out) do
     try do
       _return = nil
@@ -3754,6 +3534,270 @@ defmodule Temper.Std do
       Temper.Std.ListJsonAdapter.new(adapterForT)
     end)
   end
+  def isLeapYear(year) do
+    if rem(year, 4) == 0 do
+      if rem(year, 100) != 0 do
+        true
+      else
+        rem(year, 400) == 0
+      end
+    else
+      false
+    end
+  end
+  def padTo(minWidth, num, sb) do
+    decimal = TemperCore.int_to_string(num, 10)
+    decimalIndex = TemperCore.String.begin()
+    decimalEnd = TemperCore.String.end_of(decimal)
+    _t = nil
+    t = if decimalIndex < decimalEnd do
+      t = TemperCore.String.get(decimal, decimalIndex) == 45
+      t
+    else
+      t = false
+      t
+    end
+    decimalIndex = if t do
+      TemperCore.StringBuilder.append(sb, "-")
+      decimalIndex = TemperCore.String.next(decimal, decimalIndex)
+      decimalIndex
+    else
+      decimalIndex
+    end
+    nNeeded = TemperCore.int32(minWidth - TemperCore.String.count_between(decimal, decimalIndex, decimalEnd))
+    ex_loop_1 = fn ex_loop_1, nNeeded ->
+      if nNeeded > 0 do
+        TemperCore.StringBuilder.append(sb, "0")
+        nNeeded = TemperCore.int32(nNeeded - 1)
+        ex_loop_1.(ex_loop_1, nNeeded)
+      else
+        nNeeded
+      end
+    end
+    _nNeeded = ex_loop_1.(ex_loop_1, nNeeded)
+    TemperCore.StringBuilder.append_between(sb, decimal, decimalIndex, decimalEnd)
+    nil
+  end
+  def processTestCases(testCases) do
+    Temper.Std.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      fn_ = fn testCase ->
+        key = TemperCore.Pair.get_key(testCase)
+        fun = TemperCore.Pair.get_value(testCase)
+        test = Temper.Std.Test.new()
+        hadBubble = false
+        hadBubble = try do
+          fun.(test)
+          hadBubble
+        rescue
+          _ in TemperCore.Bubble ->
+            hadBubble = true
+            hadBubble
+        end
+        messages = TemperCore.Test.messages(test)
+        _failures = nil
+        _t1 = nil
+        t1 = if TemperCore.Test.passing(test) do
+          t1 = not hadBubble
+          t1
+        else
+          t1 = false
+          t1
+        end
+        failures = if t1 do
+          failures = %TemperCore.Vec{t: {}}
+          failures
+        else
+          _t2 = nil
+          t2 = if hadBubble do
+            t2 = not TemperCore.Test.failed_on_assert(test)
+            t2
+          else
+            t2 = false
+            t2
+          end
+          if t2 do
+            allMessages = TemperCore.List.to_builder(messages)
+            TemperCore.List.add(allMessages, "Bubble")
+            failures = TemperCore.List.to_list(allMessages)
+            failures
+          else
+            failures = messages
+            failures
+          end
+        end
+        TemperCore.Pair.new(key, failures)
+      end
+      TemperCore.List.map(testCases, fn_)
+    end)
+  end
+  def escapeXml(s) do
+    sb = TemperCore.StringBuilder.new()
+    end_ = TemperCore.String.end_of(s)
+    emitted = TemperCore.String.begin()
+    i = TemperCore.String.begin()
+    ex_loop_1 = fn ex_loop_1, emitted, i ->
+      if i < end_ do
+        emitted = try do
+          c = TemperCore.String.get(s, i)
+          _esc = nil
+          esc = cond do
+            c == 38 ->
+              esc = "&amp;"
+              esc
+            c == 60 ->
+              esc = "&lt;"
+              esc
+            c == 62 ->
+              esc = "&gt;"
+              esc
+            c == 39 ->
+              esc = "&\#39;"
+              esc
+            c == 34 ->
+              esc = "&\#34;"
+              esc
+            true ->
+              _t1 = nil
+              t1 = cond do
+                c == 10 ->
+                  t1 = true
+                  t1
+                c == 13 ->
+                  t1 = true
+                  t1
+                true ->
+                  t1 = c == 9
+                  t1
+              end
+              if t1 do
+                throw({:temper_break, :ex_block_3, emitted})
+              else
+                _t2 = nil
+                t2 = cond do
+                  c < 32 ->
+                    t2 = true
+                    t2
+                  c == 65534 ->
+                    t2 = true
+                    t2
+                  true ->
+                    t2 = c == 65535
+                    t2
+                end
+                if t2 do
+                  esc = "[0x" <> TemperCore.int_to_string(c, 16) <> "]"
+                  esc
+                else
+                  throw({:temper_break, :ex_block_3, emitted})
+                end
+              end
+          end
+          TemperCore.StringBuilder.append_between(sb, s, emitted, i)
+          TemperCore.StringBuilder.append(sb, esc)
+          emitted = TemperCore.String.next(s, i)
+          emitted
+        catch
+          {:temper_break, :ex_block_3, ex_vars_4} ->
+            ex_vars_4
+        end
+        i = TemperCore.String.next(s, i)
+        ex_loop_1.(ex_loop_1, emitted, i)
+      else
+        {emitted, i}
+      end
+    end
+    {emitted, _i} = ex_loop_1.(ex_loop_1, emitted, i)
+    if emitted == TemperCore.String.begin() do
+      s
+    else
+      TemperCore.StringBuilder.append_between(sb, s, emitted, end_)
+      TemperCore.StringBuilder.to_string(sb)
+    end
+  end
+  def reportTestResults(testResults, writeLine) do
+    Temper.Std.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      writeLine.("<testsuites>")
+      total = TemperCore.int_to_string(TemperCore.List.length(testResults))
+      fn_1 = fn fails1, testResult1 ->
+        _t = nil
+        t = if TemperCore.List.is_empty(TemperCore.Pair.get_value(testResult1)) do
+          t = 0
+          t
+        else
+          t = 1
+          t
+        end
+        TemperCore.int32(fails1 + t)
+      end
+      fails2 = TemperCore.int_to_string(TemperCore.List.reduce_from(testResults, 0, fn_1))
+      totals = "tests='" <> total <> "' failures='" <> fails2 <> "'"
+      writeLine.("  <testsuite name='suite' " <> totals <> " time='0.0'>")
+      i = 0
+      ex_loop_2 = fn ex_loop_2, i ->
+        if i < TemperCore.List.length(testResults) do
+          testResult2 = TemperCore.List.get(testResults, i)
+          failureMessages = TemperCore.Pair.get_value(testResult2)
+          name = Temper.Std.escapeXml(TemperCore.Pair.get_key(testResult2))
+          basics = "name='" <> name <> "' classname='" <> name <> "' time='0.0'"
+          if TemperCore.List.is_empty(failureMessages) do
+            writeLine.("    <testcase " <> basics <> " />")
+            nil
+          else
+            writeLine.("    <testcase " <> basics <> ">")
+            fn_2 = fn it ->
+              it
+            end
+            message = Temper.Std.escapeXml(TemperCore.List.join(failureMessages, ", ", fn_2))
+            writeLine.("      <failure message='" <> message <> "' />")
+            writeLine.("    </testcase>")
+            nil
+          end
+          i = TemperCore.int32(i + 1)
+          ex_loop_2.(ex_loop_2, i)
+        else
+          i
+        end
+      end
+      _i = ex_loop_2.(ex_loop_2, i)
+      writeLine.("  </testsuite>")
+      writeLine.("</testsuites>")
+      nil
+    end)
+  end
+  def runTestCases(testCases) do
+    Temper.Std.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      report = TemperCore.StringBuilder.new()
+      fn_ = fn line ->
+        TemperCore.StringBuilder.append(report, line)
+        TemperCore.StringBuilder.append(report, "\n")
+        nil
+      end
+      Temper.Std.reportTestResults(TemperCore.Test.process(testCases), fn_)
+      TemperCore.StringBuilder.to_string(report)
+    end)
+  end
+  def runTest(testFun) do
+    Temper.Std.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      test = Temper.Std.Test.new()
+      try do
+        testFun.(test)
+        nil
+      rescue
+        _ in TemperCore.Bubble ->
+          fn_ = fn ->
+            "bubble during test running"
+          end
+          TemperCore.Test.assert(test, false, fn_)
+          nil
+      end
+      Temper.Std.Test.softFailToHard(test)
+      nil
+    end)
+  end
   def buildEscapeNeeds() do
     escapeNeeds = TemperCore.List.builder()
     code = 0
@@ -3915,54 +3959,13 @@ defmodule Temper.Std do
       Temper.Std.Repeat.new(item, 0, 1, reluctant2)
     end)
   end
-  def isLeapYear(year) do
-    if rem(year, 4) == 0 do
-      if rem(year, 100) != 0 do
-        true
-      else
-        rem(year, 400) == 0
-      end
-    else
-      false
-    end
-  end
-  def padTo(minWidth, num, sb) do
-    decimal = TemperCore.int_to_string(num, 10)
-    decimalIndex = TemperCore.String.begin()
-    decimalEnd = TemperCore.String.end_of(decimal)
-    _t = nil
-    t = if decimalIndex < decimalEnd do
-      t = TemperCore.String.get(decimal, decimalIndex) == 45
-      t
-    else
-      t = false
-      t
-    end
-    decimalIndex = if t do
-      TemperCore.StringBuilder.append(sb, "-")
-      decimalIndex = TemperCore.String.next(decimal, decimalIndex)
-      decimalIndex
-    else
-      decimalIndex
-    end
-    nNeeded = TemperCore.int32(minWidth - TemperCore.String.count_between(decimal, decimalIndex, decimalEnd))
-    ex_loop_1 = fn ex_loop_1, nNeeded ->
-      if nNeeded > 0 do
-        TemperCore.StringBuilder.append(sb, "0")
-        nNeeded = TemperCore.int32(nNeeded - 1)
-        ex_loop_1.(ex_loop_1, nNeeded)
-      else
-        nNeeded
-      end
-    end
-    _nNeeded = ex_loop_1.(ex_loop_1, nNeeded)
-    TemperCore.StringBuilder.append_between(sb, decimal, decimalIndex, decimalEnd)
-    nil
-  end
   def __temper_init__() do
     TemperCore.init_once(:"Temper.Std", fn ->
       TemperCore.Global.put(:"Temper.Std.NullInterchangeContext.instance", Temper.Std.NullInterchangeContext.new())
       TemperCore.Global.put(:"Temper.Std.hexDigits", %TemperCore.Vec{t: {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"}})
+      TemperCore.Global.put(:"Temper.Std.daysInMonth", %TemperCore.Vec{t: {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}})
+      TemperCore.Global.put(:"Temper.Std.dayOfWeekLookupTableLeapy", %TemperCore.Vec{t: {0, 0, 3, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6}})
+      TemperCore.Global.put(:"Temper.Std.dayOfWeekLookupTableNotLeapy", %TemperCore.Vec{t: {0, 0, 3, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5}})
       TemperCore.Global.put(:"Temper.Std.Codes.ampersand", 38)
       TemperCore.Global.put(:"Temper.Std.Codes.backslash", 92)
       TemperCore.Global.put(:"Temper.Std.Codes.caret", 94)
@@ -4014,9 +4017,6 @@ defmodule Temper.Std do
       TemperCore.Global.put(:"Temper.Std.v_Word", TemperCore.Global.get(:"Temper.Std.return__7"))
       TemperCore.Global.put(:"Temper.Std.escapeNeeds", Temper.Std.buildEscapeNeeds())
       TemperCore.Global.put(:"Temper.Std.regexRefs", Temper.Std.RegexRefs.new(nil, nil, nil, nil))
-      TemperCore.Global.put(:"Temper.Std.daysInMonth", %TemperCore.Vec{t: {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}})
-      TemperCore.Global.put(:"Temper.Std.dayOfWeekLookupTableLeapy", %TemperCore.Vec{t: {0, 0, 3, 4, 0, 2, 5, 0, 3, 6, 1, 4, 6}})
-      TemperCore.Global.put(:"Temper.Std.dayOfWeekLookupTableNotLeapy", %TemperCore.Vec{t: {0, 0, 3, 3, 6, 1, 4, 6, 2, 5, 0, 3, 5}})
       nil
     end)
   end
