@@ -20,7 +20,11 @@ defmodule Marginalia.Cuts.Cut do
     field :members, {:array, :map}, default: []
 
     belongs_to :user, Marginalia.Accounts.User
-    belongs_to :folder, Marginalia.Folders.Folder
+    # a folder is a plain struct whose rows Alloy reads and writes
+    # (Marginalia.Folders), so this is the column, not an Ecto association
+    field :folder_id, :id
+    # filled in by Cuts from Marginalia.Folders, where `preload(:folder)` was
+    field :folder, :any, virtual: true
 
     timestamps(type: :utc_datetime)
   end

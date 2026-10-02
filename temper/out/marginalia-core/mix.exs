@@ -6,7 +6,7 @@ defmodule Temper.MarginaliaCore.MixProject do
   end
 
   defp deps do
-    [{:temper_core, path: "../temper-core"}, {:temper_std, path: "../std", only: :test}]
+    [{:temper_core, path: "../temper-core"}, {:temper_orm, path: "../orm"}, {:temper_std, path: "../std"}]
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]

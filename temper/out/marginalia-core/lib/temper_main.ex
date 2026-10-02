@@ -21,6 +21,82 @@ defmodule Temper.MarginaliaCore.Row do
     this.right
   end
 end
+defmodule Temper.MarginaliaCore.Param do
+  defstruct [:kind, :text]
+  def __temper_supertypes__() do
+    [Temper.MarginaliaCore.Param]
+  end
+  def new(kind, text) do
+    Temper.MarginaliaCore.__temper_init__()
+    this = %Temper.MarginaliaCore.Param{}
+    this = %{this | :kind => kind}
+    this = %{this | :text => text}
+    this
+  end
+  def get_kind(this) do
+    this.kind
+  end
+  def get_text(this) do
+    this.text
+  end
+end
+defmodule Temper.MarginaliaCore.Statement do
+  defstruct [:text, :params]
+  def __temper_supertypes__() do
+    [Temper.MarginaliaCore.Statement]
+  end
+  def new(text, params) do
+    Temper.MarginaliaCore.__temper_init__()
+    this = %Temper.MarginaliaCore.Statement{}
+    this = %{this | :text => text}
+    this = %{this | :params => params}
+    this
+  end
+  def get_text(this) do
+    this.text
+  end
+  def get_params(this) do
+    this.params
+  end
+end
+defmodule Temper.MarginaliaCore.FieldError do
+  defstruct [:field, :message]
+  def __temper_supertypes__() do
+    [Temper.MarginaliaCore.FieldError]
+  end
+  def new(field, message) do
+    Temper.MarginaliaCore.__temper_init__()
+    this = %Temper.MarginaliaCore.FieldError{}
+    this = %{this | :field => field}
+    this = %{this | :message => message}
+    this
+  end
+  def get_field(this) do
+    this.field
+  end
+  def get_message(this) do
+    this.message
+  end
+end
+defmodule Temper.MarginaliaCore.Prepared do
+  defstruct [:statement, :errors]
+  def __temper_supertypes__() do
+    [Temper.MarginaliaCore.Prepared]
+  end
+  def new(statement, errors) do
+    Temper.MarginaliaCore.__temper_init__()
+    this = %Temper.MarginaliaCore.Prepared{}
+    this = %{this | :statement => statement}
+    this = %{this | :errors => errors}
+    this
+  end
+  def get_statement(this) do
+    this.statement
+  end
+  def get_errors(this) do
+    this.errors
+  end
+end
 defmodule Temper.MarginaliaCore.Section do
   defstruct [:title, :body]
   def __temper_supertypes__() do
@@ -852,6 +928,503 @@ defmodule Temper.MarginaliaCore do
       {_i2, _j1} = ex_loop_9.(ex_loop_9, i2, j1)
       Temper.MarginaliaCore.flushRun(dels, ins, out)
       TemperCore.List.to_list(out)
+    end)
+  end
+  def paramOf(part) do
+    try do
+      _return = nil
+      return = if true do
+        cond do
+          TemperCore.is_a(part, Temper.Orm.SqlString) ->
+            t1 = part
+            t2 = t1
+            return = Temper.MarginaliaCore.Param.new("text", Temper.Orm.SqlString.get_value(t2))
+            return
+          TemperCore.is_a(part, Temper.Orm.SqlInt64) ->
+            t3 = part
+            t4 = t3
+            return = Temper.MarginaliaCore.Param.new("int", TemperCore.int_to_string(Temper.Orm.SqlInt64.get_value(t4)))
+            return
+          TemperCore.is_a(part, Temper.Orm.SqlInt32) ->
+            t5 = part
+            t6 = t5
+            return = Temper.MarginaliaCore.Param.new("int", TemperCore.int_to_string(Temper.Orm.SqlInt32.get_value(t6)))
+            return
+          TemperCore.is_a(part, Temper.Orm.SqlBoolean) ->
+            t7 = part
+            _t8 = nil
+            t9 = t7
+            t8 = if Temper.Orm.SqlBoolean.get_value(t9) do
+              t8 = "true"
+              t8
+            else
+              t8 = "false"
+              t8
+            end
+            return = Temper.MarginaliaCore.Param.new("bool", t8)
+            return
+          TemperCore.is_a(part, Temper.Orm.SqlFloat64) ->
+            t10 = part
+            t11 = t10
+            return = Temper.MarginaliaCore.Param.new("float", TemperCore.Float.to_string(Temper.Orm.SqlFloat64.get_value(t11)))
+            return
+          TemperCore.is_a(part, Temper.Orm.SqlDate) ->
+            t12 = part
+            t13 = t12
+            return = Temper.MarginaliaCore.Param.new("date", Temper.Std.Date.toString(Temper.Orm.SqlDate.get_value(t13)))
+            return
+          true ->
+            throw({:temper_return, :ex_return_0, nil})
+        end
+      end
+      return
+    catch
+      {:temper_return, :ex_return_0, ex_value_2} ->
+        ex_value_2
+    end
+  end
+  def statementOf(fragment) do
+    text = TemperCore.StringBuilder.new()
+    params = TemperCore.List.builder()
+    this = Temper.Orm.SqlFragment.get_parts(fragment)
+    n = TemperCore.List.length(this)
+    i = 0
+    ex_loop_1 = fn ex_loop_1, i ->
+      if i < n do
+        el = TemperCore.List.get(this, i)
+        i = TemperCore.int32(i + 1)
+        part = el
+        param = Temper.MarginaliaCore.paramOf(part)
+        if param === nil do
+          TemperCore.call(part, :formatTo, [text])
+          ex_loop_1.(ex_loop_1, i)
+        else
+          TemperCore.List.add(params, param)
+          TemperCore.StringBuilder.append(text, "$")
+          TemperCore.StringBuilder.append(text, TemperCore.int_to_string(TemperCore.List.length(params)))
+          ex_loop_1.(ex_loop_1, i)
+        end
+      else
+        i
+      end
+    end
+    _i = ex_loop_1.(ex_loop_1, i)
+    Temper.MarginaliaCore.Statement.new(TemperCore.StringBuilder.to_string(text), TemperCore.List.to_list(params))
+  end
+  def id(name) do
+    try do
+      try do
+        throw({:temper_return, :ex_return_0, Temper.Orm.safeIdentifier(name)})
+      rescue
+        _ in TemperCore.Bubble ->
+          throw({:temper_return, :ex_return_0, raise(TemperCore.Panic)})
+      end
+      nil
+    catch
+      {:temper_return, :ex_return_0, ex_value_1} ->
+        ex_value_1
+    end
+  end
+  def columnIds() do
+    fn_ = fn c ->
+      Temper.MarginaliaCore.id(c)
+    end
+    TemperCore.List.map(TemperCore.Global.get(:"Temper.MarginaliaCore.columns"), fn_)
+  end
+  def returning(statement) do
+    b = Temper.Orm.SqlBuilder.new()
+    Temper.Orm.SqlBuilder.appendFragment(b, statement)
+    Temper.Orm.SqlBuilder.appendSafe(b, " RETURNING ")
+    fn_ = fn c ->
+      c
+    end
+    Temper.Orm.SqlBuilder.appendSafe(b, TemperCore.List.join(TemperCore.Global.get(:"Temper.MarginaliaCore.columns"), ", ", fn_))
+    Temper.MarginaliaCore.statementOf(Temper.Orm.SqlBuilder.get_accumulated(b))
+  end
+  def nullable(value) do
+    if value === nil do
+      Temper.Orm.SqlSource.new("NULL")
+    else
+      Temper.Orm.SqlInt64.new(value)
+    end
+  end
+  def listFolders(userId) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      exprs = TemperCore.List.builder()
+      this = TemperCore.Global.get(:"Temper.MarginaliaCore.columns")
+      n = TemperCore.List.length(this)
+      i = 0
+      ex_loop_1 = fn ex_loop_1, i ->
+        if i < n do
+          el = TemperCore.List.get(this, i)
+          i = TemperCore.int32(i + 1)
+          c = el
+          TemperCore.List.add(exprs, Temper.Orm.col(Temper.MarginaliaCore.id("folders"), Temper.MarginaliaCore.id(c)))
+          ex_loop_1.(ex_loop_1, i)
+        else
+          i
+        end
+      end
+      _i = ex_loop_1.(ex_loop_1, i)
+      accumulator1 = Temper.Orm.SqlBuilder.new()
+      Temper.Orm.SqlBuilder.appendSafe(accumulator1, "lower(name) AS name_key")
+      TemperCore.List.add(exprs, Temper.Orm.SqlBuilder.get_accumulated(accumulator1))
+      t = Temper.Orm.Query.selectExpr(Temper.Orm.from(Temper.MarginaliaCore.id("folders")), TemperCore.List.to_list(exprs))
+      accumulator2 = Temper.Orm.SqlBuilder.new()
+      Temper.Orm.SqlBuilder.appendSafe(accumulator2, "user_id = ")
+      Temper.Orm.SqlBuilder.appendInt64(accumulator2, userId)
+      Temper.MarginaliaCore.statementOf(Temper.Orm.Query.toSql(Temper.Orm.Query.orderBy(Temper.Orm.Query.orderBy(Temper.Orm.Query.where(t, Temper.Orm.SqlBuilder.get_accumulated(accumulator2)), Temper.MarginaliaCore.id("name_key"), true), Temper.MarginaliaCore.id("id"), true)))
+    end)
+  end
+  def getFolder(userId, folderId) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      t1 = Temper.Orm.Query.select(Temper.Orm.from(Temper.MarginaliaCore.id("folders")), Temper.MarginaliaCore.columnIds())
+      accumulator1 = Temper.Orm.SqlBuilder.new()
+      Temper.Orm.SqlBuilder.appendSafe(accumulator1, "user_id = ")
+      Temper.Orm.SqlBuilder.appendInt64(accumulator1, userId)
+      t2 = Temper.Orm.Query.where(t1, Temper.Orm.SqlBuilder.get_accumulated(accumulator1))
+      accumulator2 = Temper.Orm.SqlBuilder.new()
+      Temper.Orm.SqlBuilder.appendSafe(accumulator2, "id = ")
+      Temper.Orm.SqlBuilder.appendInt64(accumulator2, folderId)
+      Temper.MarginaliaCore.statementOf(Temper.Orm.Query.toSql(Temper.Orm.Query.where(t2, Temper.Orm.SqlBuilder.get_accumulated(accumulator2))))
+    end)
+  end
+  def foldersByIds(ids) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      fn_ = fn i ->
+        Temper.Orm.SqlInt64.new(i)
+      end
+      Temper.MarginaliaCore.statementOf(Temper.Orm.Query.toSql(Temper.Orm.Query.whereIn(Temper.Orm.Query.select(Temper.Orm.from(Temper.MarginaliaCore.id("folders")), Temper.MarginaliaCore.columnIds()), Temper.MarginaliaCore.id("id"), TemperCore.List.map(ids, fn_))))
+    end)
+  end
+  def folderByName(userId, name) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      t1 = Temper.Orm.Query.select(Temper.Orm.from(Temper.MarginaliaCore.id("folders")), Temper.MarginaliaCore.columnIds())
+      accumulator1 = Temper.Orm.SqlBuilder.new()
+      Temper.Orm.SqlBuilder.appendSafe(accumulator1, "user_id = ")
+      Temper.Orm.SqlBuilder.appendInt64(accumulator1, userId)
+      t2 = Temper.Orm.Query.where(t1, Temper.Orm.SqlBuilder.get_accumulated(accumulator1))
+      accumulator2 = Temper.Orm.SqlBuilder.new()
+      Temper.Orm.SqlBuilder.appendSafe(accumulator2, "name = ")
+      Temper.Orm.SqlBuilder.appendString(accumulator2, name)
+      Temper.MarginaliaCore.statementOf(Temper.Orm.Query.toSql(Temper.Orm.Query.where(t2, Temper.Orm.SqlBuilder.get_accumulated(accumulator2))))
+    end)
+  end
+  def sibling(userId, name, parentId1) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      t1 = Temper.Orm.Query.select(Temper.Orm.from(Temper.MarginaliaCore.id("folders")), Temper.MarginaliaCore.columnIds())
+      accumulator1 = Temper.Orm.SqlBuilder.new()
+      Temper.Orm.SqlBuilder.appendSafe(accumulator1, "user_id = ")
+      Temper.Orm.SqlBuilder.appendInt64(accumulator1, userId)
+      t2 = Temper.Orm.Query.where(t1, Temper.Orm.SqlBuilder.get_accumulated(accumulator1))
+      accumulator2 = Temper.Orm.SqlBuilder.new()
+      Temper.Orm.SqlBuilder.appendSafe(accumulator2, "name = ")
+      Temper.Orm.SqlBuilder.appendString(accumulator2, name)
+      q = Temper.Orm.Query.where(t2, Temper.Orm.SqlBuilder.get_accumulated(accumulator2))
+      _scoped = nil
+      scoped = if parentId1 === nil do
+        scoped = Temper.Orm.Query.whereNull(q, Temper.MarginaliaCore.id("parent_id"))
+        scoped
+      else
+        parentId2 = parentId1
+        accumulator3 = Temper.Orm.SqlBuilder.new()
+        Temper.Orm.SqlBuilder.appendSafe(accumulator3, "parent_id = ")
+        Temper.Orm.SqlBuilder.appendInt64(accumulator3, parentId2)
+        scoped = Temper.Orm.Query.where(q, Temper.Orm.SqlBuilder.get_accumulated(accumulator3))
+        scoped
+      end
+      Temper.MarginaliaCore.statementOf(Temper.Orm.Query.toSql(scoped))
+    end)
+  end
+  def nameErrors(cs) do
+    fn_ = fn e ->
+      Temper.MarginaliaCore.FieldError.new(Temper.Orm.ChangesetError.get_field(e), Temper.Orm.ChangesetError.get_message(e))
+    end
+    TemperCore.List.map(TemperCore.call(cs, :get_errors, []), fn_)
+  end
+  def createFolder(userId, name, parentId) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      try do
+        _return = nil
+        return = if true do
+          _t = nil
+          params = TemperCore.Map.builder()
+          TemperCore.Map.set(params, "name", Temper.MarginaliaCore.trim(name))
+          TemperCore.Map.set(params, "user_id", TemperCore.int_to_string(userId))
+          if not (parentId === nil) do
+            TemperCore.Map.set(params, "parent_id", TemperCore.int_to_string(parentId))
+            nil
+          else
+            nil
+          end
+          cs = TemperCore.call(TemperCore.call(TemperCore.call(Temper.Orm.changeset(TemperCore.Global.get(:"Temper.MarginaliaCore.folders"), TemperCore.Map.to_map(params)), :cast, [%TemperCore.Vec{t: {Temper.MarginaliaCore.id("name"), Temper.MarginaliaCore.id("parent_id"), Temper.MarginaliaCore.id("user_id")}}]), :validateRequired, [%TemperCore.Vec{t: {Temper.MarginaliaCore.id("name")}}]), :validateLength, [Temper.MarginaliaCore.id("name"), 1, 80])
+          if not TemperCore.call(cs, :get_isValid, []) do
+            return = Temper.MarginaliaCore.Prepared.new(nil, Temper.MarginaliaCore.nameErrors(cs))
+            return
+          else
+            t = try do
+              t = TemperCore.call(cs, :toInsertSql, [])
+              t
+            rescue
+              _ in TemperCore.Bubble ->
+                raise(TemperCore.Panic)
+            end
+            throw({:temper_return, :ex_return_0, Temper.MarginaliaCore.Prepared.new(Temper.MarginaliaCore.returning(t), %TemperCore.Vec{t: {}})})
+          end
+        end
+        return
+      catch
+        {:temper_return, :ex_return_0, ex_value_2} ->
+          ex_value_2
+      end
+    end)
+  end
+  def renameFolder(userId, folderId, name) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      try do
+        _return = nil
+        return = if true do
+          _t1 = nil
+          params = TemperCore.Map.builder()
+          TemperCore.Map.set(params, "name", Temper.MarginaliaCore.trim(name))
+          cs = TemperCore.call(TemperCore.call(TemperCore.call(Temper.Orm.changeset(TemperCore.Global.get(:"Temper.MarginaliaCore.folders"), TemperCore.Map.to_map(params)), :cast, [%TemperCore.Vec{t: {Temper.MarginaliaCore.id("name")}}]), :validateRequired, [%TemperCore.Vec{t: {Temper.MarginaliaCore.id("name")}}]), :validateLength, [Temper.MarginaliaCore.id("name"), 1, 80])
+          if not TemperCore.call(cs, :get_isValid, []) do
+            return = Temper.MarginaliaCore.Prepared.new(nil, Temper.MarginaliaCore.nameErrors(cs))
+            return
+          else
+            t1 = try do
+              t2 = Temper.Orm.UpdateQuery.set(Temper.Orm.UpdateQuery.set(Temper.Orm.update(Temper.MarginaliaCore.id("folders")), Temper.MarginaliaCore.id("name"), Temper.Orm.SqlString.new(Temper.MarginaliaCore.trim(name))), Temper.MarginaliaCore.id("updated_at"), Temper.Orm.SqlSource.new("date_trunc('second', now() at time zone 'utc')"))
+              accumulator1 = Temper.Orm.SqlBuilder.new()
+              Temper.Orm.SqlBuilder.appendSafe(accumulator1, "user_id = ")
+              Temper.Orm.SqlBuilder.appendInt64(accumulator1, userId)
+              t3 = Temper.Orm.UpdateQuery.where(t2, Temper.Orm.SqlBuilder.get_accumulated(accumulator1))
+              accumulator2 = Temper.Orm.SqlBuilder.new()
+              Temper.Orm.SqlBuilder.appendSafe(accumulator2, "id = ")
+              Temper.Orm.SqlBuilder.appendInt64(accumulator2, folderId)
+              t1 = Temper.Orm.UpdateQuery.toSql(Temper.Orm.UpdateQuery.where(t3, Temper.Orm.SqlBuilder.get_accumulated(accumulator2)))
+              t1
+            rescue
+              _ in TemperCore.Bubble ->
+                raise(TemperCore.Panic)
+            end
+            throw({:temper_return, :ex_return_0, Temper.MarginaliaCore.Prepared.new(Temper.MarginaliaCore.returning(t1), %TemperCore.Vec{t: {}})})
+          end
+        end
+        return
+      catch
+        {:temper_return, :ex_return_0, ex_value_2} ->
+          ex_value_2
+      end
+    end)
+  end
+  def moveFolder(userId, folderId, parentId) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      _t1 = nil
+      t1 = try do
+        t2 = Temper.Orm.UpdateQuery.set(Temper.Orm.UpdateQuery.set(Temper.Orm.update(Temper.MarginaliaCore.id("folders")), Temper.MarginaliaCore.id("parent_id"), Temper.MarginaliaCore.nullable(parentId)), Temper.MarginaliaCore.id("updated_at"), Temper.Orm.SqlSource.new("date_trunc('second', now() at time zone 'utc')"))
+        accumulator1 = Temper.Orm.SqlBuilder.new()
+        Temper.Orm.SqlBuilder.appendSafe(accumulator1, "user_id = ")
+        Temper.Orm.SqlBuilder.appendInt64(accumulator1, userId)
+        t3 = Temper.Orm.UpdateQuery.where(t2, Temper.Orm.SqlBuilder.get_accumulated(accumulator1))
+        accumulator2 = Temper.Orm.SqlBuilder.new()
+        Temper.Orm.SqlBuilder.appendSafe(accumulator2, "id = ")
+        Temper.Orm.SqlBuilder.appendInt64(accumulator2, folderId)
+        t1 = Temper.Orm.UpdateQuery.toSql(Temper.Orm.UpdateQuery.where(t3, Temper.Orm.SqlBuilder.get_accumulated(accumulator2)))
+        t1
+      rescue
+        _ in TemperCore.Bubble ->
+          raise(TemperCore.Panic)
+      end
+      Temper.MarginaliaCore.returning(t1)
+    end)
+  end
+  def deleteFolder(folderId, parentId) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      _t1 = nil
+      _t2 = nil
+      _t3 = nil
+      t1 = try do
+        t4 = Temper.Orm.UpdateQuery.set(Temper.Orm.update(Temper.MarginaliaCore.id("works")), Temper.MarginaliaCore.id("folder_id"), Temper.MarginaliaCore.nullable(parentId))
+        accumulator1 = Temper.Orm.SqlBuilder.new()
+        Temper.Orm.SqlBuilder.appendSafe(accumulator1, "folder_id = ")
+        Temper.Orm.SqlBuilder.appendInt64(accumulator1, folderId)
+        t1 = Temper.Orm.UpdateQuery.toSql(Temper.Orm.UpdateQuery.where(t4, Temper.Orm.SqlBuilder.get_accumulated(accumulator1)))
+        t1
+      rescue
+        _ in TemperCore.Bubble ->
+          raise(TemperCore.Panic)
+      end
+      t2 = try do
+        t5 = Temper.Orm.UpdateQuery.set(Temper.Orm.update(Temper.MarginaliaCore.id("folders")), Temper.MarginaliaCore.id("parent_id"), Temper.MarginaliaCore.nullable(parentId))
+        accumulator2 = Temper.Orm.SqlBuilder.new()
+        Temper.Orm.SqlBuilder.appendSafe(accumulator2, "parent_id = ")
+        Temper.Orm.SqlBuilder.appendInt64(accumulator2, folderId)
+        t2 = Temper.Orm.UpdateQuery.toSql(Temper.Orm.UpdateQuery.where(t5, Temper.Orm.SqlBuilder.get_accumulated(accumulator2)))
+        t2
+      rescue
+        _ in TemperCore.Bubble ->
+          raise(TemperCore.Panic)
+      end
+      t3 = try do
+        t6 = Temper.Orm.deleteFrom(Temper.MarginaliaCore.id("folders"))
+        accumulator3 = Temper.Orm.SqlBuilder.new()
+        Temper.Orm.SqlBuilder.appendSafe(accumulator3, "id = ")
+        Temper.Orm.SqlBuilder.appendInt64(accumulator3, folderId)
+        t3 = Temper.Orm.DeleteQuery.toSql(Temper.Orm.DeleteQuery.where(t6, Temper.Orm.SqlBuilder.get_accumulated(accumulator3)))
+        t3
+      rescue
+        _ in TemperCore.Bubble ->
+          raise(TemperCore.Panic)
+      end
+      %TemperCore.Vec{t: {Temper.MarginaliaCore.statementOf(t1), Temper.MarginaliaCore.statementOf(t2), Temper.MarginaliaCore.returning(t3)}}
+    end)
+  end
+  def moveWork(userId, workId, folderId) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      _t1 = nil
+      t1 = try do
+        t2 = Temper.Orm.UpdateQuery.set(Temper.Orm.UpdateQuery.set(Temper.Orm.update(Temper.MarginaliaCore.id("works")), Temper.MarginaliaCore.id("folder_id"), Temper.MarginaliaCore.nullable(folderId)), Temper.MarginaliaCore.id("updated_at"), Temper.Orm.SqlSource.new("date_trunc('second', now() at time zone 'utc')"))
+        accumulator1 = Temper.Orm.SqlBuilder.new()
+        Temper.Orm.SqlBuilder.appendSafe(accumulator1, "user_id = ")
+        Temper.Orm.SqlBuilder.appendInt64(accumulator1, userId)
+        t3 = Temper.Orm.UpdateQuery.where(t2, Temper.Orm.SqlBuilder.get_accumulated(accumulator1))
+        accumulator2 = Temper.Orm.SqlBuilder.new()
+        Temper.Orm.SqlBuilder.appendSafe(accumulator2, "id = ")
+        Temper.Orm.SqlBuilder.appendInt64(accumulator2, workId)
+        t1 = Temper.Orm.UpdateQuery.toSql(Temper.Orm.UpdateQuery.where(t3, Temper.Orm.SqlBuilder.get_accumulated(accumulator2)))
+        t1
+      rescue
+        _ in TemperCore.Bubble ->
+          raise(TemperCore.Panic)
+      end
+      Temper.MarginaliaCore.statementOf(t1)
+    end)
+  end
+  def looseWorks(userId) do
+    t = Temper.Orm.from(Temper.MarginaliaCore.id("works"))
+    accumulator = Temper.Orm.SqlBuilder.new()
+    Temper.Orm.SqlBuilder.appendSafe(accumulator, "user_id = ")
+    Temper.Orm.SqlBuilder.appendInt64(accumulator, userId)
+    Temper.Orm.Query.whereNull(Temper.Orm.Query.whereNotNull(Temper.Orm.Query.where(t, Temper.Orm.SqlBuilder.get_accumulated(accumulator)), Temper.MarginaliaCore.id("collection")), Temper.MarginaliaCore.id("folder_id"))
+  end
+  def unfiledCount(userId) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      Temper.MarginaliaCore.statementOf(Temper.Orm.Query.countSql(Temper.MarginaliaCore.looseWorks(userId)))
+    end)
+  end
+  def looseWorkCollections(userId) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      Temper.MarginaliaCore.statementOf(Temper.Orm.Query.toSql(Temper.Orm.Query.select(Temper.MarginaliaCore.looseWorks(userId), %TemperCore.Vec{t: {Temper.MarginaliaCore.id("id"), Temper.MarginaliaCore.id("collection")}})))
+    end)
+  end
+  def fileWorks(workIds, folderId) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      _t1 = nil
+      t1 = try do
+        t2 = Temper.Orm.UpdateQuery.set(Temper.Orm.update(Temper.MarginaliaCore.id("works")), Temper.MarginaliaCore.id("folder_id"), Temper.Orm.SqlInt64.new(folderId))
+        accumulator = Temper.Orm.SqlBuilder.new()
+        Temper.Orm.SqlBuilder.appendSafe(accumulator, "id IN (")
+        Temper.Orm.SqlBuilder.appendInt64List(accumulator, workIds)
+        Temper.Orm.SqlBuilder.appendSafe(accumulator, ")")
+        t1 = Temper.Orm.UpdateQuery.toSql(Temper.Orm.UpdateQuery.where(t2, Temper.Orm.SqlBuilder.get_accumulated(accumulator)))
+        t1
+      rescue
+        _ in TemperCore.Bubble ->
+          raise(TemperCore.Panic)
+      end
+      Temper.MarginaliaCore.statementOf(t1)
+    end)
+  end
+  def publish(userId, folderId, slug) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      _t1 = nil
+      t1 = try do
+        t2 = Temper.Orm.UpdateQuery.set(Temper.Orm.UpdateQuery.set(Temper.Orm.UpdateQuery.set(Temper.Orm.update(Temper.MarginaliaCore.id("folders")), Temper.MarginaliaCore.id("published_at"), Temper.Orm.SqlSource.new("date_trunc('second', now() at time zone 'utc')")), Temper.MarginaliaCore.id("slug"), Temper.Orm.SqlString.new(slug)), Temper.MarginaliaCore.id("updated_at"), Temper.Orm.SqlSource.new("date_trunc('second', now() at time zone 'utc')"))
+        accumulator1 = Temper.Orm.SqlBuilder.new()
+        Temper.Orm.SqlBuilder.appendSafe(accumulator1, "user_id = ")
+        Temper.Orm.SqlBuilder.appendInt64(accumulator1, userId)
+        t3 = Temper.Orm.UpdateQuery.where(t2, Temper.Orm.SqlBuilder.get_accumulated(accumulator1))
+        accumulator2 = Temper.Orm.SqlBuilder.new()
+        Temper.Orm.SqlBuilder.appendSafe(accumulator2, "id = ")
+        Temper.Orm.SqlBuilder.appendInt64(accumulator2, folderId)
+        t1 = Temper.Orm.UpdateQuery.toSql(Temper.Orm.UpdateQuery.where(t3, Temper.Orm.SqlBuilder.get_accumulated(accumulator2)))
+        t1
+      rescue
+        _ in TemperCore.Bubble ->
+          raise(TemperCore.Panic)
+      end
+      Temper.MarginaliaCore.returning(t1)
+    end)
+  end
+  def unpublish(userId, folderId) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      _t1 = nil
+      t1 = try do
+        t2 = Temper.Orm.UpdateQuery.set(Temper.Orm.UpdateQuery.set(Temper.Orm.update(Temper.MarginaliaCore.id("folders")), Temper.MarginaliaCore.id("published_at"), Temper.Orm.SqlSource.new("NULL")), Temper.MarginaliaCore.id("updated_at"), Temper.Orm.SqlSource.new("date_trunc('second', now() at time zone 'utc')"))
+        accumulator1 = Temper.Orm.SqlBuilder.new()
+        Temper.Orm.SqlBuilder.appendSafe(accumulator1, "user_id = ")
+        Temper.Orm.SqlBuilder.appendInt64(accumulator1, userId)
+        t3 = Temper.Orm.UpdateQuery.where(t2, Temper.Orm.SqlBuilder.get_accumulated(accumulator1))
+        accumulator2 = Temper.Orm.SqlBuilder.new()
+        Temper.Orm.SqlBuilder.appendSafe(accumulator2, "id = ")
+        Temper.Orm.SqlBuilder.appendInt64(accumulator2, folderId)
+        t1 = Temper.Orm.UpdateQuery.toSql(Temper.Orm.UpdateQuery.where(t3, Temper.Orm.SqlBuilder.get_accumulated(accumulator2)))
+        t1
+      rescue
+        _ in TemperCore.Bubble ->
+          raise(TemperCore.Panic)
+      end
+      Temper.MarginaliaCore.returning(t1)
+    end)
+  end
+  def publishedBySlug(slug) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      t = Temper.Orm.Query.select(Temper.Orm.from(Temper.MarginaliaCore.id("folders")), Temper.MarginaliaCore.columnIds())
+      accumulator = Temper.Orm.SqlBuilder.new()
+      Temper.Orm.SqlBuilder.appendSafe(accumulator, "slug = ")
+      Temper.Orm.SqlBuilder.appendString(accumulator, slug)
+      Temper.MarginaliaCore.statementOf(Temper.Orm.Query.toSql(Temper.Orm.Query.whereNotNull(Temper.Orm.Query.where(t, Temper.Orm.SqlBuilder.get_accumulated(accumulator)), Temper.MarginaliaCore.id("published_at"))))
+    end)
+  end
+  def published() do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      Temper.MarginaliaCore.statementOf(Temper.Orm.Query.toSql(Temper.Orm.Query.orderBy(Temper.Orm.Query.whereNotNull(Temper.Orm.Query.select(Temper.Orm.from(Temper.MarginaliaCore.id("folders")), Temper.MarginaliaCore.columnIds()), Temper.MarginaliaCore.id("published_at")), Temper.MarginaliaCore.id("published_at"), false)))
+    end)
+  end
+  def slugTaken(slug) do
+    Temper.MarginaliaCore.__temper_init__()
+    TemperCore.Heap.entry(fn ->
+      _t1 = nil
+      t2 = Temper.Orm.Query.select(Temper.Orm.from(Temper.MarginaliaCore.id("folders")), %TemperCore.Vec{t: {Temper.MarginaliaCore.id("id")}})
+      accumulator = Temper.Orm.SqlBuilder.new()
+      Temper.Orm.SqlBuilder.appendSafe(accumulator, "slug = ")
+      Temper.Orm.SqlBuilder.appendString(accumulator, slug)
+      q = Temper.Orm.Query.where(t2, Temper.Orm.SqlBuilder.get_accumulated(accumulator))
+      t1 = try do
+        t1 = Temper.Orm.Query.limit(q, 1)
+        t1
+      rescue
+        _ in TemperCore.Bubble ->
+          raise(TemperCore.Panic)
+      end
+      Temper.MarginaliaCore.statementOf(Temper.Orm.Query.toSql(t1))
     end)
   end
   def isUnicodeLetter(cp) do
@@ -5213,6 +5786,10 @@ defmodule Temper.MarginaliaCore do
   end
   def __temper_init__() do
     TemperCore.init_once(:"Temper.MarginaliaCore", fn ->
+      Temper.Orm.__temper_init__()
+      Temper.Std.__temper_init__()
+      TemperCore.Global.put(:"Temper.MarginaliaCore.columns", %TemperCore.Vec{t: {"id", "name", "published_at", "slug", "user_id", "parent_id", "inserted_at", "updated_at"}})
+      TemperCore.Global.put(:"Temper.MarginaliaCore.folders", Temper.Orm.TableDef.new(Temper.MarginaliaCore.id("folders"), %TemperCore.Vec{t: {Temper.Orm.FieldDef.new(Temper.MarginaliaCore.id("name"), Temper.Orm.StringField.new(), false, nil, false), Temper.Orm.FieldDef.new(Temper.MarginaliaCore.id("parent_id"), Temper.Orm.Int64Field.new(), true, nil, false), Temper.Orm.FieldDef.new(Temper.MarginaliaCore.id("user_id"), Temper.Orm.Int64Field.new(), false, nil, false), Temper.Orm.FieldDef.new(Temper.MarginaliaCore.id("inserted_at"), Temper.Orm.DateField.new(), false, Temper.Orm.SqlSource.new("date_trunc('second', now() at time zone 'utc')"), false), Temper.Orm.FieldDef.new(Temper.MarginaliaCore.id("updated_at"), Temper.Orm.DateField.new(), false, Temper.Orm.SqlSource.new("date_trunc('second', now() at time zone 'utc')"), false)}}, nil))
       TemperCore.Global.put(:"Temper.MarginaliaCore.abbreviations", %TemperCore.Vec{t: {"e.g", "i.e", "vs", "etc", "cf", "viz", "ca", "Mr", "Mrs", "Ms", "Dr", "Prof", "St", "No", "Fig", "Jr", "Sr", "Inc", "Ltd", "Co"}})
       nil
     end)

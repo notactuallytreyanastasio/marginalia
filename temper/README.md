@@ -185,6 +185,58 @@ test("identical spans are all one piece") { test =>
 with the Temper code, so another backend's build of this library gets
 the same tests.
 
+## A whole Temper library: Alloy runs the folders
+
+`temper/alloy/` is [Alloy](https://github.com/notactuallytreyanastasio/alloy),
+a Temper ORM (schemas, Ecto-style changesets, and a query builder that
+produces parameterized SQL), vendored with `git archive` at the commit in
+`temper/alloy/ALLOY_COMMIT`. `bin/temper-gen` builds it beside
+`marginalia-core`, as the library `orm` (`Temper.Orm`), and
+`marginalia-core` imports it like any Temper library:
+
+```temper
+let { from, sql, update, changeset, TableDef, ... } = import("orm/src");
+```
+
+The Folders context no longer uses Ecto. `marginalia-core/src/folders.temper.md`
+builds every statement it sends, with Alloy's builder and its `sql` tag;
+`Marginalia.Alloy` runs them through `Repo.query/3`; `Marginalia.Folders`
+decides what to run and makes rows into a plain `%Folder{}`. Ecto still
+owns the connection pool, transactions, migrations and the test sandbox,
+and every other context.
+
+```elixir
+iex> Temper.MarginaliaCore.getFolder(7, 3)
+%Temper.MarginaliaCore.Statement{
+  text: "SELECT id, name, published_at, slug, user_id, parent_id, inserted_at, updated_at FROM folders WHERE user_id = $1 AND id = $2",
+  params: #TemperCore.Vec<[
+    %Temper.MarginaliaCore.Param{kind: "int", text: "7"},
+    %Temper.MarginaliaCore.Param{kind: "int", text: "3"}
+  ]>
+}
+```
+
+Two things about the BEAM shaped the boundary:
+
+- Alloy's objects are ordinary Temper classes, which be-elixir keeps on a
+  per-process heap. Returned to a LiveView, they would pile up in its
+  process. So the Temper side finishes each statement and returns `@imu`
+  values, plain structs, and every Alloy object is freed when the call
+  returns.
+- Alloy's own `toParameterized` gives every value as text. Postgrex
+  encodes parameters in binary by type and refuses a string for a
+  `bigint`. Each parameter therefore carries its kind, read from Alloy's
+  typed parts, and `Marginalia.Alloy` decodes it.
+
+What changed for callers: `Folder` is a struct, not a schema, so
+`Work`, `Cut`, `Story` and `Step` hold `folder_id` as a plain column and
+`Cuts` fills `cut.folder` itself where it used `preload(:folder)`. A
+refused write is `{:error, %Folders.Invalid{errors: %{name: [...]}}}`.
+Alloy's messages replace Ecto's ("is required", "must be between 1 and 80
+characters"), and Alloy counts a name's length in code points where Ecto
+counted graphemes. The unique sibling-name rule is still Postgres's,
+reported as before.
+
 ## What the host answers
 
 Temper's core strings carry no Unicode character data. The few questions

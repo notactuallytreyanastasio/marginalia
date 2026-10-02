@@ -640,9 +640,7 @@ defmodule Marginalia.Import.GitHub do
   end
 
   defp folder_for(user_id, name) do
-    import Ecto.Query
-
-    case Repo.one(from f in Folders.Folder, where: f.user_id == ^user_id and f.name == ^name) do
+    case Folders.get_folder_by_name(user_id, name) do
       nil -> Folders.create_folder(user_id, %{name: name})
       folder -> {:ok, folder}
     end

@@ -12,7 +12,9 @@ defmodule Marginalia.Stacks.Story do
     field :dropped, {:array, :string}, default: []
     field :fingerprint, :string
 
-    belongs_to :folder, Marginalia.Folders.Folder
+    # a folder is a plain struct whose rows Alloy reads and writes
+    # (Marginalia.Folders), so this is the column, not an Ecto association
+    field :folder_id, :id
 
     timestamps(type: :utc_datetime)
   end

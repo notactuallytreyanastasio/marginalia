@@ -100,8 +100,8 @@ defmodule MarginaliaWeb.WorkLive.Index do
       {:ok, _folder} ->
         {:noreply, socket |> assign(renaming: nil) |> load()}
 
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, put_flash(socket, :error, first_error(changeset))}
+      {:error, %Folders.Invalid{} = invalid} ->
+        {:noreply, put_flash(socket, :error, first_error(invalid))}
 
       {:error, _} ->
         {:noreply, assign(socket, renaming: nil)}
@@ -143,8 +143,8 @@ defmodule MarginaliaWeb.WorkLive.Index do
       {:error, :cycle} ->
         {:noreply, put_flash(socket, :error, "A folder cannot go inside itself.")}
 
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:noreply, put_flash(socket, :error, first_error(changeset))}
+      {:error, %Folders.Invalid{} = invalid} ->
+        {:noreply, put_flash(socket, :error, first_error(invalid))}
 
       {:error, _} ->
         {:noreply, socket}
@@ -164,9 +164,8 @@ defmodule MarginaliaWeb.WorkLive.Index do
     end
   end
 
-  defp first_error(%Ecto.Changeset{} = changeset) do
-    changeset
-    |> Ecto.Changeset.traverse_errors(fn {msg, _opts} -> msg end)
+  defp first_error(%Folders.Invalid{errors: errors}) do
+    errors
     |> Enum.flat_map(fn {field, msgs} -> Enum.map(msgs, &"#{field} #{&1}") end)
     |> List.first()
     |> Kernel.||("That did not work.")
