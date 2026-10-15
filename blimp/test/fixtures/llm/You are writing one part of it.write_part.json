@@ -1,0 +1,31 @@
+{
+  "id": "fake-part",
+  "object": "chat.completion",
+  "created": 1760000000,
+  "model": "fake-model",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_fake-part",
+            "type": "function",
+            "function": {
+              "name": "write_part",
+              "arguments": "{\"prose\": \"Stand at the window first, and let the second document lean on the first.\", \"turn\": \"Nobody notices the kettle.\"}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 400,
+    "completion_tokens": 80,
+    "total_tokens": 480
+  }
+}

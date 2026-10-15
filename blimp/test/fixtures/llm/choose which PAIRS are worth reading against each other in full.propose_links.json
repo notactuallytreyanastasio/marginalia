@@ -1,0 +1,31 @@
+{
+  "id": "fake-propose",
+  "object": "chat.completion",
+  "created": 1760000000,
+  "model": "fake-model",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_fake-propose",
+            "type": "function",
+            "function": {
+              "name": "propose_links",
+              "arguments": "{\"pairs\": [{\"a\": 1, \"b\": 2, \"why\": \"Both turn on the same window.\", \"expect\": \"The second answers the first.\"}], \"skipped\": \"\"}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 400,
+    "completion_tokens": 80,
+    "total_tokens": 480
+  }
+}
