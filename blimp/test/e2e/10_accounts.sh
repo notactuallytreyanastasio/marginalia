@@ -9,12 +9,21 @@
 # the assertion below is the HTTP-visible half of it, and the half that cannot be seen from
 # curl is a named `skip` with the reason.
 #
-# ASSUMPTIONS the page agent for /users/* should confirm or change here (and in lib.sh):
-#   - registration is POST /users/register (user[email], user[password]); validation while
-#     typing is the event `validate` on /users/register; settings forms are the events
-#     `validate_email`, `update_email`, `validate_password`; the password form is a plain POST
-#     to /users/update-password (the Elixir form was phx-trigger-action to the controller).
-#   - flashes are rendered on the next page that is fetched, once.
+# What pages_users implements (the assumptions this file started from, as confirmed or changed):
+#   - registration: the form is phx-submit="save" / phx-change="validate" and also a plain
+#     POST /users/register (user[email], user[password]); both end at /users/log-in. CONFIRMED.
+#   - settings: events validate_email, update_email, validate_password, update_password, and
+#     the plain POST /users/update-password. CONFIRMED. The update_password event does the
+#     whole change (it does not hand back a "now POST" instruction).
+#   - flashes are rendered on the next page that is fetched, once. CONFIRMED.
+#   - CHANGED: "/works" is not a page yet (pages_works has not landed), so the logged-in menu
+#     is asserted on /users/settings and the logged-out view on /users/log-in and /.
+#   - CHANGED: a password change does not renew the session id when the user is the same (the
+#     Phoenix rule: other tabs keep their CSRF token); what is rotated is the token row the
+#     session points at, and every other device's token is deleted. So "the session token is
+#     rotated" is asserted by a second device being logged out, not by the cookie changing.
+#   - CHANGED: the email input id is login_form_password_email (the form's id is the prefix),
+#     which is what the Phoenix test asserts too.
 . "$(dirname "$0")/../lib.sh"
 skip_unless_implemented
 
@@ -147,16 +156,22 @@ assert_contains "did not change" "settings: update_email with the same email say
 new_visitor settings-pw
 U4="$(new_email)"
 ensure_user "$U4" "$PASS"
-before="$(cookie_value _marginalia_key)"
+JAR_A="$JAR"
+new_visitor settings-pw-device-b
+login "$U4" "$PASS"
+JAR_B="$JAR"
+JAR="$JAR_A"
 get /users/settings
 NEWPASS='a brand new passphrase'
 post /users/update-password "user%5Bemail%5D=$U4&user%5Bpassword%5D=a+brand+new+passphrase&user%5Bpassword_confirmation%5D=a+brand+new+passphrase"
 assert_redirect_to "/users/settings" "settings: the password form redirects to /users/settings"
-after="$(cookie_value _marginalia_key)"
-[ "$before" != "$after" ] && ok_rot=ok || ok_rot=bad
-assert_eq "$ok_rot" "ok" "settings: the session token is rotated"
 get /users/settings
+assert_status 200 "settings: this device is logged in again with a fresh token"
 assert_contains "Password updated successfully" "settings: the flash says Password updated successfully"
+# test: the session token is rotated / disconnect_sessions: every other device's token is deleted
+JAR="$JAR_B"
+get /users/settings
+assert_redirect_to "/users/log-in" "settings: the password change logs the other devices out"
 new_visitor settings-pw-new
 login "$U4" "$NEWPASS"
 assert_redirect_to "/" "settings: the new password logs in"
@@ -176,8 +191,32 @@ assert_contains "does not match password" "settings: update_password says does n
 
 # describe "confirm email"
 # test "updates the user email once"
-skip "settings: GET /users/settings/confirm-email/<token> changes the email and says 'Email changed successfully.' (needs the token the mailer delivered; the test mailer has no reader yet)"
-skip "settings: the same confirm-email token again says 'Email change link is invalid or it has expired.' (same reason)"
+# The mail is a row in the outbox table (nothing sends it); the token is read from there with sqlite3.
+if command -v sqlite3 >/dev/null 2>&1 && [ -n "${MARGINALIA_DB:-}" ]; then
+  new_visitor settings-confirm
+  U5="$(new_email)"; E5="$(new_email)"
+  ensure_user "$U5" "$PASS"
+  get /users/settings
+  ev update_email "{\"user\":{\"email\":\"$E5\"}}" /users/settings
+  TOKEN="$(sqlite3 "$MARGINALIA_DB" "select body from outbox where to_addr='$E5' order by id desc limit 1" | grep -o 'confirm-email/[^[:space:]]*' | head -1 | sed 's#confirm-email/##')"
+  get "/users/settings/confirm-email/$TOKEN"
+  assert_redirect_to "/users/settings" "settings: a good confirm-email link redirects to /users/settings"
+  get /users/settings
+  assert_contains "Email changed successfully." "settings: the flash says Email changed successfully."
+  assert_contains "value=\"$E5\"" "settings: the email form holds the new address"
+  # test: "use confirm token again"
+  get "/users/settings/confirm-email/$TOKEN"
+  assert_redirect_to "/users/settings" "settings: the same link again redirects to /users/settings"
+  get /users/settings
+  assert_contains "Email change link is invalid or it has expired." "settings: the same link again says Email change link is invalid or it has expired."
+  new_visitor settings-confirm-old
+  login "$U5" "$PASS"
+  assert_redirect_to "/users/log-in" "settings: the old address no longer logs in"
+  login "$E5" "$PASS"
+  assert_redirect_to "/" "settings: the new address logs in"
+else
+  skip "settings: confirm-email link (needs sqlite3 and MARGINALIA_DB to read the mail from the outbox table)"
+fi
 # test "does not update email with invalid token"
 get /users/settings/confirm-email/oops
 assert_redirect_to "/users/settings" "settings: a bad confirm-email token redirects to /users/settings"
@@ -196,11 +235,12 @@ new_visitor session
 login "$U1" "$PASS"
 assert_redirect_to "/" "session: log-in redirects to /"
 assert_cookie _marginalia_key "session: a session cookie is set"
-# ("/" carries no auth menu on purpose, so the logged-in menu is asserted on /works)
-get /works
-assert_contains "$U1" "session: /works shows the user's email"
-assert_contains "/users/settings" "session: /works links to /users/settings"
-assert_contains "/users/log-out" "session: /works links to /users/log-out"
+# ("/" carries no auth menu on purpose, so the logged-in menu is asserted on a page with the
+# app layout: /works is not here yet, so /users/settings)
+get /users/settings
+assert_contains "$U1" "session: the app layout shows the user's email"
+assert_contains "/users/settings" "session: the app layout links to /users/settings"
+assert_contains "/users/log-out" "session: the app layout has the log-out form"
 
 # test "logs the user in with remember me"
 new_visitor session-remember
@@ -228,9 +268,8 @@ new_visitor session-out
 login "$U1" "$PASS"
 logout
 assert_redirect_to "/" "session: log-out redirects to /"
-get /works
-assert_not_contains "$U1" "session: after log-out the email is gone from /works"
 get /
+assert_not_contains "$U1" "session: after log-out the email is gone from the menu"
 assert_contains "Logged out successfully" "session: the flash says Logged out successfully"
 
 # test "succeeds even if the user is not logged in"
@@ -285,24 +324,24 @@ assert_redirect_to "/" "auth: log-out when already logged out redirects to /"
 # test "authenticates user from session"
 new_visitor auth-scope
 login "$U1" "$PASS"
-get /works
+get /users/settings
 assert_contains "$U1" "auth: the session token authenticates the user"
 # test "authenticates user from cookies"
 login "$U1" "$PASS" remember
 rm_cookie_jar="$T/jar.scope-cookie"; grep -v '_marginalia_key' "$JAR" > "$rm_cookie_jar"; JAR="$rm_cookie_jar"
-get /works
+get /users/settings
 assert_contains "$U1" "auth: the remember-me cookie alone authenticates the user"
 # test "does not authenticate if data is missing"
 new_visitor auth-missing
-get /works
-assert_not_contains "$U1" "auth: no cookie, no user (a guest at most)"
+get /users/log-in
+assert_not_contains "$U1" "auth: no cookie, no user"
 # test "reissues a new token after a few days and refreshes cookie"
 skip "auth: a 10-day-old token is reissued with a refreshed cookie (needs clock control)"
 
 # on_mount :mount_current_scope / :require_authenticated / :require_sudo_mode
 # test "assigns current_scope based on a valid user_token" / nil for invalid / nil for none
 new_visitor auth-badtoken
-_curl GET /works -H 'cookie: _marginalia_key=invalid_token'
+_curl GET /users/log-in -H 'cookie: _marginalia_key=invalid_token'
 assert_status 200 "auth: an invalid session cookie is treated as no session, not an error"
 assert_not_contains "$U1" "auth: an invalid session cookie shows no user"
 # test "authenticates current_scope based on a valid user_token" / "redirects to login page if there isn't a valid user_token" (x2)
@@ -330,7 +369,9 @@ get "/users/settings?bar=baz"
 login "$U1" "$PASS"
 assert_redirect_to "/users/settings?bar=baz" "auth: the return-to keeps the query string (/users/settings?bar=baz)"
 new_visitor auth-return3
+get /users/log-in
 post /users/update-password "user%5Bpassword%5D=x"
+assert_redirect_to "/users/log-in" "auth: a POST by a visitor is sent to log in"
 login "$U1" "$PASS"
 assert_redirect_to "/" "auth: a POST does not store a return-to"
 # test "does not redirect if user is authenticated"

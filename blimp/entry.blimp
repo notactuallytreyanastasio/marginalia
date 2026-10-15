@@ -1,2 +1,3 @@
-serve(portFromEnv(), serverDefaultHandler)
+webBoot()
+serve(portFromEnv(), webHandler)
 temper_run_async()

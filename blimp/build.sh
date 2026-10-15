@@ -31,7 +31,7 @@ if [ "$rc" -ne 0 ] || grep -q "Build failed" "$LOG"; then
 fi
 tail -5 "$LOG"
 
-GEN=temper/temper.out/blimp/server/main.blimp
+GEN=temper/temper.out/blimp/web/main.blimp
 [ -f "$GEN" ] || fail "no $GEN after the build"
 
 mkdir -p out

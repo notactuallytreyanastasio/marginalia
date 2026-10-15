@@ -98,7 +98,7 @@ register() {
     ${CSRF:+--data-urlencode "_csrf_token=$CSRF"}
 }
 
-logout() { get /works >/dev/null 2>&1; _curl POST /users/log-out -d "_method=delete" ${CSRF:+--data-urlencode "_csrf_token=$CSRF"}; }
+logout() { get /users/log-in >/dev/null 2>&1; _curl POST /users/log-out -d "_method=delete" ${CSRF:+--data-urlencode "_csrf_token=$CSRF"}; }
 
 # upload_draft FILE TITLE [INTENT]   multipart POST /works/new, the plain-form path of the
 # Elixir app (work[title], work[body], work[intent]); the file's text becomes work[body]

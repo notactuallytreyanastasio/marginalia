@@ -2,7 +2,7 @@
 # one "# SKIP" and passes. When a page agent has made a page's assertions true,
 # add the file name on its own line (00_smoke.sh always runs; it needs no entry).
 #
-# 10_accounts.sh
+10_accounts.sh
 # 20_works.sh
 # 30_public.sh
 
