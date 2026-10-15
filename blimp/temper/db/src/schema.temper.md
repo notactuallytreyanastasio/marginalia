@@ -135,10 +135,25 @@ per topic that writers bump so a page can tell something changed.
       ]
     }
 
+## Version 2: the import listing
+
+The import wizard lists up to five hundred pull requests per session and the
+page keeps two flags on each (`shown`: it passes the pattern, `chosen`: it is
+ticked). The rows are keyed by a hash of the session id and swept a day after
+they were made. The table came to the schema in version 2; before that
+`pages_import` created it on first use with `CREATE TABLE IF NOT EXISTS`, which
+was a second place a table was defined.
+
+    let importSql(): List<String> {
+      [
+        "CREATE TABLE import_pulls (sid TEXT NOT NULL, pos INTEGER NOT NULL, repo TEXT NOT NULL, number INTEGER NOT NULL, title TEXT NOT NULL, url TEXT, state TEXT, draft INTEGER NOT NULL DEFAULT 0, base TEXT, head TEXT, updated_at TEXT, created_at TEXT, merged_at TEXT, shown INTEGER NOT NULL DEFAULT 0, chosen INTEGER NOT NULL DEFAULT 0, made TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')), PRIMARY KEY (sid, pos))",
+      ]
+    }
+
 ## The list
 
 `dbMigrate` runs each script whose version is not in `schema_migrations`,
-in order. Later changes are new versions appended here; version 1 is never
+in order. Later changes are new versions appended here; a version is never
 edited once a database has it.
 
     export let dbSchemaVersions(): List<Pair<Int, String>> {
@@ -150,5 +165,6 @@ edited once a database has it.
         g += 1;
       }
       let script = stmts.toList().join(";\n") { (p: String): String => p };
-      [new Pair<Int, String>(1, script)]
+      let v2 = importSql().join(";\n") { (p: String): String => p };
+      [new Pair<Int, String>(1, script), new Pair<Int, String>(2, v2)]
     }

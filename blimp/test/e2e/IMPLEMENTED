@@ -11,7 +11,7 @@
 25_import.sh
 30_public.sh
 70_links.sh
-50_show.sh
+65_show.sh
 
 # ---------------------------------------------------------------------------
 # PLANNED FILES: one per page group of notes/tests.md parts 5-9 (491 web tests).

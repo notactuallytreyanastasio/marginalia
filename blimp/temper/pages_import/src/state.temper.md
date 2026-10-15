@@ -25,7 +25,7 @@ built program, with every other library's: the private helpers start with `pim`.
       JsonObject, JsonArray, JsonString, JsonSyntaxTree, JsonTextProducer, NullInterchangeContext, parseJson,
     } = import("std/json");
     let { ImporterPull } = import("importer/src");
-    let { Db, DbRow, dbTransaction } = import("db/src");
+    let { DbRow, dbTransaction } = import("db/src");
     let { sysJoin, sysSha256, sysGraphemeTake } = import("sys/src");
 
 ## Small readers
@@ -181,13 +181,8 @@ read on the next request. So the listing is a table of its own, one row per pull
 request, keyed by the session, with the two flags the page keeps (`shown`: it
 passes the pattern, `chosen`: it is ticked). Clicking a box is one `UPDATE`.
 
-The table is made the first time it is needed (`CREATE TABLE IF NOT EXISTS`):
-it belongs to this page and to nothing the schema library migrates. Rows of
-sessions that never came back are swept a day later.
-
-    let pimEnsureTable(db: Db): Void throws Bubble {
-      db.script("CREATE TABLE IF NOT EXISTS import_pulls (sid TEXT NOT NULL, pos INTEGER NOT NULL, repo TEXT NOT NULL, number INTEGER NOT NULL, title TEXT NOT NULL, url TEXT, state TEXT, draft INTEGER NOT NULL DEFAULT 0, base TEXT, head TEXT, updated_at TEXT, created_at TEXT, merged_at TEXT, shown INTEGER NOT NULL DEFAULT 0, chosen INTEGER NOT NULL DEFAULT 0, made TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')), PRIMARY KEY (sid, pos))");
-    }
+The table is version 2 of the schema (`db/src/schema.temper.md`); nothing
+else reads it. Rows of sessions that never came back are swept a day later.
 
 The session's rows are found by a hash of its id, as the run is: the id is the
 secret.
@@ -209,7 +204,6 @@ secret.
     }
 
     export let pimSaveCands(ctx: Ctx, cs: List<ImporterPull>): Void throws Bubble {
-      pimEnsureTable(ctx.db);
       let sid = pimSid(ctx);
       dbTransaction(ctx.db, fn (): Void throws Bubble {
         ctx.db.exec("DELETE FROM import_pulls WHERE sid = $1 OR made < datetime('now', '-1 day')", [sid]);
@@ -242,7 +236,6 @@ secret.
 Every row, in the order the list stands.
 
     export let pimLoadCands(ctx: Ctx): List<ImporterPull> throws Bubble {
-      pimEnsureTable(ctx.db);
       let rows = ctx.db.query("SELECT ${pimPullColumns()} FROM import_pulls WHERE sid = $1 ORDER BY pos", [pimSid(ctx)]);
       let out = new ListBuilder<ImporterPull>();
       var i = 0;
@@ -254,7 +247,6 @@ Every row, in the order the list stands.
     }
 
     export let pimForgetCands(ctx: Ctx): Void throws Bubble {
-      pimEnsureTable(ctx.db);
       ctx.db.exec("DELETE FROM import_pulls WHERE sid = $1", [pimSid(ctx)]);
     }
 
@@ -262,7 +254,6 @@ What a pattern leaves: the rows at these positions are shown and ticked, the res
 are neither.
 
     export let pimSetShown(ctx: Ctx, positions: List<Int>): Void throws Bubble {
-      pimEnsureTable(ctx.db);
       let sid = pimSid(ctx);
       ctx.db.exec("UPDATE import_pulls SET shown = 0, chosen = 0 WHERE sid = $1", [sid]);
       if (positions.length > 0) {
@@ -274,7 +265,6 @@ are neither.
 A box clicked: the key is `owner/name#number`, cut at the last `#`.
 
     export let pimToggleKey(ctx: Ctx, key: String): Void throws Bubble {
-      pimEnsureTable(ctx.db);
       let parts = key.split("#");
       if (parts.length >= 2) {
         let number = parts.getOr(parts.length - 1, "");
@@ -290,7 +280,6 @@ A box clicked: the key is `owner/name#number`, cut at the last `#`.
 hides keep their ticks.
 
     export let pimTickShown(ctx: Ctx, on: Boolean): Void throws Bubble {
-      pimEnsureTable(ctx.db);
       ctx.db.exec("UPDATE import_pulls SET chosen = $2 WHERE sid = $1 AND shown = 1", [pimSid(ctx), pimFlag(on)]);
     }
 
@@ -299,7 +288,6 @@ The rows the list shows, each with whether it is ticked.
     export class PimRow(public pull: ImporterPull, public chosen: Boolean) {}
 
     export let pimLoadRows(ctx: Ctx): List<PimRow> throws Bubble {
-      pimEnsureTable(ctx.db);
       let rows = ctx.db.query(
         "SELECT ${pimPullColumns()}, chosen FROM import_pulls WHERE sid = $1 AND shown = 1 ORDER BY pos",
         [pimSid(ctx)],
@@ -318,7 +306,6 @@ How many are listed, shown and ticked.
     export class PimCounts(public total: Int, public shown: Int, public chosen: Int) {}
 
     export let pimLoadCounts(ctx: Ctx): PimCounts throws Bubble {
-      pimEnsureTable(ctx.db);
       let row = ctx.db.one(
         "SELECT count(*) AS total, coalesce(sum(shown), 0) AS shown, coalesce(sum(chosen), 0) AS chosen FROM import_pulls WHERE sid = $1",
         [pimSid(ctx)],
@@ -334,7 +321,6 @@ The pull requests ticked, in the order of the list as sorted, not the order they
 were clicked in.
 
     export let pimLoadPicked(ctx: Ctx): List<ImporterPull> throws Bubble {
-      pimEnsureTable(ctx.db);
       let rows = ctx.db.query(
         "SELECT ${pimPullColumns()} FROM import_pulls WHERE sid = $1 AND chosen = 1 ORDER BY pos",
         [pimSid(ctx)],

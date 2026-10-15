@@ -50,3 +50,4 @@ npm-debug.log
 /blimp/temper/temper.out/
 /blimp/temper/**/temper.out/
 test-results.xml
+/blimp/temper/temper.keep/
