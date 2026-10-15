@@ -38,6 +38,23 @@ right Response for the request (`webPage(ctx, title, meta, tree)` answers
 HTML on a plain GET and the JSON region on a poll or event; `webEventReply`,
 `webRedirect(ctx, to, flash)` do the rest).
 
+## webcore as implemented (read its src for signatures)
+
+`webPage(ctx, meta: PageMeta, main, poll: Int?, layout: "app" | "bleed" |
+"bare" | "root")`, `webEventReply(ctx, main, events, flash, poll)`,
+`webRedirect(ctx, to, flash)`, `webNotFound/webForbidden/webServerError`,
+`uiGet/uiPut/uiDelete/uiGetJson/uiPutJson`, `webMeta(title)`,
+`webPutFlash`, `cButton`, `cInputSpec(name)`+`cInput`, `cTextInput`,
+`cHeader`, `cTable`, `cList`, `cIcon` (the `.hero-*` span the CSS already
+styles), `cMutter`, `cThemeToggle`, `cFlashGroup`. Every Response webcore
+returns is finished (session saved, cookies set): return it as is. Plugs:
+`webMountCurrentScope(ctx)` (call on every route), `webEnsureUserOrGuest`,
+`webRequireRealAccount`, `webRedirectIfAuthenticated`, `webLogIn(ctx, user,
+remember)`, `webLogOut(ctx)`; CSRF: the router calls `webCheckCsrf(ctx)`
+before any POST or `/ev/`; forms include `webCsrfField(ctx)`. `data-poll`
+goes through the `poll` argument, never written by hand. Log out is a form
+posting `_method=delete` to `/users/log-out`.
+
 ## Markup rules
 
 - Class names are copied from the HEEx exactly; the compiled CSS is fixed.
