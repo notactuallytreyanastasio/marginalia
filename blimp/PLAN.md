@@ -566,11 +566,14 @@ Found while writing Phase 1 (each one cost an agent an hour):
   (GET, `accept: application/json`) every N seconds and gets the same JSON.
   Hook names: the two Composers are `ChatComposer` (work show) and
   `LinkChatComposer`.
-- `html`: Markdown costs ~30 µs per inline character (100 paragraphs ≈ 1 s).
-  Pages that render many sections must cache rendered HTML per section in
-  a table keyed by a body fingerprint (Phase 4 adds `rendered_html` to
-  `sections` or a `render_cache` table); until then render only what the
-  page shows. `markdownToHtmlSoft` keeps newlines (Reading.render_block).
+- `html`: Markdown cost was ~30 µs per inline character; after the
+  interpreter's lookup work (fork e5fac4a, e7a29d2: actors indexed by id,
+  builtins by name, call-site cache) a 2,000-character paragraph with
+  emphasis and links renders in 33 ms (was 257 ms), plain prose in under
+  1 µs per character, fifty such paragraphs in 1.8 s. Pages that render
+  many sections should still cache rendered HTML per section keyed by a
+  body fingerprint (Phase 4); until then render only what the page shows.
+  `markdownToHtmlSoft` keeps newlines (Reading.render_block).
 - `core` timings in the interpreter: `segment` of 12,000 words 1.7-2.5 s,
   paragraph `rows` of 2,000 words 0.2 s, word `diff` of 2,000 words 17.9 s.
   Word diff runs per changed paragraph only, never over a whole draft.
