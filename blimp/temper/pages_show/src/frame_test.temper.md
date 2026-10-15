@@ -67,9 +67,9 @@ the LiveView.
       let w = tWorld();
       let html = tBodyOf(tGet(w.db, w.owner, tPath(w.work, "trace"), tKeyed()));
       expectHas(test, html, "The page");
-      expectLacks(test, html, "trace is not built yet");
+      expectLacks(test, html, "Build trace");
       let boss = tWho(w.db, accountsOwnerEmail());
-      expectHas(test, tBodyOf(tGet(w.db, boss, tPath(w.work, "trace"), tKeyed())), "trace is not built yet");
+      expectHas(test, tBodyOf(tGet(w.db, boss, tPath(w.work, "trace"), tKeyed())), "Build trace");
     }
 
     test("frame: an unknown view is the page, not a report about it") { test =>

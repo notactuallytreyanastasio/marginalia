@@ -24,13 +24,12 @@ in `log/error.log`. The Temper bubble carries no text; the line says so.
     let { Db, dbOpen } = import("db/src");
     let {
       Ctx, webNewCtx, webNewSession, webMountCurrentScope, webEnsureUserOrGuest, webRequireRealAccount,
-      webCheckCsrf, webNotFound, webServerError, webErrorDocument, webMeta, webPage, webPruneSessions,
+      webCheckCsrf, webNotFound, webServerError, webErrorDocument, webPruneSessions,
     } = import("webcore/src");
     let { noScope } = import("accounts/src");
     let {
       sysGetEnv, sysFileSize, sysExec, sysAppendFile, sysUtcNow, sysUtf8Upcase, sysFork, sysWaitPid, sysExit,
     } = import("sys/src");
-    let { h, htext, attr } = import("html/src");
     let { JsonObject, JsonString, JsonSyntaxTree, parseJson } = import("std/json");
     let { pagesUsersRoutes, pagesUsersGet, pagesUsersEvent } = import("pages_users/src");
     let { pagesWorksRoutes, pagesWorksGet, pagesWorksEvent } = import("pages_works/src");
@@ -58,10 +57,11 @@ two groups claim the same path, which none does (`/works/new` and
     export class WebGroup(public id: String, public routes: List<Route>) {}
 
 The groups, in Phoenix router order. To add one: append a line here, and add
-its `id` to `wrGroupGet` and `wrGroupEvent` below. `pages_public` goes first
+its `id` to `wrGroupGet` and `wrGroupEvent` below. `pages_cases` goes first
 (`/`, `/cases`, `/drafts`... come before the guest scope in `router.ex`), then
-the guest scope's groups, then `pages_users`; the `web` placeholders stay last
-so a real `/` wins over the placeholder.
+the guest scope's groups, then `pages_users`. While the page libraries were
+landing a `web` group of placeholders came last, so a real `/` won over the
+placeholder; every group has landed and it is gone.
 
     export let webGroups(): List<WebGroup> {
       [
@@ -83,8 +83,6 @@ so a real `/` wins over the placeholder.
         new WebGroup("pages_import", pagesImportRoutes()),
         new WebGroup("pages_show", pagesShowRoutes()),
         new WebGroup("pages_users", pagesUsersRoutes()),
-        // The placeholders for pages whose group has not landed. Keep last.
-        new WebGroup("web", wrPlaceholderRoutes()),
       ]
     }
 
@@ -100,31 +98,6 @@ Every route of every group, in match order.
         }
       }
       out.toList()
-    }
-
-### The placeholder group
-
-`/` until `pages_public` lands: the app layout and the word Marginalia.
-
-    let wrPlaceholderRoutes(): List<Route> {
-      []
-    }
-
-    let wrPlaceholderPage(ctx: Ctx, heading: String): Response throws Bubble {
-      webPage(
-        ctx, webMeta(null),
-        h("div", attr("class", "mx-auto max-w-sm px-6 py-16"), h("h1", attr("class", "text-2xl font-semibold"), htext(heading))),
-        null, "app",
-      )
-    }
-
-    let wrPlaceholderGet(ctx: Ctx, match: Match): Response throws Bubble {
-      if (match.route.name == "public.home") {
-        wrPlaceholderPage(ctx, "Marginalia")
-      } else {
-        console.log("web: no handler for route ${match.route.name}");
-        bubble()
-      }
     }
 
 ### Handing a request to its group
@@ -148,8 +121,6 @@ Every route of every group, in match order.
         pagesShowGet(ctx, match)
       } else if (id == "pages_users") {
         pagesUsersGet(ctx, match)
-      } else if (id == "web") {
-        wrPlaceholderGet(ctx, match)
       } else {
         console.log("web: unknown group ${id}");
         bubble()
