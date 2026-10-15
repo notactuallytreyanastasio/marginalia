@@ -1,0 +1,12 @@
+# The one native thing http needs: reading a static file.
+# TODO: switch to sys's sysReadFile once the sys library lands, and delete this file.
+# read_file answers nil for a missing or unreadable path.
+
+def connected_httpReadFile(p: Any) -> Any do read_file(p) end
+
+# Length in bytes. Temper cannot ask this of a String that holds raw bytes (a
+# PNG, an uploaded file): iterating its code points miscounts invalid UTF-8.
+# Blimp strings are byte strings and length counts bytes.
+# TODO: sysByteLength, with the rest.
+
+def connected_httpByteLength(s: Any) -> Any do length(s) end

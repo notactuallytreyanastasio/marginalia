@@ -1,0 +1,26 @@
+{
+  "id": "chatcmpl-fake",
+  "object": "chat.completion",
+  "created": 1760000000,
+  "model": "fake-model",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"first_impression\":\"A household waits for news it dreads, and the draft lets objects carry the feeling: a cold kettle, a thermostat that measures only the hallway, a telephone nobody wants to answer. It is quieter about its people than about its things. The ending turns on one small act rather than on what the call said.\",\"spine\":[{\"title\":\"The household waits at the window\",\"note\":\"Establishes the stillness and the unnamed dread.\"},{\"title\":\"The kettle goes cold\",\"note\":\"The first small failure of ordinary life.\"},{\"title\":\"The thermostat is introduced\",\"note\":\"Father and machine; regulation without understanding.\"},{\"title\":\"The metaphor is stated\",\"note\":\"A house can be regulated and still be cold.\"},{\"title\":\"The telephone rings\",\"note\":\"The brother ends the waiting.\"},{\"title\":\"The kettle is filled\",\"note\":\"Action replaces waiting; the opening is paid off.\"}],\"threads\":[{\"title\":\"The kettle\",\"note\":\"Cold in section one, filled in section three.\",\"status\":\"carried\"},{\"title\":\"The thermostat\",\"note\":\"Appears in section two and is never named again.\",\"status\":\"thin\"},{\"title\":\"The telephone\",\"note\":\"Set on its shelf early, answered at the end.\",\"status\":\"carried\"}],\"questions\":[\"What does the thermostat passage do for a reader who has not yet been told what the family is waiting for?\",\"The telephone is mentioned in section one and not again until the end; is that gap deliberate?\",\"Why does the mother serve the soup if nobody eats it, and should the reader be told?\",\"Who is the she of the opening, and why is her name never given?\"]}"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 100,
+    "completion_tokens": 20,
+    "total_tokens": 120,
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 100,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

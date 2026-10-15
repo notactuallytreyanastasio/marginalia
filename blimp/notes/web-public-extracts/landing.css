@@ -1,0 +1,307 @@
+  :root{
+    --mg-paper:#fbfaf7; --mg-ink:#1c1a17; --mg-dim:#6b665e; --mg-rule:#e0dbd2;
+    --mg-accent:#8a3324; --mg-margin:#f4f1ea;
+    --mg-serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --mg-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+  .mg{background:var(--mg-paper); color:var(--mg-ink); font-family:var(--mg-serif);
+    font-size:17px; line-height:1.7; min-height:100vh; padding:0 1.5rem 8rem}
+  .mg *{box-sizing:border-box}
+
+  .mg-head{max-width:74rem; margin:0 auto; display:flex; align-items:baseline; gap:.9rem;
+    padding:1.1rem 0 .8rem; border-bottom:1px solid var(--mg-rule);
+    position:sticky; top:0; background:var(--mg-paper); z-index:5}
+  .mg-brand{font-family:var(--mg-sans); font-size:.72rem; letter-spacing:.22em;
+    text-transform:uppercase; font-weight:600}
+  .mg-head .right{margin-left:auto; font-family:var(--mg-sans); font-size:.78rem;
+    display:flex; gap:.9rem; align-items:center}
+  .mg-head a{color:var(--mg-dim); text-decoration:none}
+  .mg-head a:hover{color:var(--mg-accent)}
+  .mg-toggle{font-family:var(--mg-sans); font-size:.72rem; background:none; cursor:pointer;
+    border:1px solid var(--mg-rule); border-radius:3px; padding:.25rem .6rem; color:var(--mg-dim)}
+  .mg-toggle:hover{border-color:var(--mg-accent); color:var(--mg-accent)}
+  .mg-toggle.on{background:var(--mg-accent); border-color:var(--mg-accent); color:#fff}
+
+  /* ---- the rail ---------------------------------------------------- */
+  .sec{display:grid; grid-template-columns:minmax(0,58ch) 3rem minmax(0,30ch);
+    justify-content:center; align-items:start; column-gap:0;
+    /* .mg-head is sticky at top:0, so a section jumped to from /#changes
+       lands underneath it without this. Matches .sec-aside's own offset,
+       which is already clearing the same bar. */
+    scroll-margin-top:5rem}
+  .sec-title{grid-column:1; padding-right:.5rem; min-width:0}
+  .sec-main{grid-column:1; padding-right:.5rem; min-width:0}
+  .sec-aside{grid-column:3; padding-left:.5rem; position:sticky; top:5rem; padding-bottom:2.5rem}
+  .sec.head .sec-aside{grid-row:1 / 3}
+  .sec-leader{grid-column:2; grid-row:1; border-top:1px dotted #c3bcb0; height:0;
+    margin-top:1.9rem; align-self:start}
+  .sec.head{margin-top:3.4rem}
+  .sec.head:first-of-type{margin-top:.5rem}
+  .sec:not(.head){margin-top:1.6rem}
+  .sec:not(.head) .sec-leader{display:none}
+
+  /* ---- notes, arriving --------------------------------------------- */
+  .note{font-family:var(--mg-sans); font-size:.79rem; line-height:1.6; color:var(--mg-ink);
+    background:var(--mg-margin); border-left:2px solid var(--mg-accent);
+    padding:.7rem .85rem; border-radius:0 3px 3px 0}
+  /* the hiding only exists once the observer is live — see the hook */
+  .reveal-ready .note{opacity:0; transform:translateY(10px);
+    transition:opacity .5s ease, transform .5s ease;
+    transition-delay:calc(var(--i, 0) * 140ms)}
+  .reveal-ready .note.in{opacity:1; transform:none}
+  .note + .note{margin-top:.7rem}
+  .note b{font-weight:600}
+  .note .who{display:block; font-size:.62rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--mg-dim); margin-bottom:.35rem}
+  .note.act{background:#fff; border-left-color:var(--mg-ink)}
+  .note-cta{display:inline-block; margin-top:.55rem; font-family:var(--mg-sans);
+    font-size:.74rem; font-weight:600; text-decoration:none; color:var(--mg-paper);
+    background:var(--mg-ink); padding:.35rem .7rem; border-radius:2px}
+  .note-cta:hover{background:var(--mg-accent)}
+
+  .mg h1{font-size:2.5rem; line-height:1.14; letter-spacing:-.022em; margin:1.2rem 0 .9rem;
+    font-weight:600}
+  .mg h2{font-size:1.3rem; margin:0 0 .7rem; font-weight:600; letter-spacing:-.01em}
+  .mg p{margin:0 0 1.05rem}
+  .mg .lede{font-size:1.14rem; color:var(--mg-dim); margin-bottom:1.5rem}
+  .mg .fine{font-family:var(--mg-sans); font-size:.75rem; color:var(--mg-dim)}
+
+  .cta{display:inline-block; font-family:var(--mg-sans); font-size:.9rem; font-weight:600;
+    background:var(--mg-ink); color:var(--mg-paper); padding:.7rem 1.4rem; text-decoration:none;
+    border-radius:2px}
+  .cta:hover{background:var(--mg-accent)}
+  .cta.ghost{background:none; color:var(--mg-ink); border:1px solid var(--mg-rule)}
+  .cta.ghost:hover{border-color:var(--mg-accent); color:var(--mg-accent)}
+  .seeit{margin:1rem 0 0; font-family:var(--mg-sans); font-size:.8rem}
+  .seeit a{color:var(--mg-accent); text-decoration:none;
+    border-bottom:1px solid var(--mg-rule); padding-bottom:1px}
+  .seeit a:hover{border-bottom-color:var(--mg-accent)}
+
+  .ctas{display:flex; gap:.6rem; flex-wrap:wrap; margin:1.4rem 0 .5rem}
+
+  .demo{border:1px solid var(--mg-rule); background:#fff; padding:1.1rem 1.3rem; margin:1.3rem 0}
+  .demo .src{font-size:.98rem; line-height:1.65; color:#2a2723; margin:0}
+  .demo .mark{background:#fdf2c9; padding:0 .1em}
+
+  /* ---- an exchange, playing out ------------------------------------ */
+  .play{border:1px solid var(--mg-rule); background:#fff; margin:1.3rem 0;
+    font-family:var(--mg-sans); font-size:.84rem; line-height:1.6}
+  .play .cap{font-size:.62rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--mg-dim); padding:.55rem .95rem; border-bottom:1px solid var(--mg-rule)}
+  .play .turns{padding:.85rem .95rem; display:flex; flex-direction:column; gap:.7rem}
+  .reveal-ready .turn{opacity:0; transform:translateY(6px);
+    transition:opacity .45s ease, transform .45s ease;
+    transition-delay:calc(var(--i, 0) * 800ms)}
+  .reveal-ready .play.in .turn{opacity:1; transform:none}
+  .turn.you{align-self:flex-end; max-width:85%; background:var(--mg-ink); color:var(--mg-paper);
+    padding:.45rem .7rem; border-radius:3px}
+  .turn.it{max-width:96%}
+  .turn.it q{quotes:none; display:block; border-left:2px solid var(--mg-rule);
+    padding-left:.6rem; margin:.4rem 0; color:var(--mg-dim); font-family:var(--mg-serif);
+    font-size:.9rem}
+  .turn.think{color:var(--mg-dim); font-style:italic; font-size:.78rem}
+
+  .wont{border-top:2px solid var(--mg-ink); border-bottom:2px solid var(--mg-ink);
+    padding:1.2rem 0; margin:1.5rem 0}
+  .wont ul{margin:.5rem 0 0; padding-left:1.1rem}
+  .wont li{margin:.3rem 0}
+
+  /* ---- the filter row, as the read view has it ---------------------- */
+  .mg-chips{display:flex; gap:1.1rem; flex-wrap:wrap; font-family:var(--mg-sans);
+    font-size:.7rem; letter-spacing:.11em; text-transform:uppercase; color:var(--dim, #6b665e);
+    border-bottom:1px solid var(--mg-rule); padding-bottom:.55rem; margin:0 0 .9rem}
+  .mg-chips b{font-weight:600; color:var(--mg-ink); border-bottom:2px solid var(--mg-accent);
+    padding-bottom:.55rem; margin-bottom:-.57rem}
+
+  /* ---- candidates, side by side ------------------------------------- */
+  .mg-cands{border:1px solid var(--mg-rule); background:#fff; margin:1.3rem 0}
+  .mg-cands .cap{font-family:var(--mg-sans); font-size:.62rem; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--mg-dim); padding:.55rem .95rem;
+    border-bottom:1px solid var(--mg-rule)}
+  .mg-cands .c{padding:.8rem .95rem}
+  .mg-cands .c + .c{border-top:1px solid var(--mg-rule)}
+  .mg-cands .c.orig{background:var(--mg-margin)}
+  .mg-cands .lab{display:block; font-family:var(--mg-sans); font-size:.62rem; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--mg-dim); margin-bottom:.4rem; font-weight:600}
+  .mg-cands .lab em{font-style:normal; font-weight:400; letter-spacing:.04em;
+    text-transform:none; font-size:.72rem}
+  .mg-cands p{margin:0; font-size:1rem; line-height:1.6}
+  .mg-cands .c.orig p{color:var(--mg-dim)}
+  .mg-cands del{text-decoration:none; background:#f7e9e5; color:#8a3324; padding:0 .08em}
+  .mg-cands ins{text-decoration:none; background:#e8f0e6; padding:0 .08em}
+  /* A demo is markup that already reads correctly. The steps only control
+     WHEN each part appears, so with the script dead or motion turned down
+     the final frame is what you get — `reveal-ready` is the only thing
+     that ever hides anything. */
+  /* Explicit column flow. These blocks were collapsing to a couple of
+     lines with every child painting over the others, which is what a
+     container does when its children stop contributing height. A flex
+     column cannot do that: each child is its own line and the box grows
+     to fit them. */
+  .fx{display:flex; flex-direction:column; align-items:stretch;
+    margin:1.4rem 0 1.6rem; border:1px solid var(--mg-rule); border-radius:4px;
+    background:var(--mg-margin); padding:0.85rem 0.95rem; font-family:var(--mg-sans);
+    font-size:0.82rem; line-height:1.55}
+  .fx > *{flex:0 0 auto; min-height:1.4em}
+  .fx .cap{font-size:0.66rem; text-transform:uppercase; letter-spacing:0.07em;
+    color:var(--mg-dim); margin-bottom:0.6rem}
+
+  .fx .d-head{display:flex; align-items:baseline; gap:0.5rem; flex-wrap:wrap}
+  .fx .d-lab{font-size:0.64rem; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--mg-dim)}
+  .fx .d-title{font-family:var(--mg-serif); font-size:0.92rem}
+  .fx .d-btn{margin-left:auto; border:1px solid var(--mg-rule); border-radius:3px;
+    padding:0.1em 0.45em; background:var(--mg-paper); color:var(--mg-dim); font-size:0.7rem}
+  .fx .d-sum{font-family:var(--mg-serif); font-size:0.9rem; margin:0.6rem 0 0;
+    border-left:2px solid var(--mg-accent); padding-left:0.7rem}
+  .fx .d-chips{display:flex; flex-wrap:wrap; gap:0.3rem; margin-top:0.5rem}
+  .fx .d-chips span{border:1px solid var(--mg-rule); border-radius:2px; background:var(--mg-paper);
+    padding:0.08em 0.4em; font-size:0.68rem; color:var(--mg-dim)}
+  .fx .d-links{display:flex; flex-wrap:wrap; gap:0.8rem; margin-top:0.45rem;
+    font-size:0.7rem; color:var(--mg-dim)}
+
+  .fx .d-cols{border:1px solid var(--mg-rule); border-radius:3px; overflow:hidden;
+    background:var(--mg-paper)}
+  .fx .d-colhead{display:grid; grid-template-columns:1fr 1fr; background:var(--mg-margin);
+    border-bottom:1px solid var(--mg-rule)}
+  .fx .d-colhead span{padding:0.25rem 0.5rem; font-size:0.62rem; text-transform:uppercase;
+    letter-spacing:0.06em; color:var(--mg-dim)}
+  .fx .d-colhead span+span{border-left:1px solid var(--mg-rule)}
+  .fx .d-row{display:grid; grid-template-columns:1fr 1fr}
+  .fx .d-side{padding:0.5rem 0.55rem; font-family:var(--mg-serif); font-size:0.82rem}
+  .fx .d-side+.d-side{border-left:1px solid var(--mg-rule)}
+  .fx .d-old del{background:rgba(203,36,49,0.20); color:#82071e; text-decoration:line-through;
+    border-radius:2px}
+  .fx .d-new ins{background:rgba(46,160,67,0.22); color:#116329; text-decoration:none;
+    border-radius:2px}
+  .fx .d-log{margin-top:0.4rem; font-family:var(--mg-sans); font-size:0.7rem; color:var(--mg-dim)}
+  .fx .d-log .sha{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--mg-ink)}
+
+  .fx.link .d-link{display:grid; grid-template-columns:1fr auto 1fr; gap:0.55rem;
+    align-items:start}
+  .fx.link .d-col{display:flex; flex-direction:column; gap:0.3rem; min-width:0}
+  .fx.link .d-col-name{font-size:0.64rem; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--mg-dim); margin-bottom:0.15rem}
+  .fx.link .d-node{border:1px solid var(--mg-rule); border-radius:3px; background:var(--mg-paper);
+    padding:0.28em 0.45em; font-family:var(--mg-serif); font-size:0.78rem}
+  .fx.link .d-edges{display:flex; flex-direction:column; gap:0.3rem; padding-top:1.05rem}
+  .fx.link .d-edge{display:block; text-align:center; min-width:5.6rem}
+  .fx.link .d-edge i{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-style:normal;
+    font-size:0.64rem; color:var(--mg-dim); border-bottom:1px solid var(--mg-rule);
+    display:block; padding-bottom:0.15rem; line-height:1.9}
+  .fx.link .d-edge.tension i{color:var(--mg-accent); border-bottom-color:var(--mg-accent)}
+  .fx.link .d-edge-note{margin:0.7rem 0 0; font-family:var(--mg-serif); font-size:0.82rem;
+    border-left:2px solid var(--mg-accent); padding-left:0.7rem}
+  @media (max-width:640px){
+    .fx.link .d-link{grid-template-columns:1fr}
+    .fx.link .d-edges{flex-direction:row; flex-wrap:wrap; padding-top:0.3rem}
+  }
+
+  .fx .d-call{display:flex; align-items:baseline; gap:0.45rem; flex-wrap:wrap;
+    margin-top:0.3rem; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:0.72rem}
+  .fx .d-call .tool{color:var(--mg-accent)}
+  .fx .d-call .arg{color:var(--mg-ink)}
+  .fx .d-call .hit{margin-left:auto; color:var(--mg-dim); font-family:var(--mg-sans);
+    font-size:0.68rem}
+  .fx .d-reply{margin:0.65rem 0 0; font-family:var(--mg-serif); font-size:0.88rem;
+    border-left:2px solid var(--mg-rule); padding-left:0.7rem}
+
+  .fx.stack .d-ticks{display:block; flex:0 0 12px; height:12px; min-height:12px; margin-bottom:0.8rem; border-radius:1px;
+    background-image:repeating-linear-gradient(to right,
+      var(--mg-rule) 0, var(--mg-rule) 5px, transparent 5px, transparent 7px);
+    background-repeat:repeat-x}
+  .fx.stack .d-move{display:block; margin-top:0.4rem; line-height:1.6; min-height:1.6em}
+  .fx.stack .d-revised{min-height:1.4em}
+  /* Reported from Safari, which collapsed this box to two lines with every
+     row painting over the one above it. Chrome lays it out correctly at
+     every width and in both animation states, so the floor is explicit
+     rather than derived: caption, bar, three rows and a footnote cannot
+     occupy less than this no matter what the engine does with the
+     children's heights. */
+  .fx.stack{min-height:9.5rem}
+  .fx.link{min-height:8rem}
+  .fx.stack .d-move .mg-meta{margin-left:0.4rem}
+  .fx.stack .d-move strong{font-family:var(--mg-serif); font-weight:600; font-size:0.85rem}
+  .fx.stack .d-revised{margin-top:0.6rem; color:var(--mg-accent); font-size:0.72rem}
+
+  /* The pipeline. Label over detail rather than a grid, so a narrow
+     screen wraps instead of squeezing eight rows into two columns. */
+  .fx.pipe .d-stage{padding:0.38rem 0; border-top:1px solid var(--mg-rule)}
+  .fx.pipe .d-stage:first-of-type{border-top:0}
+  .fx.pipe .d-what{display:block; font-family:var(--mg-sans); font-size:0.62rem;
+    text-transform:uppercase; letter-spacing:0.07em; color:var(--mg-accent)}
+  .fx.pipe .d-what b{font-weight:600; color:var(--mg-dim); margin-right:0.45rem}
+  .fx.pipe .d-detail{display:block; font-family:var(--mg-serif); font-size:0.84rem;
+    line-height:1.5; margin-top:0.1rem}
+  .fx.pipe code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:0.76rem;
+    background:var(--mg-margin); padding:0 0.2rem; border-radius:2px}
+  .fx.pipe{min-height:20rem}
+
+  /* Nothing above is hidden until the script says it is safe to hide it. */
+  .reveal-ready .fx [data-step]{opacity:0; transform:translateY(5px);
+    transition:opacity .45s ease, transform .45s ease}
+  .reveal-ready .fx [data-step].on{opacity:1; transform:none}
+  .reveal-ready .fx .d-old del[data-step],
+  .reveal-ready .fx .d-new ins[data-step]{transform:none}
+  .reveal-ready .fx.stack .d-ticks{opacity:0.25; transition:opacity .7s ease}
+  .reveal-ready .fx.stack.in .d-ticks{opacity:1}
+
+  @media (max-width:640px){
+    .fx .d-colhead,.fx .d-row{grid-template-columns:1fr}
+    .fx .d-side+.d-side{border-left:0; border-top:1px solid var(--mg-rule)}
+  }
+
+  .reveal-ready .mg-cands .c.alt{opacity:0; transform:translateY(6px);
+    transition:opacity .45s ease, transform .45s ease;
+    transition-delay:calc(var(--i, 0) * 600ms)}
+  .reveal-ready .mg-cands.in .c.alt{opacity:1; transform:none}
+
+  /* ---- what leads to what -------------------------------------------- */
+  .mg-edges{border:1px solid var(--mg-rule); background:#fff; margin:1.3rem 0;
+    font-family:var(--mg-sans); font-size:.82rem; line-height:1.5}
+  .mg-edges .cap{font-size:.62rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--mg-dim); padding:.55rem .95rem; border-bottom:1px solid var(--mg-rule)}
+  .mg-edges .e{display:flex; align-items:baseline; gap:.55rem; flex-wrap:wrap;
+    padding:.6rem .95rem}
+  .mg-edges .e + .e{border-top:1px solid #f0ece4}
+  .mg-edges .n{color:var(--mg-ink)}
+  .mg-edges .n::before{content:"●"; font-size:.5rem; vertical-align:.18em;
+    margin-right:.4rem; color:var(--mg-accent)}
+  .mg-edges .n.hollow::before{content:"○"; color:var(--mg-dim)}
+  .mg-edges .rel{font-size:.64rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--mg-dim); border:1px solid var(--mg-rule); border-radius:2px;
+    padding:.1rem .35rem}
+  .mg-edges .why{flex-basis:100%; color:var(--mg-dim); font-size:.78rem; margin-top:.15rem}
+
+  /* ---- the thread in the gutter -------------------------------------- */
+  .mg-gut{border:1px solid var(--mg-rule); background:#fff; margin:1.3rem 0;
+    padding:1rem 1.2rem .95rem; position:relative}
+  .mg-gut .tick{position:absolute; left:.5rem; top:1.35rem; width:2px; height:2.6rem;
+    background:var(--mg-accent)}
+  .mg-gut p{margin:0 0 .7rem; font-size:1rem; line-height:1.62}
+  .mg-gut .turns{border-left:2px solid var(--mg-rule); padding-left:.85rem;
+    font-family:var(--mg-sans); font-size:.82rem; line-height:1.55;
+    display:flex; flex-direction:column; gap:.5rem}
+  .mg-gut .turns .you{color:var(--mg-ink); font-weight:600}
+  .mg-gut .turns .it{color:var(--mg-dim)}
+
+  /* ---- notes-only --------------------------------------------------- */
+  .notes-only .sec-main, .notes-only .sec-leader{display:none}
+  .notes-only .sec{grid-template-columns:minmax(0,62ch)}
+  .notes-only .sec-title{padding-right:0; margin-bottom:.3rem}
+  .notes-only .sec.head .sec-aside{grid-row:auto}
+  .notes-only .sec-aside{grid-column:1; position:static; padding-left:0; padding-bottom:0;
+    margin-top:.6rem}
+  .notes-only .sec:not(.head){margin-top:1.6rem}
+  .notes-only .sec.head{margin-top:2.4rem}
+  .notes-only .note{font-size:.92rem}
+
+  @media (max-width:1000px){
+    .sec{grid-template-columns:minmax(0,1fr)}
+    .sec-title, .sec-main{grid-column:1; padding-right:0}
+    .sec-leader{display:none}
+    .sec-aside{grid-column:1; grid-row:auto; position:static; padding-left:0;
+      padding-bottom:0; margin:.2rem 0 1.7rem; order:2}
+    .sec.head .sec-aside{grid-row:auto}
+    .mg h1{font-size:2rem}
+  }

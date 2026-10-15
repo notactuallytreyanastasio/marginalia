@@ -1,0 +1,581 @@
+# Files in this directory that run for real. A skeleton listed nowhere here reports
+# one "# SKIP" and passes. When a page agent has made a page's assertions true,
+# add the file name on its own line (00_smoke.sh always runs; it needs no entry).
+#
+# 10_accounts.sh
+# 20_works.sh
+# 30_public.sh
+
+# ---------------------------------------------------------------------------
+# PLANNED FILES: one per page group of notes/tests.md parts 5-9 (491 web tests).
+# Each entry is a source test file and its test titles. 10, 20 and 30 exist as
+# skeletons; the rest are named here so the page agents add them in this order.
+# ---------------------------------------------------------------------------
+#
+# 10_accounts.sh  (58 tests in 5 files)
+#   login_test  (5)
+#     - renders login page
+#     - redirects if user logs in with valid credentials
+#     - redirects to login page with a flash error if credentials are invalid
+#     - redirects to registration page when the Register button is clicked
+#     - shows login page with email filled in
+#   registration_test  (7)
+#     - renders registration page
+#     - redirects if already logged in
+#     - renders errors for invalid data
+#     - creates the account and sends them to log in
+#     - requires a password
+#     - renders errors for duplicated email
+#     - redirects to login page when the Log in button is clicked
+#   settings_test  (12)
+#     - renders settings page
+#     - redirects if user is not logged in
+#     - redirects if user is not in sudo mode
+#     - updates the user email
+#     - renders errors with invalid data (phx-change)
+#     - renders errors with invalid data (phx-submit)
+#     - updates the user password
+#     - renders errors with invalid data (phx-change)
+#     - renders errors with invalid data (phx-submit)
+#     - updates the user email once
+#     - does not update email with invalid token
+#     - redirects if user is not logged in
+#   user_session_controller_test  (6)
+#     - logs the user in
+#     - logs the user in with remember me
+#     - logs the user in with return to
+#     - redirects to login page with invalid credentials
+#     - logs the user out
+#     - succeeds even if the user is not logged in
+#   user_auth_test  (28)
+#     - stores the user token in the session
+#     - clears everything previously stored in the session
+#     - keeps session when re-authenticating
+#     - clears session when user does not match when re-authenticating
+#     - redirects to the configured path
+#     - clears the return-to path from the session after logging in
+#     - writes a cookie if remember_me is configured
+#     - redirects to settings when user is already logged in
+#     - writes a cookie if remember_me was set in previous session
+#     - erases session and cookies
+#     - broadcasts to the given live_socket_id
+#     - works even if user is already logged out
+#     - authenticates user from session
+#     - authenticates user from cookies
+#     - does not authenticate if data is missing
+#     - reissues a new token after a few days and refreshes cookie
+#     - assigns current_scope based on a valid user_token
+#     - assigns nil to current_scope assign if there isn't a valid user_token
+#     - assigns nil to current_scope assign if there isn't a user_token
+#     - authenticates current_scope based on a valid user_token
+#     - redirects to login page if there isn't a valid user_token
+#     - redirects to login page if there isn't a user_token
+#     - allows users that have authenticated in the last 10 minutes
+#     - redirects when authentication is too old
+#     - redirects if user is not authenticated
+#     - stores the path to redirect to on GET
+#     - does not redirect if user is authenticated
+#     - broadcasts disconnect messages for each token
+#
+# 20_works.sh  (66 tests in 5 files)
+#   import_flow_test  (25)
+#     - the first step is a choice of source, and creates nothing
+#     - finding lists the pull requests without importing any
+#     - a title regex filters the list and sets the selection
+#     - a pattern that will not compile says so and keeps the list
+#     - the boxes have the last word over the regex
+#     - clearing and selecting work on what is shown, not on everything
+#     - importing lands them in a folder and says what could not be fetched
+#     - a second import into the same folder skips what is there
+#     - a search that GitHub refuses is reported in words
+#     - a search lists across repositories
+#     - a repository written wrongly is refused before any request
+#     - the token is never rendered back into the page
+#     - the file step is reachable and starts empty
+#     - back walks the steps rather than reloading
+#     - the list is oldest first, so the folder reads forwards
+#     - the order can be flipped, and numbering follows it
+#     - narrows by state without another request
+#     - the shape from the report
+#     - a bare word still matches the title, and a minus takes it away
+#     - a typo is refused by name and the list is kept
+#     - switching language re-runs the same text
+#     - re-applies the filter instead of reloading the page
+#     - the order form survives it too
+#     - an empty query explains itself when it is the guessable mistake
+#     - and says nothing when the query is simply too narrow
+#   step_links_test  (5)
+#     - a document that became a step links to it
+#     - a document that has not been read has no such link
+#     - the lookup is one query for the whole tree
+#     - somebody else's steps are not in this writer's map
+#     - the link lands on the step, not on the folder
+#   work_tree_test  (15)
+#     - with no folders it still lists the drafts
+#     - adding a folder puts an empty bucket on the page
+#     - a blank folder name is ignored rather than made
+#     - a duplicate folder name says so instead of appearing twice
+#     - dropping a draft on a folder files it there
+#     - dropping it back on the root takes it out again
+#     - dropping a folder on a folder nests it
+#     - dropping a folder into its own child is refused out loud
+#     - collapsing a folder hides what is in it without moving anything
+#     - renaming a folder keeps its contents
+#     - deleting a folder from the page leaves the drafts on it
+#     - it appears only while there is something to file
+#     - it builds Cases / the case name and puts both drafts in it
+#     - a draft already dragged somewhere is not swept up by it
+#     - the count in the header is every draft, filed or not
+#   work_upload_fallback_test  (8)
+#     - carries an action and a CSRF token
+#     - saves the draft and goes to it, rather than 404ing
+#     - a visitor with no account at all gets one on the way in
+#     - an untitled draft still saves
+#     - an empty draft says so and says why a file did not arrive
+#     - the writer's text is still in the box
+#     - nothing is written when the draft is rejected
+#     - the LiveView and the plain POST reject the same draft
+#   guest_upload_test  (13)
+#     - is let in, and given a guest of their own
+#     - the same session keeps the same guest
+#     - two different visitors get two different guests
+#     - the url carries an unguessable slug, not the row id
+#     - a guessed slug gets nothing
+#     - the owner sees it as theirs, with a link to hand out
+#     - someone with the link can read it
+#     - but cannot spend the owner's model credit or change the draft
+#     - it does not show up in anyone else's list
+#     - a guest is sent to sign up, not to log in — they have nothing to log in with
+#     - a real account gets in
+#     - a guest becomes a real user and keeps everything they uploaded
+#     - claiming a real account is refused
+#
+# 30_public.sh  (50 tests in 10 files)
+#   draft_render_test  (4)
+#     - sentences of a paragraph run on; the draft's blank lines are the only breaks
+#     - a blockquote renders as one quoted paragraph
+#     - code keeps its line breaks and a list keeps its items
+#     - the changes page shows the sentence that changed, on its own
+#   linked_index_test  (5)
+#     - a pair with a tension outranks a pair with more edges
+#     - the page says how many of them contain one
+#     - the filter narrows by either title
+#     - a filter matching nothing says so rather than showing an empty list
+#     - counting the edges does not cost a query per link
+#   public_linked_test  (5)
+#     - a stranger sees the pair and its edges
+#     - somebody else's pair is not readable
+#     - a pair that found nothing is not offered
+#     - the index lists the owner's pairs only
+#     - it carries no control that writes
+#   public_drafts_test  (7)
+#     - a stranger with no account sees the owner's drafts listed
+#     - somebody else's draft is not on the list
+#     - somebody else's draft is not served by slug either
+#     - the owner's draft reads, with no account, and is indexable
+#     - the public page carries none of the controls that write or spend
+#     - reading one mints no account for the visitor
+#     - a slug nobody owns goes back to the list rather than erroring
+#   public_changes_test  (6)
+#     - a stranger sees what the draft used to say
+#     - and where the change came from
+#     - the draft page links to it once there is something to show
+#     - somebody else's draft has no public diff either
+#     - an unchanged draft says so instead of showing an empty table
+#     - it carries no control that writes
+#   error_html_test  (3)
+#     - 404 renders a page through the template layer
+#     - 500 does too
+#     - a status with no page of its own still renders its name
+#   error_json_test  (2)
+#     - renders 404
+#     - renders 500
+#   error_page_test  (6)
+#     - 404 is a page, not the words Not Found
+#     - it offers somewhere to go
+#     - 500 does not blame the visitor
+#     - neither is indexed
+#     - they depend on nothing that could also be broken
+#     - anything else keeps the plain status name
+#   og_test  (6)
+#     - the front page keeps the product's own card
+#     - has its own title, description and card
+#     - the description counts the corpus rather than describing it
+#     - each page declares itself, not the site root
+#     - the canonical link agrees with og:url
+#     - the card image is actually there
+#   sitemap_test  (6)
+#     - it is xml and lists the public entry points
+#     - the owner's drafts are in it
+#     - nobody else's draft is
+#     - a draft with no changes has no changes page listed
+#     - a draft with changes does
+#     - robots.txt points at it
+#
+# 40_cases.sh  (64 tests in 4 files)
+#   case_index_test  (22)
+#     - the record facts a reader checks first are on the card
+#     - the record carries no headnote any more
+#     - it is the Court's own sentence, lifted from the opinion
+#     - 'we hold that' is preferred over a bare 'accordingly'
+#     - a holding buried mid-sentence is quoted from where the sentence began
+#     - a division heading before the sentence is not part of the quotation
+#     - an opinion that never says it in one sentence gets nothing
+#     - the page quotes it, and says the syllabus is not a source
+#     - the read pass's own account of the opinion is shown, and expands
+#     - every document is named and carries its source
+#     - the card offers pairings, which are how a case is actually read
+#     - the hook is a real disagreement, before any explanation
+#     - one case is one case, not 1 cases
+#     - the lede counts the cases it is actually showing
+#     - it opens with one real connection, not a description of one
+#     - the provenance note says what this is and is not
+#     - a visitor who is not the owner sees all of it
+#     - a summary calls the documents by name, not Manuscript A and B
+#     - a bare A and B at the start of a sentence are named too
+#     - a lettered part of a statute is not a document
+#     - a summary that never mentioned a manuscript is left alone
+#     - a collection with no public record still renders
+#   case_page_test  (8)
+#     - it renders at all, with no filters set
+#     - searching narrows the connections
+#     - slicing by relation, and toggling it off again
+#     - a search matching nothing says so
+#     - the fast track into a referential read is on the page
+#     - each document is named by what distinguishes it
+#     - a visitor who is not the owner still sees it
+#     - the way in is in the nav for everyone, signed in or not
+#   case_read_test  (22)
+#     - the opinion is read with both other documents in one margin
+#     - each note says which document it came from, without the case name
+#     - the far passage travels with the note
+#     - a source chip narrows the margin to one document
+#     - a relation chip narrows the margin to one kind
+#     - any document in the case can be the one you read
+#     - the case page offers the whole-case read before the pairs
+#     - its notes appear in the margin, saying where they are from
+#     - the chip for another case names the case, not the document
+#     - a connection from another case is marked as such in the context
+#     - filtering to this case's own documents leaves it out
+#     - every linked paragraph carries a rail with its relations on it
+#     - tapping the rail opens that paragraph's notes, and closing dismisses them
+#     - a filter change dismisses a sheet that may no longer apply
+#     - the bubble is there and opens a panel about the case
+#     - a note carries its connection into the chat
+#     - asking keeps the question and does not hang
+#     - the context names documents rather than lettering them
+#     - the visible notes are spread across the documents, not taken in order
+#     - a short stack is not folded at all
+#     - nothing is lost to the cap
+#     - an unknown case sends you back to the list
+#   cases_tour_test  (12)
+#     - every leg has steps, and every step says something
+#     - a view with no leg gets none
+#     - each leg but the last hands over to the next
+#     - the page always carries the tour, and says to gate it locally
+#     - no account is created to remember it
+#     - a signed-out visitor is not told they are a guest
+#     - the button asks the overlay directly, with no round trip
+#     - arriving with walk=1 starts the pairwise leg, instead of the one-time card
+#     - the pairwise leg hands over to the whole-case reading
+#     - the last leg runs on the whole-case reading and ends there
+#     - a brand new visitor gets it without doing anything
+#     - a plain visit runs no tour
+#
+# 50_landing.sh  (48 tests in 2 files)
+#   landing_features_test  (34)
+#     - it names the things that were built after it was written
+#     - the rewrite section is not still quoting an old limit
+#     - it says what the whole-document pass actually does
+#     - the git claim is specific rather than a metaphor
+#     - the numbers it cites are the real ones
+#     - the published reading is a real route, and degrades when there is nothing there
+#     - the cases page resolves
+#     - every link out of the page is one the router serves
+#     - each major feature carries one
+#     - a demo's final frame is in the markup, not assembled by the script
+#     - the steps are declared in the markup for the hook to walk
+#     - the diff demo marks removals and additions the same way the real one does
+#     - nothing is hidden without the class the script adds
+#     - the page says the chat fetches rather than recalls
+#     - it names the tools the chat really has
+#     - every tool the page shows is one the editor defines
+#     - the three modes are the three that exist
+#     - overruling it is described, in both kinds
+#     - the section is there with its demo
+#     - every edge kind it shows is one the linker can emit
+#     - it names all six kinds, since it claims there are six
+#     - the direction of an edge is part of the claim
+#     - clusters are mentioned as what pairs become
+#     - the demo blocks do not reuse a class the page already styles
+#     - the section is there, with every stage
+#     - every qualifier it shows is one Import.Query actually accepts
+#     - the query it prints really does what the page says it does
+#     - @today is claimed as the thing GitHub cannot do, and it parses
+#     - the import route it points at is real and reachable without an account
+#     - every section is addressable and no id is used twice
+#     - the features people will link at have the ids they were given
+#     - the feature sections point at something a stranger can open
+#     - they are public routes, not ones behind a login
+#     - each one is a different thing to look at
+#   landing_live_test  (14)
+#     - renders the pitch and the promise
+#     - the page describes the surfaces the product actually has
+#     - it does not promise it will never write, now that it sometimes does
+#     - the privacy claim matches how drafts are actually protected
+#     - is a single document, not a layout nested inside itself
+#     - does not carry the scaffold auth menu, which would duplicate its own header
+#     - the margin carries the product's own notes on the pitch, including ones that argue with it
+#     - a logged-out visitor's CTAs go straight at the upload -- no account needed
+#     - a logged-in writer's CTAs go to the upload page, not back to registration
+#     - the margin offers sign-up actions, not just commentary
+#     - worked examples are present and play in sequence
+#     - everything that animates is marked for the scroll observer
+#     - just the notes drops the prose and keeps the rail
+#     - a logged-in writer is pointed at their drafts instead of log in
+#
+# 60_links.sh  (58 tests in 7 files)
+#   cluster_view_test  (4)
+#     - three drafts and two links draw as one shape
+#     - a node opens its draft and an edge opens that pair
+#     - a lone pair is not drawn — there is no shape to show
+#     - save the rendered page so it can be looked at
+#   link_chat_flow_test  (15)
+#     - the bubble is not offered underneath the tour card
+#     - the bubble is on the page and opens the panel
+#     - asking shows the question and that it is thinking
+#     - a failed answer says so rather than vanishing
+#     - it offers a way into the chat, and no longer a x that did nothing
+#     - citing an edge puts that connection into the chat and opens it
+#     - an empty chat offers questions rather than a blank box
+#     - tapping one asks it
+#     - the strip, the sheet, and the passage they exist to show
+#     - a head that says what this is
+#     - and the way into the chat, since the drawn line is thin to hit
+#     - the passages the hook needs to reach are addressable
+#     - both columns are rendered, even though one is not shown
+#     - the panel closes again
+#     - its head and button are not stranded in the phone's media query
+#   link_flow_test  (16)
+#     - the control offers the other drafts that have been read
+#     - one click pairs them, starts the pass, and goes to the link
+#     - linking the same pair twice reuses the one link
+#     - a draft belonging to someone else cannot be linked in
+#     - says it is working while the pass runs
+#     - the follow view says so too, and subscribes
+#     - a failure is shown with a way to retry
+#     - a first visit is told how to work the page
+#     - it is marked seen on sight, so it does not come back
+#     - the ? in the bar brings it back
+#     - its module no longer exists
+#     - /links/:id serves the follow view, and /read still works
+#     - nothing offers a Split tab any more
+#     - the draft lists every one of them
+#     - the reference can be swapped without leaving the page
+#     - a draft with one link gets no switcher
+#   link_index_test  (7)
+#     - it offers the drafts that have been read, and says why not the others
+#     - picking two and linking them starts the pass and goes to the pair
+#     - the same draft twice is refused
+#     - existing pairs are listed with what was found
+#     - a pair still being worked on says so
+#     - someone else's links are not listed
+#     - changing a pick patches the form instead of growing another one
+#   links_index_scroll_test  (6)
+#     - it draws a page of rows, not all of them
+#     - asking for more gives more, and eventually all of them
+#     - the filter matches either side of a pair
+#     - a filter that matches nothing says so instead of showing everything
+#     - filtering resets the paging, so the count is not a lie
+#     - the tools and the diagrams are folded, not gone
+#   link_tag_menu_test  (4)
+#     - the chip still counts them
+#     - one entry per edge, not one for the first
+#     - each entry carries the paragraph it snaps to
+#     - the relation of each entry is its own, not the paragraph's
+#   snap_view_test  (6)
+#     - every paragraph offers a way back to editing it
+#     - each side links to its own draft, not to the other one
+#     - swapping sides swaps which draft each column edits
+#     - the block ids it links to are the ones the draft's page renders
+#     - renders, and offers the way into it
+#     - and the draft with no comparison still renders without one
+#
+# 70_work_show.sh  (97 tests in 16 files)
+#   changes_tab_test  (7)
+#     - the tab is not offered on a draft nobody has changed
+#     - it appears once there is something to show
+#     - the old and the new are both on the page
+#     - the revision log names where each change came from
+#     - an untouched draft asked for the tab directly says so rather than erroring
+#     - a stale summary shows the split diff under it, red out and green in
+#     - a current summary shows no diff at all
+#   confirm_gate_test  (6)
+#     - the read can be started before the list of sections
+#     - a long draft offers it at the bottom too
+#     - a short draft does not repeat itself
+#     - pressing it starts the read
+#     - with no key it says so rather than offering a button
+#     - someone else's draft offers no button at all
+#   drawer_test  (10)
+#     - a new thread starts empty and becomes the one you are in
+#     - switching back brings its history with it
+#     - a thread is named after the question that started it
+#     - deleting the thread you are in lands you in another
+#     - a thread from another draft cannot be switched to
+#     - a real selection is kept, verbatim from the draft
+#     - a selection that is not in the draft is refused
+#     - a stray click adds nothing
+#     - the same passage twice is carried once
+#     - it can be dropped again
+#   inline_thread_test  (9)
+#     - every block offers a thread, silently until you go near it
+#     - opening one shows it under that paragraph and nowhere else
+#     - coming back to the same paragraph returns to the same thread
+#     - a different paragraph gets its own thread
+#     - a selection pins the thread to the passage, not just the paragraph
+#     - the tick carries the thread's message count
+#     - a thread can be settled and reopened
+#     - pinned threads stay out of the drawer's strip
+#     - a link-holder can read a thread but not add to it
+#   progress_test  (4)
+#     - all three stages are named while reading
+#     - a reload mid-read recovers which stage is running
+#     - the stage broadcast moves the view on
+#     - a finished read shows the map, not the progress view
+#   live_beats_test  (4)
+#     - a beat appears without a refresh
+#     - the same is true for a node broadcast
+#     - a stage broadcast refreshes the page too
+#     - a tab that is not the read view is not rebuilt for nothing
+#   read_view_test  (7)
+#     - the draft is shown with the note beside its own paragraph
+#     - clicking a note opens the chat holding it — and it stays open
+#     - dropping the focus leaves the chat open
+#     - it opens on everything, with no filter applied
+#     - trimming to tensions hides the beats
+#     - a bad key is ignored rather than crashing
+#     - is marked as collapsed, which is what turns click-to-edit off
+#   read_changes_test  (5)
+#     - the toggle is not offered on a draft nobody has changed
+#     - it appears once something has changed
+#     - turning it on puts the before and after in the rail
+#     - the notes rail is replaced, not shown twice
+#     - it toggles back
+#   rewrite_apply_test  (1)
+#     - editing a paragraph with no rewrite open still works
+#   rewrite_panel_test  (8)
+#     - one paragraph opens the panel instead of dropping the socket
+#     - several paragraphs open it too, and it says how much
+#     - a long span shows its extent, since the rest runs off below the panel
+#     - the steer box is there and survives the panel opening
+#     - the socket is still alive after all of it
+#     - is a textarea that can grow, not a one-line slot
+#     - is never disabled, because phx-update=ignore would freeze it that way
+#     - the button is the thing that goes quiet during a pass
+#   note_deck_test  (5)
+#     - four notes are four plain cards, with nothing to press
+#     - seven notes stack by kind and every one is still on the page
+#     - only the first card of a stack starts visible
+#     - a pile of one is a card, not a deck of one
+#     - the pile does not lie about how deep it is
+#   summary_vault_test  (5)
+#     - a summary carries a key, its text and its time
+#     - the container the hook writes into is left alone by LiveView
+#     - a section with no summary offers no vault
+#     - the hook is attached to something
+#     - the key survives a re-summarise, so both versions land in one vault
+#   walkthrough_live_test  (9)
+#     - the walkthrough writes nothing at all
+#     - the thread it opens is never inserted
+#     - the answer is the fixture, and it arrives
+#     - saving during the tour says so instead of doing it
+#     - outside the tour the same events still write
+#     - ending it clears everything the tour put on the page
+#     - demo mode never grants a permission the reader does not have
+#     - a guest's walkthrough leaves out the steps they cannot use
+#     - the overlay carries the steps, and says it is safe
+#   work_tabs_test  (7)
+#     - an unknown view lands on the page, not on a report about it
+#     - the default view is the draft itself
+#     - the tabs read in the order the work happens
+#     - the owner gets them
+#     - nobody else gets them, by tab or by url
+#     - every tab switches to its own pane when clicked
+#     - every tab renders when reached by direct link
+#   work_trace_test  (6)
+#     - shows each tool call and flags the refusals
+#     - says so plainly when nothing has been built yet
+#     - the trace is the owner's alone, unlike the graph
+#     - the graph tab fills in when reached by a direct link
+#     - offers a retry, and the retry starts from clean
+#     - a read with beats in it offers no retry
+#   applied_diff_test  (4)
+#     - an edit shows the before against the after, in place
+#     - it is dismissable, and then the paragraph is just a paragraph
+#     - an untouched draft shows no comparison anywhere
+#     - only the paragraph that changed shows one
+#
+# 80_stacks.sh  (38 tests in 5 files)
+#   public_reading_test  (13)
+#     - the index says so rather than listing a private folder
+#     - a folder is private the moment it is made
+#     - a signed-out stranger can read the telling
+#     - and the step behind a paragraph of it
+#     - it appears on the index
+#     - the slug is readable and survives a rename
+#     - publishing one folder publishes only that one
+#     - taking it back down makes it unreadable again
+#     - the slug is kept while private, so re-publishing restores the URL
+#     - an unpublished folder is not readable by slug even if one is guessed
+#     - a stranger cannot publish somebody's folder
+#     - not even the folder's own non-owner writer can publish it
+#     - a step of an unpublished folder is not readable
+#   reading_owner_test  (5)
+#     - the writer is offered the draft it was read out of
+#     - a stranger is not, and the slug is nowhere on the page
+#     - somebody else logged in is a stranger too
+#     - the writer is offered the folder the reading was composed from
+#     - a stranger sees no route into the folder
+#   stack_routes_test  (3)
+#     - the import page is its own page
+#     - a folder id still reaches the folder
+#     - the list is reachable
+#   stack_run_test  (10)
+#     - a page that arrives mid-read shows the read, not the button
+#     - a page that arrives mid-compose says which part it is on
+#     - an open page follows a pass it did not start
+#     - pressing the button twice does not start a second pass
+#     - the socket going away leaves the pass alone
+#     - a pass that crashes frees the folder and says so
+#     - a progress tick shows the work, not only the count
+#     - the summarise pass has its own button and its own sentence
+#     - it will not start while another pass is running
+#     - relating is a pass like the others, with its own sentence
+#   tour_test  (7)
+#     - the first visit to a tab explains it
+#     - the second visit does not
+#     - each tab gets its own, once
+#     - help brings it back
+#     - dismissing it keeps it dismissed for that visit
+#     - someone who has seen everything is never shown one
+#     - every tab that exists has something to say
+#
+# (no e2e: pure function, ported as a Temper test)  (7 tests in 1 files)
+#   note_piles_test  (7)
+#     - four or fewer get a slot each, with no pager on them
+#     - an empty section has no slots
+#     - past four, like notes stack together
+#     - the groups keep the order the notes arrived in
+#     - nothing is lost, whichever side of the threshold it falls on
+#     - five notes all of different kinds stay five slots
+#     - the order within a stack is the order they were written
+#
+# (no e2e: static JS structure, covered by build checks)  (5 tests in 1 files)
+#   hooks_test  (5)
+#     - every colocated hook referenced by a template is defined in the same module
+#     - every colocated hook that is defined is actually used
+#     - every this.method() a hook calls is defined in that hook
+#     - every element a hook reaches for exists in the markup
+#     - the chat's composer is among them
+#

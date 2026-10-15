@@ -1,0 +1,54 @@
+# stub_app.blimp: a stand-in for out/marginalia.blimp, to prove the harness works
+# before the app exists. Run from the worktree root:
+#   PORT=4000 blimp blimp/test/stub_app.blimp
+# It answers the 00_smoke.sh routes and nothing else (404).
+
+def send_resp(fd: Int, status: String, ctype: String, body: String) -> Int do
+  head = concat("HTTP/1.1 ", status, "\r\nContent-Type: ", ctype, "\r\nContent-Length: ", to_string(length(body)), "\r\nConnection: close\r\n\r\n")
+  tcp_write(fd, concat(head, body))
+  tcp_close(fd)
+  0
+end
+
+def page(title: String, inner: String) -> String do
+  concat("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>", title, "</title><link rel=\"stylesheet\" href=\"/assets/css/app.css\"></head><body><main id=\"main\">", inner, "</main></body></html>")
+end
+
+def route(fd: Int, path: String) -> Int do
+  case path do
+    "/" -> send_resp(fd, "200 OK", "text/html; charset=utf-8", page("Marginalia", "<h1>Marginalia</h1>"))
+    "/assets/css/app.css" ->
+      css = read_file("blimp/static/css/app.css")
+      case nil?(css) do
+        true -> send_resp(fd, "404 Not Found", "text/plain", "no css")
+        _ -> send_resp(fd, "200 OK", "text/css", css)
+      end
+    "/users/log-in" -> send_resp(fd, "200 OK", "text/html; charset=utf-8", page("Log in", "<h1>Log in</h1><form id=\"login_form_password\" method=\"post\" action=\"/users/log-in\"><input type=\"email\" name=\"user[email]\"></form>"))
+    "/works" -> send_resp(fd, "200 OK", "text/html; charset=utf-8", page("Works", "<h1>Your drafts</h1>"))
+    "/sitemap.xml" -> send_resp(fd, "200 OK", "application/xml", "<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"></urlset>")
+    _ -> send_resp(fd, "404 Not Found", "text/html; charset=utf-8", page("Not found", "Nothing at that address"))
+  end
+end
+
+def loop(lfd: Int) -> Int do
+  fd = tcp_accept(lfd)
+  raw = tcp_read(fd)
+  case nil?(raw) do
+    true -> tcp_close(fd)
+    _ ->
+      parts = split(head(split(raw, "\r\n")), " ")
+      case length(parts) > 1 do
+        true -> route(fd, head(split(head(tail(parts)), "?")))
+        _ -> tcp_close(fd)
+      end
+  end
+  loop(lfd)
+end
+
+port = case nil?(getenv("PORT")) do
+  true -> 4000
+  _ -> to_int(getenv("PORT"))
+end
+lfd = tcp_listen(port)
+puts(concat("stub_app listening on ", to_string(port)))
+loop(lfd)

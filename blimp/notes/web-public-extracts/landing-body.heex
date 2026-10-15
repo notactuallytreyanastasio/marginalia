@@ -1,0 +1,1016 @@
+<div id="landing" phx-hook=".Reveal" class={"mg" <> if(@notes_only, do: " notes-only", else: "")}>
+  <div class="mg-head">
+    <span class="mg-brand">Marginalia</span>
+    <span class="right">
+      <.link navigate={~p"/cases"}>Cases</.link>
+      <button class={"mg-toggle" <> if(@notes_only, do: " on", else: "")} phx-click="toggle_notes">
+        just the notes
+      </button>
+      <%= if @current_scope do %>
+        <.link navigate={~p"/works"}>Your drafts</.link>
+      <% else %>
+        <.link navigate={~p"/users/log-in"}>Log in</.link>
+      <% end %>
+    </span>
+  </div>
+
+  <section class="sec head" id="top">
+    <div class="sec-title">
+      <h1>Someone who has actually read the whole thing.</h1>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p class="lede">
+        Upload a draft. Marginalia reads it end to end, maps what's on the page, and then
+        argues with you about it in the margin — one thread per paragraph, pinned where it
+        belongs. No account, no setup.
+      </p>
+      <div class="ctas">
+        <.link navigate={start_path(@current_scope)} class="cta">Upload a draft</.link>
+        <%= if !@current_scope do %>
+          <.link navigate={~p"/users/log-in"} class="cta ghost">Log in</.link>
+        <% end %>
+      </div>
+      <p class="fine">Free while it's new. Your draft is private to whoever has its link.</p>
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        <b>marginalia</b>, <i>n.</i> — what a reader leaves in the margin. The book goes back
+        on the shelf exactly as it was printed. Everything down this side of the page is the
+        product, annotating its own pitch as you scroll.
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="why">
+    <div class="sec-title">
+      <h2>Nobody finishes your draft</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        Your writing group reads the first ten pages on the train. The friend who swore they
+        would get to it is on chapter three, four months in. The agent read a sample. Nobody
+        holds the whole book in their head at once, which is exactly where the problems live:
+        the thread you set up on page 30 and abandoned by 140, the two chapters doing the same
+        job, the ending that pays off a promise the opening never made.
+      </p>
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        This is the strongest paragraph on the page because it is the only one about the
+        reader rather than the tool. It also makes a promise — "holds the whole book" — that
+        the section on limits has to pay off honestly, or this pitch has the same problem it
+        is describing.
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="the-read">
+    <div class="sec-title">
+      <h2>It reads all of it, and you watch</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        Hand it the file you would hand a reader. Novel, essay collection, thesis chapter, or
+        four years of blog posts you suspect are secretly one book. You confirm how it is
+        divided — about a minute of clicking — and then the reading happens in front of you,
+        section by section, in order, with the notes landing on the page as they are made.
+      </p>
+      <p>
+        It goes over the draft three times. Once through each section for its beats: what
+        turns, what is revealed, what shifts. Once across the whole thing for the spine, the
+        threads and the questions the draft opens whether or not it closes them. Then once
+        more to draw the lines between sections — what develops what, what pays off what, what
+        contradicts what.
+      </p>
+
+      <.seeit
+        to={~p"/drafts/TGokc15wZbB6WGUJuE0Dcg"}
+        label="A dissent it read end to end, 165 notes"
+      />
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        "About a minute of clicking" is the version of this sentence that respects the reader.
+        The earlier draft called it a feature and hoped a comma would carry it.
+      </div>
+      <div class="note" data-reveal style="--i:1">
+        <span class="who">note</span>
+        The word doing the most work here is <b>watch</b>. The reading is visible while it
+        happens, which is the difference between a progress bar and being read to.
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="anchoring">
+    <div class="sec-title">
+      <h2>Pinned to your own sentences</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        Every observation carries a verbatim line from your draft. Not a paraphrase, not a
+        summary — the sentence itself, as you wrote it, line breaks and all. If it cannot find
+        the line in your text, the observation is thrown away before you ever see it.
+      </p>
+      <div class="demo">
+        <p class="src">
+          She had been standing at the window for an hour before anyone noticed, and by then
+          the light had gone completely. <span class="mark">"You can't keep doing this," her
+          brother said, from the doorway. He did not come in.</span>
+        </p>
+      </div>
+
+      <.seeit
+        to={~p"/drafts/TGokc15wZbB6WGUJuE0Dcg"}
+        label="Every note here is anchored to a sentence"
+      />
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        He does not come in here, and he does not come in at the hospital in §14 either. Twice
+        is a pattern; three times is a decision. Is that what you meant by him?
+      </div>
+      <div class="note" data-reveal style="--i:1">
+        <span class="who">note</span>
+        This is the claim the product rests on, and the one worth being suspicious of. A tool
+        that will confidently quote a sentence you never wrote has told you nothing you can
+        trust about anything else.
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="margin">
+    <div class="sec-title">
+      <h2>The page, with its notes in the margin</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        What you get back is your draft, laid out to be read, with every note sitting level
+        with the line that caused it. The highlight under the prose is the exact span it is
+        anchored to. Nothing is stacked at the top of a section hoping you will work out which
+        paragraph it meant.
+      </p>
+      <div class="mg-chips">
+        <b>Everything</b>
+        <span>Beats</span> <span>Connections</span> <span>Tensions</span>
+      </div>
+      <p>
+        It opens on everything, and the filter narrows what the margin is about rather than
+        how much of it there is. <b>Beats</b>
+        are what the draft does, in order. <b>Connections</b>
+        are what reaches across sections. <b>Tensions</b>
+        are where it argues with itself.
+      </p>
+      <p>
+        A map of the draft sits in the left gutter. It is drawn to scale — a sixteen-hundred
+        word section is five times the block a three-hundred word one gets — so the shape of
+        the thing is visible before you have read a line of it. Click any block to land there.
+      </p>
+
+      <.seeit to={~p"/drafts/TGokc15wZbB6WGUJuE0Dcg"} label="See the page it produces" />
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        Drawn to scale is a small idea that does a large amount of work. A contents list tells
+        you the order; a map tells you that chapter eleven is somehow a third of the book.
+      </div>
+      <div class="note" data-reveal style="--i:1">
+        <span class="who">note</span>
+        "Laid out to be read" is doing some quiet bragging. Fine, as long as the page actually
+        is — which is checkable in about four seconds, so the risk is low.
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="threads">
+    <div class="sec-title">
+      <h2>A thread on one paragraph</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        Move the pointer to the left edge of any paragraph and a hairline appears in the
+        gutter. Click it and a conversation opens underneath that paragraph, about that
+        paragraph, already holding it. No re-explaining which bit you meant, no scrolling back
+        to check. Close it and it is still there tomorrow.
+      </p>
+
+      <div class="mg-gut" data-reveal>
+        <span class="tick"></span>
+        <p>
+          He did not come in. She heard him shift his weight in the doorway and then, after a
+          while, the stairs.
+        </p>
+        <div class="turns">
+          <div class="you">Is this doing too much work for one line?</div>
+          <div class="it">
+            It is carrying the whole relationship, and it can — the doorway is the third time
+            he has stopped at a threshold. What it cannot also carry is the time passing.
+            "After a while" is the only thing in the paragraph that is vague, and it is
+            sitting next to the two most concrete images in the chapter.
+          </div>
+        </div>
+      </div>
+
+      <p>
+        Select a passage instead and three things come up at the end of it: talk about that
+        spot, ask for rewrites of it, or carry it into the conversation you are already having.
+        The bigger chat lives in a drawer over half the page, holds as many separate
+        conversations as you want to keep apart, and has three stances — what is on the page,
+        questions that open the next draft, or pressure-testing an idea against the draft.
+      </p>
+
+      <div class="play" data-reveal>
+        <div class="cap">A real exchange, on a real draft</div>
+        <div class="turns">
+          <div class="turn you" style="--i:0">Which thread did I set up and never pay off?</div>
+          <div class="turn think" style="--i:1">reading…</div>
+          <div class="turn it" style="--i:2">
+            The five-point scale. You name it, you point at Level 3 as the early warning, and
+            then Levels 1, 2, 4 and 5 never appear.
+            <q>Pay close attention to Level 3 — this is your early warning sign.</q>
+            A reader holding that page has no idea what a 3 is a 3 <i>of</i>. Is the full scale
+            written somewhere, or did it only ever exist as Level 3?
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        This is the section that would sell the product if anyone read it, and it is the sixth
+        one down. The hairline in the gutter is the whole idea: an interface that is invisible
+        until you go looking for it, on prose that should be the only thing on screen.
+      </div>
+      <div class="note" data-reveal style="--i:1">
+        <span class="who">note</span>
+        That exchange is not staged. It is what came back the first time this was pointed at a
+        real manuscript, quote and all.
+      </div>
+      <div class="note" data-reveal style="--i:2">
+        <span class="who">note</span>
+        Three stances is one more than most people will ever use. Naming them here is honest
+        and it is also clutter — the sentence would survive losing its second half.
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="graph">
+    <div class="sec-title">
+      <h2>What leads to what</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        Beside the page there is the draft as a structure: every move it makes, and every line
+        drawn between them. Hover a row and the panel fills in with what it says, so you can
+        move down the whole draft without clicking anything. Click to keep one there, and it
+        holds its section, your own sentence underneath it, and everything it follows from or
+        leads to.
+      </p>
+
+      <div class="mg-edges" data-reveal>
+        <div class="cap">Lines it drew across sections</div>
+        <div class="e">
+          <span class="n">The argument about the car</span>
+          <span class="rel">develops</span>
+          <span class="n">He stops answering the phone</span>
+          <span class="why">
+            The silence in §11 is only legible as a refusal because of what was said in §4.
+          </span>
+        </div>
+        <div class="e">
+          <span class="n">A five-point scale is named</span>
+          <span class="rel">requires</span>
+          <span class="n hollow">The scale is never given</span>
+          <span class="why">
+            Level 3 is used as an early warning four times. Levels 1, 2, 4 and 5 do not exist.
+          </span>
+        </div>
+        <div class="e">
+          <span class="n">Grief as something survived</span>
+          <span class="rel">tension</span>
+          <span class="n">Grief as something owed</span>
+          <span class="why">
+            The opening and chapter nine want different books, and chapter nine is better.
+          </span>
+        </div>
+      </div>
+
+      <p>
+        A filled dot is anchored to a line you wrote. A hollow one is structural — a move with
+        no single sentence behind it, which is usually where the missing scene is. Alongside
+        it: the spine the whole draft hangs off, the threads that run across it and whether
+        each is carried, thin or dropped, and the questions the draft opens.
+      </p>
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        A dropped thread is the most useful thing the graph produces and it is mentioned in a
+        subordinate clause. That is the wrong shape for the best thing in the section.
+      </div>
+      <div class="note act" data-reveal style="--i:1">
+        <span class="who">your turn</span>
+        Every draft has one. Yours is probably a character who stops having opinions around
+        the midpoint.
+        <.link navigate={start_path(@current_scope)} class="note-cta">Find yours →</.link>
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="rewrites">
+    <div class="sec-title">
+      <h2>The one place it writes</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        Select a span and ask, and it will hand you three rewrites of it. This is the only
+        door, it only opens from your side, and nothing comes through it unasked. The chat has
+        no path here at all — asking a question about a paragraph and asking for versions of it
+        are different requests, and collapsing them is how an editor becomes a ghostwriter.
+      </p>
+
+      <div class="mg-cands" data-reveal>
+        <div class="cap">Three candidates, on a span you chose</div>
+        <div class="c orig">
+          <span class="lab">your line</span>
+          <p>
+            It was, in a sense, the beginning of something that would eventually change
+            everything about the way she saw her father.
+          </p>
+        </div>
+        <div class="c alt" style="--i:0">
+          <span class="lab">Cuts the gloss <em>· loses the narrator's distance</em></span>
+          <p>It <ins>changed how</ins> she saw her father.</p>
+        </div>
+        <div class="c alt" style="--i:1">
+          <span class="lab">Puts the change last <em>· slower into the paragraph</em></span>
+          <p>
+            <del>It was, in a sense, the beginning of</del>
+            <ins>She would not see her father the same way again, and this was where it</ins>
+            <ins>started</ins>.
+          </p>
+        </div>
+        <div class="c alt" style="--i:2">
+          <span class="lab">Hands it to the image <em>· only works if the car is in the scene</em></span>
+          <p><ins>She watched him back the car out, and something in it went</ins>.</p>
+        </div>
+      </div>
+
+      <p>
+        Three, not one, because a single suggestion reads as the answer. Each is labelled with
+        the move it makes and <b>what it costs</b> — every rewrite gives something up, and one
+        that claims not to has not been thought about. They are shown as a diff over your own
+        line, in place, so you can see exactly what changed. It never applies anything.
+      </p>
+      <p>
+        A span can run to 2,500 words, which is several paragraphs or a whole section of most
+        drafts, because the part you want reworked is rarely one sentence. Past 400 words the
+        three candidates have to differ structurally rather than by wording: cut it to its
+        argument, or reorder it so the finding lands first. If none of them is what you wanted,
+        the box underneath takes an instruction, and then all three have to follow it.
+      </p>
+
+      <div class="wont">
+        <p>What it still will not do, and this part has not moved:</p>
+        <ul>
+          <li>No prose you did not ask for, ever, from the chat.</li>
+          <li>No generated scenes, dialogue or filled-in gaps.</li>
+          <li>No score, no grade, no rating out of ten.</li>
+          <li>
+            No "show, don't tell" — generic craft advice fits every manuscript, which means it
+            is about none of them.
+          </li>
+        </ul>
+      </div>
+
+      <div class="play" data-reveal>
+        <div class="cap">Asking the chat anyway</div>
+        <div class="turns">
+          <div class="turn you" style="--i:0">
+            Rewrite my opening paragraph so it hits harder.
+          </div>
+          <div class="turn think" style="--i:1">reading…</div>
+          <div class="turn it" style="--i:2">
+            Your opening is the orientation box — <i>take a breath and let your shoulders
+            drop</i>. That is already doing the work you are hoping a hook would do.
+            <br /><br />
+            So the question is not how to make it hit harder. It is: what do you want the reader
+            to feel by the end of the first paragraph — relief, or urgency? Right now it is
+            relief. Urgency is the opposite of what this book promises. Those two pull against
+            each other. Where did you feel it was not landing?
+          </div>
+        </div>
+      </div>
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">tension</span>
+        This section argues with the one before it. The front of this page used to promise no
+        rewritten sentences, ever, and here are three of them. The narrow claim is the true
+        one, and a page that quietly dropped the old promise would be worth less than a page
+        that says out loud which one it broke.
+      </div>
+      <div class="note" data-reveal style="--i:1">
+        <span class="who">note</span>
+        "It never applies anything" is the load-bearing sentence and it is last. A reader who
+        stops after the diff has read a ghostwriter.
+      </div>
+      <div class="note act" data-reveal style="--i:2">
+        <span class="who">your turn</span>
+        The chat's half of this is testable in about four seconds. Upload something and ask it
+        to write for you.
+        <.link navigate={start_path(@current_scope)} class="note-cta">Try to break it →</.link>
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="editing">
+    <div class="sec-title">
+      <h2>Then you change it yourself</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        Click into any paragraph on the page and it becomes editable, in your own words, in
+        the markdown you wrote it in. Save and the draft is the draft — which means you can
+        answer a rewrite with a third thing that is neither your line nor its version, while
+        both are still in front of you.
+      </p>
+      <p>
+        When a line changes, the notes anchored to it are marked as belonging to a sentence
+        that has moved rather than quietly kept. A note about a paragraph you have since
+        rewritten is not an observation any more, it is a fossil, and pretending otherwise
+        would undo the only thing this is careful about.
+      </p>
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        "It is a fossil" is the best phrase in this section and it is explaining a housekeeping
+        detail. Consider whether the thing it describes deserves to be the section.
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="retrieval">
+    <div class="sec-title">
+      <h2>It goes and looks</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        Ask the chat a question and it does not answer from whatever happened to fit in its
+        context window. It searches your manuscript, pulls the passages, checks the exact
+        wording, and reads the map it built. Two or three of those before an opinion is normal,
+        and you can watch it happen. When it quotes your book at you, the quote was fetched
+        from your book.
+      </p>
+
+      <div class="fx" data-demo data-interval="620">
+        <div class="cap">"Does Marta ever actually refuse him?"</div>
+        <div class="d-call" data-step="1">
+          <span class="tool">search_manuscript</span><span class="arg">"Marta refuse"</span>
+          <span class="hit">7 passages</span>
+        </div>
+        <div class="d-call" data-step="2">
+          <span class="tool">read_passage</span><span class="arg">§9, lines 40–58</span>
+          <span class="hit">the doorway</span>
+        </div>
+        <div class="d-call" data-step="3">
+          <span class="tool">find_exact</span><span class="arg">"she said nothing at all"</span>
+          <span class="hit">§14</span>
+        </div>
+        <p class="d-reply" data-step="4">
+          Once, in section fourteen, and she does it by saying nothing at all. Every other time
+          she refuses him the narration does it for her, which is why the fourteen lands.
+        </p>
+      </div>
+
+      <p>
+        Three ways to be talked to, and you pick. <b>Read</b> reports what is on the page and
+        refuses to speculate; ask it something the draft does not answer and it says the draft
+        does not answer it. <b>Provoke</b> asks the questions that open the next draft rather
+        than tidying this one. <b>Bounce</b> takes an idea you are considering and presses it
+        against what you have already written.
+      </p>
+
+      <p>
+        And you can overrule it. Tell it that it has a fact about your manuscript wrong and it
+        writes that down as a misreading, never to be asserted again. Tell it you have simply
+        decided, and it records a ruling: your book, dropped, and raised again only somewhere
+        genuinely new and only by naming the ruling first. Both survive the conversation they
+        were made in. Repeating a note you have already overruled is the fastest way for this
+        to stop feeling like a reader.
+      </p>
+
+      <.seeit to={~p"/drafts/Eba9cP98i1LVY5fA8QZtdA"} label="A draft it has read, to ask about" />
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        "The quote was fetched from your book" is the sentence that separates this from every
+        other chat window and it is the last line of the first paragraph.
+      </div>
+      <div class="note" data-reveal style="--i:1">
+        <span class="who">tension</span>
+        Three modes described in one paragraph each is a feature list wearing prose. The
+        difference between Provoke and Bounce is real and this is not the paragraph that shows
+        it.
+      </div>
+      <div class="note act" data-reveal style="--i:2">
+        <span class="who">your turn</span>
+        Contradict it about your own book and see whether it argues, folds, or writes the
+        correction down.
+        <.link navigate={start_path(@current_scope)} class="note-cta">Try to break it →</.link>
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="summaries">
+    <div class="sec-title">
+      <h2>Where you are in twelve sections</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        Any section can be summarised on its own. The notes in the margin argue about whether
+        the prose works; this answers the duller question you ask at nine in the morning, which
+        is what is in section seven of twelve. You get the things the section actually deals
+        with, and which earlier ones you need before it makes sense.
+      </p>
+
+      <div class="fx" data-demo data-interval="700">
+        <div class="cap">Section 7 of 12, asked what is in it</div>
+        <div class="d-head">
+          <span class="d-lab">Section 7</span>
+          <span class="d-title">Date, bit vectors, coroutines and dependency inlining</span>
+          <span class="d-btn" data-step="1">Summarising…</span>
+        </div>
+        <p class="d-sum" data-step="2">
+          Adds the date library, the bit-vector type and the coroutine lowering, then inlines
+          vendored dependencies so a translated program carries its own library rather than
+          resolving one at run time.
+        </p>
+        <div class="d-chips" data-step="3">
+          <span>temper_date</span><span>bit vectors</span><span>coroutines</span><span>dependency inlining</span>
+        </div>
+        <div class="d-links" data-step="4">
+          <span>needs §4, §6</span>
+          <span>sets up: a program that runs with nothing else installed</span>
+        </div>
+      </div>
+
+      <p>
+        Every one of those terms is checked against the section before you see it. A summary
+        that names a concept the section never mentions is the failure you cannot catch without
+        going back to the text, and going back to the text is what you were trying to avoid.
+      </p>
+      <p>
+        Ask for the whole document and two passes run at once. One builds up from the section
+        summaries: what this does, in what order, the thread through it. The other reads down
+        from the shape and names the rules the draft is <em>working under</em>, the things it
+        does consistently and would be noticed for breaking. We never tell the second pass what
+        the first concluded, because agreement is worth nothing if one of them was handed the
+        answer.
+      </p>
+
+      <.seeit to={~p"/drafts/Eba9cP98i1LVY5fA8QZtdA"} label="Twelve sections, each summarised" />
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        "Duller question you actually ask at nine in the morning" is doing more work than the
+        two sentences after it. The paragraph could start there.
+      </div>
+      <div class="note" data-reveal style="--i:1">
+        <span class="who">connection</span>
+        The two-pass split is the same argument as three rewrites instead of one, four sections
+        up: more than one answer, so none of them reads as the answer. Worth saying once rather
+        than twice.
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="changes">
+    <div class="sec-title">
+      <h2>Every change, kept</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        Accept a rewrite or edit a paragraph and we write the change down in the same
+        transaction as the edit. A Changes tab puts the draft as it arrived beside the draft as
+        it is, paragraph by paragraph, what went struck out in red against what arrived in
+        green. The alignment is the part that took the work: insert a paragraph in the middle
+        and everything after it is still recognised as untouched.
+      </p>
+
+      <div class="fx" data-demo data-interval="800">
+        <div class="cap">The Changes tab, after one accepted rewrite</div>
+        <div class="d-cols">
+          <div class="d-colhead"><span>As it arrived</span><span>Now</span></div>
+          <div class="d-row">
+            <div class="d-side d-old">
+              It was, in a sense, <del data-step="1">the beginning of something that would
+              eventually change</del> everything about the way she saw her father.
+            </div>
+            <div class="d-side d-new">
+              It was, in a sense, <ins data-step="2">where</ins> everything about the way she
+              saw her father <ins data-step="2">began to change</ins>.
+            </div>
+          </div>
+        </div>
+        <div class="d-log" data-step="3">
+          <span class="sha">a41c9e2</span> rewrite: cuts the gloss
+        </div>
+        <div class="d-log" data-step="4">
+          <span class="sha">223f72d</span> the draft as it arrived
+        </div>
+      </div>
+
+      <p>
+        Underneath is a git repository, one per draft. The real binary and a working tree, with
+        a commit for every change you accepted carrying the move it made. Clone it and run
+        <code>git log -p</code>
+        over your own afternoon. When a summary goes stale, that same
+        split diff shows what moved under it, which is usually enough to decide whether to run
+        it again.
+      </p>
+
+      <.seeit
+        to={~p"/drafts/DhEGqQm_go9N3wm9Y4tCWg/changes"}
+        label="Three changes to a real draft, before and after"
+      />
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        "In the same transaction as the edit" is the most reassuring clause here and the only
+        one a reader cannot check. Worth saying what happens when the commit fails, since the
+        answer is that your edit survives and the history has a hole in it.
+      </div>
+      <div class="note act" data-reveal style="--i:1">
+        <span class="who">tension</span>
+        A page that has spent nine sections promising not to touch your draft now offers you a
+        version history of it being touched. Both are true — you did the touching — but the
+        turn needs a sentence it does not have.
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="links">
+    <div class="sec-title">
+      <h2>Two drafts, and what runs between them</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        Relate one draft to another and it reads both maps together, then draws the edges. Not
+        a similarity score: each edge has a direction and a kind, so it tells you that chapter
+        nine of the novel pays off a promise the short story made, and not merely that the two
+        are about fathers.
+      </p>
+
+      <div class="fx link" data-demo data-interval="700">
+        <div class="cap">A novel and the story it came out of</div>
+        <div class="d-link">
+          <div class="d-col">
+            <span class="d-col-name">The Quiet House</span>
+            <span class="d-node" data-step="1">§4 he stops in the doorway</span>
+            <span class="d-node" data-step="3">§9 she says nothing at all</span>
+            <span class="d-node" data-step="5">§14 the stairs, again</span>
+          </div>
+          <div class="d-edges">
+            <span class="d-edge" data-step="2"><i>pays_off</i></span>
+            <span class="d-edge" data-step="4"><i>answers</i></span>
+            <span class="d-edge tension" data-step="6"><i>tension</i></span>
+          </div>
+          <div class="d-col">
+            <span class="d-col-name">Thresholds (2019)</span>
+            <span class="d-node" data-step="1">the unanswered question</span>
+            <span class="d-node" data-step="3">"why did you not say so"</span>
+            <span class="d-node" data-step="5">he never comes back</span>
+          </div>
+        </div>
+        <p class="d-edge-note" data-step="7">
+          The tension is the useful one: the story ends on him not coming back and the novel
+          brings him up the stairs in §14.
+        </p>
+      </div>
+
+      <p>
+        Six kinds, and the direction is part of the claim. <b>develops</b>
+        and <b>pays_off</b>
+        for one carrying the other further or delivering on it, <b>requires</b>
+        when one only
+        works if the reader already has the other, <b>answers</b>
+        for a direct response, and <b>echoes</b>
+        when the two arrive at the same move independently. <b>tension</b>
+        is the
+        one worth the money: two things you wrote that sit badly together, which is exactly
+        what nobody notices across a gap of two years.
+      </p>
+
+      <p>
+        Relate enough of them and the pairs stop being pairs. Drafts that keep linking to each
+        other show up as a cluster, which is generally the moment you find out that four essays
+        you thought were separate are one argument with three introductions.
+      </p>
+
+      <.seeit to={~p"/linked"} label="Pairs read against each other, and what they found" />
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        "Not merely that the two are about fathers" is the whole pitch and it is doing it in a
+        subordinate clause at the end of the first paragraph.
+      </div>
+      <div class="note" data-reveal style="--i:1">
+        <span class="who">connection</span>
+        "Four essays you thought were separate are one argument with three introductions" is
+        the same discovery the stacks section describes two sections down, arrived at from the
+        other end. One of them should point at the other.
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="import">
+    <div class="sec-title">
+      <h2>Forty pull requests in, one edited draft out</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        The expensive and irreversible half of a bulk import is creating sixty documents, and
+        the question that decides whether it is the right sixty — <em>which of these do I
+        mean?</em> — cannot be answered until the listing is on the screen. So finding and
+        importing are separate steps with the choosing in between, and nothing is created
+        until a list has been looked at.
+      </p>
+      <p>
+        There are two search boxes and they are not the same box. The first is GitHub's and
+        decides what is <em>fetched</em>. The second runs over the rows already in hand,
+        spends no request, and decides what is <em>kept</em>. Both speak the same query
+        language, plus one word GitHub does not have: <code phx-no-curly-interpolation>@today</code>. GitHub has no relative
+        dates at all, which is why every saved search anybody writes goes stale the week
+        after they write it.
+      </p>
+
+      <div class="fx pipe" data-demo data-interval="430">
+        <div class="cap">a repository, to a draft held against its own summary</div>
+
+        <div class="d-stage" data-step="1">
+          <span class="d-what"><b>1</b> find</span>
+          <span class="d-detail">
+            <code phx-no-curly-interpolation>owner/repo</code>, or a search across repositories. One request, no bodies and
+            no commits — the listing step is cheap on purpose.
+          </span>
+        </div>
+        <div class="d-stage" data-step="2">
+          <span class="d-what"><b>2</b> narrow</span>
+          <span class="d-detail">
+            <code phx-no-curly-interpolation>state:closed -Bump</code> keeps the regex engine and drops the dependency
+            bumps. A typo is refused by name: <code phx-no-curly-interpolation>stat:closed</code> says which word it was,
+            rather than silently matching everything.
+          </span>
+        </div>
+        <div class="d-stage" data-step="3">
+          <span class="d-what"><b>3</b> land</span>
+          <span class="d-detail">
+            A batch of forty with three empty ones imports thirty-seven and names the three.
+            One bad file rolling back thirty-nine good ones is what makes people import in
+            batches of one.
+          </span>
+        </div>
+        <div class="d-stage" data-step="4">
+          <span class="d-what"><b>4</b> read</span>
+          <span class="d-detail">
+            Each document read knowing only what the ones before it established — which is
+            what makes the order load-bearing rather than incidental.
+          </span>
+        </div>
+        <div class="d-stage" data-step="5">
+          <span class="d-what"><b>5</b> compose</span>
+          <span class="d-detail">
+            An opening, the movements, a closing — and the list of steps that found
+            <em>no</em> place in the telling, which is the part worth reading.
+          </span>
+        </div>
+        <div class="d-stage" data-step="6">
+          <span class="d-what"><b>6</b> edit</span>
+          <span class="d-detail">
+            The telling becomes an ordinary draft. Each movement is a <code phx-no-curly-interpolation>##</code>, so it
+            is a section, so a note lands on the movement it is about.
+          </span>
+        </div>
+        <div class="d-stage" data-step="7">
+          <span class="d-what"><b>7</b> condense</span>
+          <span class="d-detail">
+            The section summaries become a draft of their own, which records what it was
+            derived from rather than matching on a title somebody will rename.
+          </span>
+        </div>
+        <div class="d-stage" data-step="8">
+          <span class="d-what"><b>8</b> compare</span>
+          <span class="d-detail">
+            The two side by side, with the relations drawn between them: this paragraph is
+            what those four became, and that promise in the long version has nothing
+            answering it in the short one.
+          </span>
+        </div>
+      </div>
+
+      <p>
+        The last three are the point. A summary read on its own is a claim about a document
+        you are no longer looking at; held against the original with the edges drawn, it is
+        something you can check. Neither the telling nor its condensation is filed into the
+        folder it came from — a draft sitting in there becomes document 112 of 111, re-read
+        as a chapter of the series it is a summary of.
+      </p>
+
+      <div class="ctas">
+        <.link navigate={~p"/import"} class="cta">Bring in a repository →</.link>
+      </div>
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        Eight stages is a lot to put on one page. The first three are a single screen in the
+        product; the last five are a different afternoon's work. Splitting them would be
+        more honest and would cost the diagram.
+      </div>
+      <div class="note act" data-reveal style="--i:1">
+        <span class="who">tension</span>
+        The section above promises the machine never writes your prose. This one ends with
+        the machine composing nineteen thousand words and handing them to you to edit. Both
+        are true — nothing here goes into a draft you wrote — but the turn needs a sentence
+        it does not have.
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="stacks">
+    <div class="sec-title">
+      <h2>A hundred and eleven pull requests, read forwards</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        A folder of documents that build one thing can be read as a <em>method</em>. Read
+        backwards, each says what happened. Read forwards — each one told only what the ones
+        before it established — each says what somebody building the same thing must now do,
+        and that reading is in none of the documents.
+      </p>
+      <p>
+        We ran it on a compiler backend published as 111 stacked pull requests. Each chapter
+        was read knowing only its predecessors, and then a second pass that can see the whole
+        chain went looking for places where a later chapter walks an earlier one back. It found
+        sixty-five. The telling composed out of that runs to about nineteen thousand words, and
+        every claim in it links to the chapter it came from.
+      </p>
+      <div class="fx stack" data-demo data-interval="520">
+        <div class="cap">111 chapters, read forwards, folded into what they add up to</div>
+        <%!-- One element, not 111 flex-wrapped children. The ticks are a
+              repeating gradient: nothing to wrap, nothing to shrink, and
+              no layout that can behave differently in one browser than
+              another. It draws the same bar and costs 110 fewer nodes. --%>
+        <div class="d-ticks" aria-hidden="true"></div>
+        <div class="d-move" data-step="1">
+          <strong>Get one module to emit and run before you build anything clever</strong>
+          <span class="mg-meta">§1–§5</span>
+        </div>
+        <div class="d-move" data-step="2">
+          <strong>Lowering is where the semantics live</strong>
+          <span class="mg-meta">§6–§13</span>
+        </div>
+        <div class="d-move" data-step="3">
+          <strong>A divergence is a transcript that reproduces, or it is a rumor</strong>
+          <span class="mg-meta">§70–§79</span>
+        </div>
+        <div class="d-revised" data-step="4">
+          65 of the 111 are walked back by a later chapter
+        </div>
+      </div>
+
+      <div class="ctas">
+        <.link navigate={~p"/reading/a-temper-backend-for-blimp-pull-request-stack"} class="cta">
+          Read the one it produced →
+        </.link>
+      </div>
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        "It found sixty-five" is the most convincing number on this page and it is buried
+        mid-paragraph in the second-to-last section.
+      </div>
+      <div class="note" data-reveal style="--i:1">
+        <span class="who">observation</span>
+        This is the only section making a claim you can check without uploading anything. It
+        should probably be higher up than the pricing.
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="reading">
+    <div class="sec-title">
+      <h2>Or read one it has already done</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        Several dozen Supreme Court cases sit on the front of this site: an opinion, its
+        dissents, and the argument that produced them, read together and related to one another
+        instead of filed as a list. They are public records, the reading of them is public too,
+        and you can hold the notes against documents you already have access to.
+      </p>
+      <div class="ctas">
+        <.link navigate={~p"/cases"} class="cta">The cases →</.link>
+      </div>
+      <p class="fine">
+        Drafts can also be related to each other in pairs, gathered into folders, and read along
+        a single line across a whole folder at once. Those are the parts most likely to change.
+      </p>
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        The last sentence admits three features exist and then declines to explain any of them.
+        Either show one or cut the sentence.
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="costs">
+    <div class="sec-title">
+      <h2>What it costs, and where your draft goes</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <p>
+        No account to upload. A minute of your attention at the start, then a few minutes of
+        reading while you watch. A draft is private to whoever holds its link — the URL is the
+        permission, nothing is listed publicly, and search engines are told to stay out.
+        Send the link to your writing group and they can read the margin with you.
+      </p>
+      <p>
+        Your draft is stored so you can come back to it, and deleting it deletes it: the text,
+        the map, the threads, the conversations. It is sent to a model to be read. It is not
+        used to train anything.
+      </p>
+      <p class="fine">
+        Plain text and markdown, up to 120,000 words. A hundred questions per account while
+        this is free, which is enough to find out whether it is any good. Everything above
+        describes what it does now, not what is planned.
+      </p>
+    </div>
+    <aside class="sec-aside">
+      <div class="note" data-reveal style="--i:0">
+        <span class="who">note</span>
+        You promise "it reads all of it" five sections up and then cap it at 120,000 words
+        here. Both are true and they read as a contradiction in this order. Either move the
+        limit up or soften the claim.
+      </div>
+      <div class="note" data-reveal style="--i:1">
+        <span class="who">tension</span>
+        "Private to whoever holds its link" and "send the link to your writing group" are the
+        same sentence pointed in opposite directions. That is the actual security model and it
+        is worth one more line saying a link is a key.
+      </div>
+    </aside>
+  </section>
+
+  <section class="sec head" id="start">
+    <div class="sec-title">
+      <h2>Bring the draft in the drawer.</h2>
+    </div>
+    <div class="sec-leader"></div>
+    <div class="sec-main">
+      <div class="ctas">
+        <.link navigate={start_path(@current_scope)} class="cta">Upload a draft</.link>
+      </div>
+      <p class="fine">It reads. You decide. That division is the product.</p>
+    </div>
+    <aside class="sec-aside">
+      <div class="note act" data-reveal style="--i:0">
+        <span class="who">last note</span>
+        Ten sections, one ask, no testimonials, no logos. The page is doing the thing it is
+        selling, and two of the notes above disagree with the paragraph they are attached to,
+        which is the only demo available to a product nobody has used yet.
+        <.link navigate={start_path(@current_scope)} class="note-cta">Upload a draft →</.link>
+      </div>
+    </aside>
+  </section>
+</div>

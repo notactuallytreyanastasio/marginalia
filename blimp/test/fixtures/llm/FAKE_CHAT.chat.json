@@ -1,0 +1,26 @@
+{
+  "id": "chatcmpl-fake",
+  "object": "chat.completion",
+  "created": 1760000000,
+  "model": "fake-model",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "This is the canned chat answer. The paragraph you asked about sets up the kettle that pays off in the last section."
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 100,
+    "completion_tokens": 20,
+    "total_tokens": 120,
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 100,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

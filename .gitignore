@@ -44,3 +44,9 @@ npm-debug.log
 
 # rsync deploy marker
 .deployed
+
+# Blimp project build output
+/blimp/out/
+/blimp/temper/temper.out/
+/blimp/temper/**/temper.out/
+test-results.xml

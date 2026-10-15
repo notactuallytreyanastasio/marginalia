@@ -1,0 +1,396 @@
+--- src.orig/builtins.zig	2026-10-14 20:11:18
++++ src/builtins.zig	2026-10-14 20:12:00
+@@ -44,7 +44,7 @@
+ 
+ /// Record why the call failed and answer TypeError, which is what a caller
+ /// passing the wrong thing gets from every other builtin.
+-fn failArg(comptime fmt: []const u8, args: anytype) EvalError {
++pub fn failArg(comptime fmt: []const u8, args: anytype) EvalError {
+     const msg = std.fmt.bufPrint(&failure_buf, fmt, args) catch failure_buf[0..];
+     failure_len = msg.len;
+     return error.TypeError;
+@@ -239,6 +239,8 @@
+         reg.register("random_token", &builtinRandomToken_impl);
+         reg.register("getenv", &builtinGetenv_impl);
+         reg.register("argv", &builtinArgv_impl);
++        reg.register("exec", &builtinExec_impl);
++        reg.register("sqlite_query", &builtinSqliteQuery_impl);
+         // P-256 and AES-128-GCM, for Web Push (RFC 8291 / RFC 8292)
+         reg.register("p256_keypair", &builtinP256Keypair_impl);
+         reg.register("p256_public_key", &builtinP256PublicKey);
+@@ -3377,6 +3379,8 @@
+ const builtinRandomToken_impl = if (is_wasm) native_stub.stub else builtinRandomTokenNative;
+ const builtinGetenv_impl = if (is_wasm) native_stub.stub else builtinGetenvNative;
+ const builtinArgv_impl = if (is_wasm) native_stub.stub else builtinArgvNative;
++const builtinExec_impl = if (is_wasm) native_stub.stub else @import("native_ext.zig").exec;
++const builtinSqliteQuery_impl = if (is_wasm) native_stub.stub else @import("native_ext.zig").sqliteQuery;
+ 
+ /// getenv(name) -> the variable's value as a String, or nil when it is not
+ /// set. A set-but-empty variable is "", not nil.
+--- src.orig/lib.zig	2026-10-14 20:11:18
++++ src/lib.zig	2026-10-14 20:13:15
+@@ -28,6 +28,7 @@
+     _ = @import("memory_test.zig");
+     _ = @import("websocket.zig");
+     _ = @import("unicode_builtins.zig");
++    _ = @import("native_ext.zig");
+     _ = @import("vendor/zig_std/tls_client.zig");
+     _ = @import("vendor/zig_std/flate_decompress.zig");
+ }
+--- build.zig.orig	2026-10-14 20:11:18
++++ build.zig	2026-10-14 20:12:00
+@@ -50,6 +50,7 @@
+             },
+         }),
+     });
++    exe.root_module.linkSystemLibrary("sqlite3", .{});
+     b.installArtifact(exe);
+ 
+     // -- Run step --
+@@ -62,6 +63,7 @@
+     }
+ 
+     // -- Tests --
++    lib_mod.linkSystemLibrary("sqlite3", .{});
+     const lib_tests = b.addTest(.{
+         .root_module = lib_mod,
+     });
+@@ -81,6 +83,7 @@
+             },
+         }),
+     });
++    main_tests.root_module.linkSystemLibrary("sqlite3", .{});
+     const run_main_tests = b.addRunArtifact(main_tests);
+ 
+     const test_step = b.step("test", "Run all tests");
+--- /dev/null	2026-10-14 20:21:42
++++ src/native_ext.zig	2026-10-14 20:20:39
+@@ -0,0 +1,328 @@
++//! exec and sqlite_query: the two builtins a served application needs that
++//! the interpreter does not have. Native only (builtins.zig stubs them on WASM).
++//!
++//!   exec(argv: List of String, stdin: String) -> %{status: Int, out: String, err: String}
++//!   sqlite_query(path: String, sql: String, params: List) -> List of List
++
++const std = @import("std");
++const builtins = @import("builtins.zig");
++const Value = @import("value.zig").Value;
++const EvalError = builtins.EvalError;
++
++fn box(allocator: std.mem.Allocator, v: Value) EvalError!*const Value {
++    const p = allocator.create(Value) catch return error.OutOfMemory;
++    p.* = v;
++    return p;
++}
++
++const c = struct {
++    extern "c" fn execvp(file: [*:0]const u8, argv: [*:null]const ?[*:0]const u8) c_int;
++    extern "c" fn _exit(code: c_int) noreturn;
++    extern "c" fn pipe(fds: *[2]c_int) c_int;
++    extern "c" fn dup2(a: c_int, b: c_int) c_int;
++};
++
++// ── exec ────────────────────────────────────────────────────
++
++/// exec(argv, stdin) runs argv[0] (searched on PATH) with the rest as its
++/// arguments, feeds it `stdin`, and answers when it has exited:
++/// %{status: Int, out: String, err: String}.
++///
++/// status is the exit code, or the negated signal number when a signal ended
++/// it, or 127 when execvp failed (the child cannot report errno any other way).
++/// TypeError for a non-list argv, an empty argv, a non-String element, or a
++/// NUL byte in an argument. NotSupported when pipe() or fork() fails.
++///
++/// Blocks the whole interpreter until the child exits: there is no timeout.
++pub fn exec(allocator: std.mem.Allocator, args: []const *const Value) EvalError!*const Value {
++    if (args.len != 2 or args[0].* != .list or args[1].* != .string) return error.TypeError;
++    const list = args[0].list;
++    if (list.len == 0) return error.TypeError;
++    const input = args[1].string;
++
++    // Everything the child needs is built before fork(): after it, only
++    // async-signal-safe calls are allowed in a process with other threads.
++    const argv = allocator.alloc(?[*:0]const u8, list.len + 1) catch return error.OutOfMemory;
++    defer allocator.free(argv);
++    for (list, 0..) |item, i| {
++        if (item.* != .string) return error.TypeError;
++        if (std.mem.indexOfScalar(u8, item.string, 0) != null) return error.TypeError;
++        argv[i] = (allocator.dupeZ(u8, item.string) catch return error.OutOfMemory).ptr;
++    }
++    argv[list.len] = null;
++    const argv_z: [*:null]const ?[*:0]const u8 = @ptrCast(argv.ptr);
++
++    var in_p: [2]c_int = undefined;
++    var out_p: [2]c_int = undefined;
++    var err_p: [2]c_int = undefined;
++    if (c.pipe(&in_p) != 0) return error.NotSupported;
++    if (c.pipe(&out_p) != 0) {
++        closeAll(&.{ in_p[0], in_p[1] });
++        return error.NotSupported;
++    }
++    if (c.pipe(&err_p) != 0) {
++        closeAll(&.{ in_p[0], in_p[1], out_p[0], out_p[1] });
++        return error.NotSupported;
++    }
++
++    const pid = std.c.fork();
++    if (pid < 0) {
++        closeAll(&.{ in_p[0], in_p[1], out_p[0], out_p[1], err_p[0], err_p[1] });
++        return error.NotSupported;
++    }
++    if (pid == 0) {
++        _ = c.dup2(in_p[0], 0);
++        _ = c.dup2(out_p[1], 1);
++        _ = c.dup2(err_p[1], 2);
++        // tcp_listen and tcp_accept do not set FD_CLOEXEC, so without this the
++        // program would inherit the listening socket and every client socket.
++        var fd: c_int = 3;
++        while (fd < 1024) : (fd += 1) _ = std.c.close(fd);
++        _ = c.execvp(argv_z[0].?, argv_z);
++        c._exit(127);
++    }
++
++    _ = std.c.close(in_p[0]);
++    _ = std.c.close(out_p[1]);
++    _ = std.c.close(err_p[1]);
++
++    // Write stdin and drain both outputs with poll(), so a child that fills
++    // its stdout pipe before reading its stdin cannot deadlock us.
++    var out: std.ArrayList(u8) = .empty;
++    var err: std.ArrayList(u8) = .empty;
++    var in_fd: c_int = in_p[1];
++    var out_fd: c_int = out_p[0];
++    var err_fd: c_int = err_p[0];
++    var off: usize = 0;
++    if (input.len == 0) {
++        _ = std.c.close(in_fd);
++        in_fd = -1;
++    }
++    var buf: [65536]u8 = undefined;
++    while (in_fd >= 0 or out_fd >= 0 or err_fd >= 0) {
++        var pfds: [3]std.posix.pollfd = .{
++            .{ .fd = in_fd, .events = std.posix.POLL.OUT, .revents = 0 },
++            .{ .fd = out_fd, .events = std.posix.POLL.IN, .revents = 0 },
++            .{ .fd = err_fd, .events = std.posix.POLL.IN, .revents = 0 },
++        };
++        _ = std.posix.poll(&pfds, -1) catch break;
++        if (in_fd >= 0 and pfds[0].revents != 0) {
++            // MSG_NOSIGNAL does not apply to a pipe; a child that exited
++            // without reading gives EPIPE, and SIGPIPE ends us unless the
++            // process ignores it (blimp --serve does; a plain run does not).
++            const n = std.c.write(in_fd, input[off..].ptr, @min(input.len - off, 65536));
++            if (n > 0) off += @intCast(n);
++            if (n < 0 and std.c._errno().* == @intFromEnum(std.posix.E.INTR)) continue;
++            if (n < 0 or off == input.len) {
++                _ = std.c.close(in_fd);
++                in_fd = -1;
++            }
++        }
++        if (out_fd >= 0 and pfds[1].revents != 0) {
++            const n = std.c.read(out_fd, &buf, buf.len);
++            if (n > 0) {
++                out.appendSlice(allocator, buf[0..@intCast(n)]) catch return error.OutOfMemory;
++            } else if (n == 0 or std.c._errno().* != @intFromEnum(std.posix.E.INTR)) {
++                _ = std.c.close(out_fd);
++                out_fd = -1;
++            }
++        }
++        if (err_fd >= 0 and pfds[2].revents != 0) {
++            const n = std.c.read(err_fd, &buf, buf.len);
++            if (n > 0) {
++                err.appendSlice(allocator, buf[0..@intCast(n)]) catch return error.OutOfMemory;
++            } else if (n == 0 or std.c._errno().* != @intFromEnum(std.posix.E.INTR)) {
++                _ = std.c.close(err_fd);
++                err_fd = -1;
++            }
++        }
++    }
++
++    var wstatus: c_int = 0;
++    while (std.c.waitpid(pid, &wstatus, 0) < 0) {
++        if (std.c._errno().* != @intFromEnum(std.posix.E.INTR)) break;
++    }
++    const sig = wstatus & 0x7f; // WIFEXITED: sig == 0; same encoding on macOS and Linux
++    const status: i64 = if (sig == 0) (wstatus >> 8) & 0xff else -@as(i64, sig);
++
++    const entries = allocator.alloc(Value.MapEntry, 3) catch return error.OutOfMemory;
++    entries[0] = .{ .key = "status", .val = try box(allocator, .{ .integer = status }) };
++    entries[1] = .{ .key = "out", .val = try box(allocator, .{ .string = out.toOwnedSlice(allocator) catch return error.OutOfMemory }) };
++    entries[2] = .{ .key = "err", .val = try box(allocator, .{ .string = err.toOwnedSlice(allocator) catch return error.OutOfMemory }) };
++    return box(allocator, .{ .map = entries });
++}
++
++fn closeAll(fds: []const c_int) void {
++    for (fds) |fd| _ = std.c.close(fd);
++}
++
++// ── sqlite_query ────────────────────────────────────────────
++
++const sqlite = struct {
++    const Db = opaque {};
++    const Stmt = opaque {};
++    const OK = 0;
++    const ROW = 100;
++    const DONE = 101;
++    const INTEGER = 1;
++    const FLOAT = 2;
++    const TEXT = 3;
++    const BLOB = 4;
++    const NULL = 5;
++    const OPEN_READWRITE = 0x2;
++    const OPEN_CREATE = 0x4;
++    // SQLITE_TRANSIENT is (void(*)(void*))-1: sqlite copies the bytes at once.
++    const TRANSIENT: isize = -1; // declared as an integer: the ABI is the same and Zig will not align -1
++
++    extern "c" fn sqlite3_open_v2(path: [*:0]const u8, db: *?*Db, flags: c_int, vfs: ?[*:0]const u8) c_int;
++    extern "c" fn sqlite3_close(db: *Db) c_int;
++    extern "c" fn sqlite3_busy_timeout(db: *Db, ms: c_int) c_int;
++    extern "c" fn sqlite3_errmsg(db: *Db) [*:0]const u8;
++    extern "c" fn sqlite3_prepare_v2(db: *Db, sql: [*]const u8, n: c_int, stmt: *?*Stmt, tail: *[*]const u8) c_int;
++    extern "c" fn sqlite3_finalize(stmt: *Stmt) c_int;
++    extern "c" fn sqlite3_step(stmt: *Stmt) c_int;
++    extern "c" fn sqlite3_bind_parameter_count(stmt: *Stmt) c_int;
++    extern "c" fn sqlite3_bind_null(stmt: *Stmt, i: c_int) c_int;
++    extern "c" fn sqlite3_bind_int64(stmt: *Stmt, i: c_int, v: i64) c_int;
++    extern "c" fn sqlite3_bind_double(stmt: *Stmt, i: c_int, v: f64) c_int;
++    extern "c" fn sqlite3_bind_text(stmt: *Stmt, i: c_int, s: [*]const u8, n: c_int, d: isize) c_int;
++    extern "c" fn sqlite3_column_count(stmt: *Stmt) c_int;
++    extern "c" fn sqlite3_column_type(stmt: *Stmt, i: c_int) c_int;
++    extern "c" fn sqlite3_column_int64(stmt: *Stmt, i: c_int) i64;
++    extern "c" fn sqlite3_column_double(stmt: *Stmt, i: c_int) f64;
++    extern "c" fn sqlite3_column_text(stmt: *Stmt, i: c_int) ?[*]const u8;
++    extern "c" fn sqlite3_column_blob(stmt: *Stmt, i: c_int) ?[*]const u8;
++    extern "c" fn sqlite3_column_bytes(stmt: *Stmt, i: c_int) c_int;
++};
++
++/// sqlite_query(path, sql, params) -> List of rows, each row a List of cells.
++///
++/// Opens `path` (creating it), runs ONE statement with `params` bound to ?
++/// placeholders in order, closes the database. Cells: INTEGER -> Int, FLOAT ->
++/// Float, TEXT and BLOB -> String (bytes as stored), NULL -> nil. A statement
++/// that returns no columns (INSERT, CREATE) answers [].
++///
++/// Params: Int, Float, String, Bool (0/1) and nil are bindable; anything else
++/// is TypeError. The count must equal the statement's placeholder count.
++///
++/// Every failure is a raised TypeError with the sqlite message in the report
++/// (`failure`), catchable with try/catch, not with orelse. A second
++/// statement after the first is refused rather than silently dropped.
++pub fn sqliteQuery(allocator: std.mem.Allocator, args: []const *const Value) EvalError!*const Value {
++    if (args.len != 3 or args[0].* != .string or args[1].* != .string or args[2].* != .list) return error.TypeError;
++    const path = allocator.dupeZ(u8, args[0].string) catch return error.OutOfMemory;
++    defer allocator.free(path);
++    const params = args[2].list;
++
++    var db: ?*sqlite.Db = null;
++    const rc_open = sqlite.sqlite3_open_v2(path.ptr, &db, sqlite.OPEN_READWRITE | sqlite.OPEN_CREATE, null);
++    const h = db orelse return error.OutOfMemory;
++    defer _ = sqlite.sqlite3_close(h);
++    if (rc_open != sqlite.OK) return builtins.failArg("sqlite_query: cannot open {s}: {s}", .{ args[0].string, std.mem.span(sqlite.sqlite3_errmsg(h)) });
++    _ = sqlite.sqlite3_busy_timeout(h, 5000);
++
++    const sql = args[1].string;
++    var stmt: ?*sqlite.Stmt = null;
++    var tail: [*]const u8 = sql.ptr;
++    if (sqlite.sqlite3_prepare_v2(h, sql.ptr, @intCast(sql.len), &stmt, &tail) != sqlite.OK)
++        return builtins.failArg("sqlite_query: {s}", .{std.mem.span(sqlite.sqlite3_errmsg(h))});
++    const st = stmt orelse return allocator_empty(allocator); // empty / comment-only SQL
++    defer _ = sqlite.sqlite3_finalize(st);
++    const rest = sql[(@intFromPtr(tail) - @intFromPtr(sql.ptr))..];
++    if (std.mem.trim(u8, rest, " \t\r\n;").len != 0)
++        return builtins.failArg("sqlite_query: one statement per call, found more after the first", .{});
++
++    const want: usize = @intCast(sqlite.sqlite3_bind_parameter_count(st));
++    if (want != params.len)
++        return builtins.failArg("sqlite_query: statement has {d} placeholders, got {d} params", .{ want, params.len });
++    for (params, 1..) |p, i| {
++        const idx: c_int = @intCast(i);
++        const rc = switch (p.*) {
++            .integer => |n| sqlite.sqlite3_bind_int64(st, idx, n),
++            .float => |f| sqlite.sqlite3_bind_double(st, idx, f),
++            .boolean => |b| sqlite.sqlite3_bind_int64(st, idx, @intFromBool(b)),
++            .nil => sqlite.sqlite3_bind_null(st, idx),
++            .string => |s| sqlite.sqlite3_bind_text(st, idx, s.ptr, @intCast(s.len), sqlite.TRANSIENT),
++            else => return builtins.failArg("sqlite_query: param {d} is a {s}; bindable: Int, Float, String, Bool, nil", .{ i, @tagName(p.*) }),
++        };
++        if (rc != sqlite.OK) return builtins.failArg("sqlite_query: bind {d}: {s}", .{ i, std.mem.span(sqlite.sqlite3_errmsg(h)) });
++    }
++
++    const ncols: usize = @intCast(sqlite.sqlite3_column_count(st));
++    var rows: std.ArrayList(*const Value) = .empty;
++    while (true) {
++        const rc = sqlite.sqlite3_step(st);
++        if (rc == sqlite.DONE) break;
++        if (rc != sqlite.ROW) return builtins.failArg("sqlite_query: {s}", .{std.mem.span(sqlite.sqlite3_errmsg(h))});
++        const cells = allocator.alloc(*const Value, ncols) catch return error.OutOfMemory;
++        for (cells, 0..) |*cell, j| {
++            const col: c_int = @intCast(j);
++            cell.* = switch (sqlite.sqlite3_column_type(st, col)) {
++                sqlite.INTEGER => try box(allocator, .{ .integer = sqlite.sqlite3_column_int64(st, col) }),
++                sqlite.FLOAT => try box(allocator, .{ .float = sqlite.sqlite3_column_double(st, col) }),
++                sqlite.TEXT, sqlite.BLOB => blk: {
++                    const is_text = sqlite.sqlite3_column_type(st, col) == sqlite.TEXT;
++                    const p = if (is_text) sqlite.sqlite3_column_text(st, col) else sqlite.sqlite3_column_blob(st, col);
++                    const n: usize = @intCast(sqlite.sqlite3_column_bytes(st, col));
++                    const copy = allocator.dupe(u8, if (p) |q| q[0..n] else "") catch return error.OutOfMemory;
++                    break :blk try box(allocator, .{ .string = copy });
++                },
++                else => try box(allocator, .nil),
++            };
++        }
++        rows.append(allocator, try box(allocator, .{ .list = cells })) catch return error.OutOfMemory;
++    }
++    return box(allocator, .{ .list = rows.toOwnedSlice(allocator) catch return error.OutOfMemory });
++}
++
++fn allocator_empty(allocator: std.mem.Allocator) EvalError!*const Value {
++    return box(allocator, .{ .list = &.{} });
++}
++
++// ── tests ───────────────────────────────────────────────────
++
++fn sv(a: std.mem.Allocator, s: []const u8) !*const Value {
++    return box(a, .{ .string = s });
++}
++
++fn lv(a: std.mem.Allocator, items: []const *const Value) !*const Value {
++    return box(a, .{ .list = try a.dupe(*const Value, items) });
++}
++
++test "exec answers status, stdout and stderr, and feeds stdin" {
++    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
++    defer arena.deinit();
++    const a = arena.allocator();
++
++    const r = try exec(a, &.{ try lv(a, &.{ try sv(a, "sh"), try sv(a, "-c"), try sv(a, "cat; echo oops 1>&2; exit 3") }), try sv(a, "hi") });
++    try std.testing.expectEqual(@as(i64, 3), r.map[0].val.integer);
++    try std.testing.expectEqualStrings("hi", r.map[1].val.string);
++    try std.testing.expectEqualStrings("oops\n", r.map[2].val.string);
++
++    const missing = try exec(a, &.{ try lv(a, &.{try sv(a, "no-such-program-xyz")}), try sv(a, "") });
++    try std.testing.expectEqual(@as(i64, 127), missing.map[0].val.integer);
++
++    try std.testing.expectError(error.TypeError, exec(a, &.{ try lv(a, &.{}), try sv(a, "") }));
++}
++
++test "sqlite_query binds params and reads every cell type" {
++    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
++    defer arena.deinit();
++    const a = arena.allocator();
++
++    // ":memory:" lives and dies with one call, so one statement has to carry it all.
++    const rows = try sqliteQuery(a, &.{
++        try sv(a, ":memory:"),
++        try sv(a, "select ?, ?, ?, null"),
++        try lv(a, &.{ try box(a, .{ .integer = 7 }), try box(a, .{ .float = 2.5 }), try sv(a, "x") }),
++    });
++    const row = rows.list[0].list;
++    try std.testing.expectEqual(@as(i64, 7), row[0].integer);
++    try std.testing.expectEqual(@as(f64, 2.5), row[1].float);
++    try std.testing.expectEqualStrings("x", row[2].string);
++    try std.testing.expect(row[3].* == .nil);
++
++    // Wrong placeholder count and a second statement are both refused.
++    try std.testing.expectError(error.TypeError, sqliteQuery(a, &.{ try sv(a, ":memory:"), try sv(a, "select ?"), try lv(a, &.{}) }));
++    try std.testing.expectError(error.TypeError, sqliteQuery(a, &.{ try sv(a, ":memory:"), try sv(a, "select 1; select 2"), try lv(a, &.{}) }));
++}

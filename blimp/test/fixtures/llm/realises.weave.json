@@ -1,0 +1,26 @@
+{
+  "id": "chatcmpl-fake",
+  "object": "chat.completion",
+  "created": 1760000000,
+  "model": "fake-model",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"edges\":[{\"from\":2,\"to\":6,\"type\":\"pays_off\",\"why\":\"The kettle that goes cold in the opening is the kettle that is filled in the last line.\"},{\"from\":3,\"to\":4,\"type\":\"develops\",\"why\":\"The father and the thermostat are introduced, then the thermostat is explained as a metaphor.\"},{\"from\":1,\"to\":5,\"type\":\"pays_off\",\"why\":\"The unnoticed waiting at the window ends when the brother answers the telephone.\"}]}"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 100,
+    "completion_tokens": 20,
+    "total_tokens": 120,
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 100,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

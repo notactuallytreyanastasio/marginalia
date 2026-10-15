@@ -1,0 +1,268 @@
+# fake_llm.blimp: a canned-answer stand-in for an OpenAI-dialect chat-completions
+# endpoint, for blimp/test/e2e.sh.
+#
+#   blimp blimp/test/fake_llm.blimp [PORT] [SCRIPT_DIR]
+#
+# PORT        default 4321
+# SCRIPT_DIR  default: fixtures/llm next to this file
+#
+# POST /chat/completions and POST /v1/chat/completions pick a reply file:
+#   1. FAKE_LLM_429 anywhere in the request body    -> 429 {"error":{"message":"rate limited"}}
+#   2. FAKE_LLM_500 anywhere in the request body    -> 500 {"error":{"message":"fake server error"}}
+#   3. otherwise, the first file in SCRIPT_DIR/*.json (sorted by name, default.json
+#      excluded) whose NEEDLE appears in the last user message or in any system
+#      message. NEEDLE is the file name up to the first dot, so
+#      "HARD.beats.json" has the needle "HARD" and "beats" is only a label.
+#   4. else SCRIPT_DIR/default.json
+#   FAKE_LLM_SLOW in the body sleeps 2 s first, then answers as in 3 and 4.
+# The chosen file is returned verbatim as the response body.
+#
+# GET /health answers "ok". Anything else is a 404. One log line per request on
+# stdout: "<method> <path> -> <file or marker> <status>".
+#
+# Not handled: Transfer-Encoding: chunked request bodies (the app's client sends
+# Content-Length). A FAKE_LLM_SLOW request is served by a forked child so the
+# other requests are not held up; the parent never closes that socket (closing
+# after fork would shut down the child's connection), so it leaks one fd per slow
+# request until the process exits.
+
+def basename_dir(path: String) -> String do
+  parts = split(path, "/")
+  kept = reverse(tail(reverse(parts)))
+  join(kept, "/")
+end
+
+def respond(fd: Int, status: String, body: String) -> Int do
+  head = concat("HTTP/1.1 ", status, "\r\nContent-Type: application/json\r\nContent-Length: ", to_string(length(body)), "\r\nConnection: close\r\n\r\n")
+  tcp_write(fd, concat(head, body))
+  tcp_close(fd)
+  0
+end
+
+def read_head(fd: Int, acc: String) -> String do
+  case index_of(acc, "\r\n\r\n") >= 0 do
+    true -> acc
+    _ ->
+      more = tcp_read(fd)
+      case nil?(more) do
+        true -> acc
+        _ ->
+          case length(more) == 0 do
+            true -> acc
+            _ -> read_head(fd, concat(acc, more))
+          end
+      end
+  end
+end
+
+# Chunks go in a list and are joined once by the caller: concat in a loop copies
+# the whole accumulator on every read.
+def read_body(fd: Int, chunks: List, have: Int, need: Int) -> List do
+  case have >= need do
+    true -> chunks
+    _ ->
+      more = tcp_read(fd)
+      case nil?(more) do
+        true -> chunks
+        _ ->
+          case length(more) == 0 do
+            true -> chunks
+            _ -> read_body(fd, append(chunks, more), have + length(more), need)
+          end
+      end
+  end
+end
+
+def content_length(head: String) -> Int do
+  lower = downcase(head)
+  i = index_of(lower, "content-length:")
+  case i < 0 do
+    true -> 0
+    _ ->
+      rest = slice(head, i + 15, length(head) - i - 15)
+      line = head(split(rest, "\r\n"))
+      to_int(replace(line, " ", ""))
+  end
+end
+
+def text_of(m: Any) -> String do
+  c = lookup(m, "content")
+  case to_string(type_of(c)) == "string" do
+    true -> c
+    _ -> ""
+  end
+end
+
+def last_user(msgs: List) -> String do
+  case empty?(msgs) do
+    true -> ""
+    _ ->
+      m = head(msgs)
+      case to_string(lookup(m, "role")) == "user" do
+        true -> text_of(m)
+        _ -> last_user(tail(msgs))
+      end
+  end
+end
+
+def system_text(msgs: List, acc: String) -> String do
+  case empty?(msgs) do
+    true -> acc
+    _ ->
+      m = head(msgs)
+      role = to_string(lookup(m, "role"))
+      is_sys = (role == "system") or (role == "developer")
+      case is_sys do
+        true -> system_text(tail(msgs), concat(acc, "\n", text_of(m)))
+        _ -> system_text(tail(msgs), acc)
+      end
+  end
+end
+
+def is_script(name: String) -> Bool do
+  n = length(name)
+  case n > 5 do
+    true -> (slice(name, n - 5, 5) == ".json") and (name != "default.json")
+    _ -> false
+  end
+end
+
+# First script (sorted) whose needle is in the user text or the system text; nil if none.
+def pick(names: List, user: String, sys: String) -> Any do
+  case empty?(names) do
+    true -> nil
+    _ ->
+      name = head(names)
+      needle = head(split(name, "."))
+      hit = (length(needle) > 0) and (contains(user, needle) or contains(sys, needle))
+      case hit do
+        true -> name
+        _ -> pick(tail(names), user, sys)
+      end
+  end
+end
+
+def choose(dir: String, body: String) -> String do
+  decoded = json_decode(body)
+  case decoded do
+    {:ok, v} ->
+      msgs = lookup(v, "messages")
+      case to_string(type_of(msgs)) == "list" do
+        true ->
+          names = filter(list_dir(dir), fn(f: String) do is_script(f) end)
+          pick(names, last_user(reverse(msgs)), system_text(msgs, ""))
+        _ -> nil
+      end
+    _ -> nil
+  end
+end
+
+def script_body(dir: String, name: String) -> String do
+  s = read_file(concat(dir, "/", name))
+  case nil?(s) do
+    true -> "{\"error\":{\"message\":\"fake_llm: missing script file\"}}"
+    _ -> s
+  end
+end
+
+def answer(fd: Int, dir: String, body: String, method: String, path: String) -> Int do
+  is_429 = contains(body, "FAKE_LLM_429")
+  is_500 = contains(body, "FAKE_LLM_500")
+  is_slow = contains(body, "FAKE_LLM_SLOW")
+  picked = choose(dir, body)
+  file = case nil?(picked) do
+    true -> "default.json"
+    _ -> picked
+  end
+  case is_429 do
+    true ->
+      puts(concat(method, " ", path, " -> FAKE_LLM_429 429"))
+      respond(fd, "429 Too Many Requests", "{\"error\":{\"message\":\"rate limited\"}}")
+    _ ->
+      case is_500 do
+        true ->
+          puts(concat(method, " ", path, " -> FAKE_LLM_500 500"))
+          respond(fd, "500 Internal Server Error", "{\"error\":{\"message\":\"fake server error\"}}")
+        _ ->
+          case is_slow do
+            true ->
+              puts(concat(method, " ", path, " -> FAKE_LLM_SLOW default.json 200"))
+              pid = fork()
+              case pid == 0 do
+                true ->
+                  sleep_ms(2000)
+                  respond(fd, "200 OK", script_body(dir, "default.json"))
+                  exit(0)
+                _ -> 0
+              end
+            _ ->
+              puts(concat(method, " ", path, " -> ", file, " 200"))
+              respond(fd, "200 OK", script_body(dir, file))
+          end
+      end
+  end
+end
+
+def handle(fd: Int, dir: String) -> Int do
+  acc = read_head(fd, "")
+  idx = index_of(acc, "\r\n\r\n")
+  case idx < 0 do
+    true ->
+      tcp_close(fd)
+      0
+    _ ->
+      head_text = slice(acc, 0, idx)
+      first = slice(acc, idx + 4, length(acc) - idx - 4)
+      need = content_length(head_text)
+      case contains(downcase(head_text), "expect: 100-continue") do
+        true -> tcp_write(fd, "HTTP/1.1 100 Continue\r\n\r\n")
+        _ -> :ok
+      end
+      chunks = read_body(fd, [first], length(first), need)
+      body = join(chunks, "")
+      line = split(head(split(head_text, "\r\n")), " ")
+      method = head(line)
+      path = head(split(head(tail(line)), "?"))
+      is_chat = (path == "/chat/completions") or (path == "/v1/chat/completions")
+      case (method == "POST") and is_chat do
+        true -> answer(fd, dir, body, method, path)
+        _ ->
+          case (method == "GET") and (path == "/health") do
+            true ->
+              puts("GET /health -> ok 200")
+              respond(fd, "200 OK", "ok")
+            _ ->
+              puts(concat(method, " ", path, " -> none 404"))
+              respond(fd, "404 Not Found", "{\"error\":{\"message\":\"fake_llm: no such route\"}}")
+          end
+      end
+  end
+end
+
+def reap() -> Int do
+  r = waitpid(-1, true)
+  case r > 0 do
+    true -> reap()
+    _ -> 0
+  end
+end
+
+def serve_loop(lfd: Int, dir: String) -> Int do
+  fd = tcp_accept(lfd)
+  handle(fd, dir)
+  reap()
+  serve_loop(lfd, dir)
+end
+
+args = tail(tail(argv()))
+port = case empty?(args) do
+  true -> 4321
+  _ -> to_int(head(args))
+end
+dir = case length(args) > 1 do
+  true -> head(tail(args))
+  _ -> concat(basename_dir(head(tail(argv()))), "/fixtures/llm")
+end
+lfd = tcp_listen(port)
+puts(concat("fake_llm listening on ", to_string(port), " scripts in ", dir))
+serve_loop(lfd, dir)

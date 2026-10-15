@@ -1,0 +1,31 @@
+{
+  "id": "chatcmpl-fake-beats",
+  "object": "chat.completion",
+  "created": 1760000000,
+  "model": "fake-model",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_beats_1",
+            "type": "function",
+            "function": {
+              "name": "record_beats",
+              "arguments": "{\"beats\":[{\"title\":\"They set the scene at the window\",\"note\":\"Opens on stillness: someone has been watching for an hour and the household has not registered it. Sets up the waiting the rest of the draft turns on.\",\"quote\":\"She had been standing at the window for an hour before anyone noticed.\"},{\"title\":\"They let the kettle go cold\",\"note\":\"A small domestic failure that stands for the whole household stalling. Paid off when the kettle is filled at the end.\",\"quote\":\"The kettle went cold on the counter, and nobody moved to fill it again.\"},{\"title\":\"They introduce the father and his distrust of the thermostat\",\"note\":\"Introduces the thermostat the regulation passage depends on and the father who does not believe in it.\",\"quote\":\"Her father had installed the thermostat himself the winter before, and he never trusted it.\"},{\"title\":\"They say what the thermostat can and cannot know\",\"note\":\"The central metaphor: perfect regulation of one measurement, blind to the rest of the house.\",\"quote\":\"It kept a single promise, to hold the hallway at nineteen degrees, and it kept that promise with total loyalty and no understanding.\"},{\"title\":\"They have the brother answer the telephone\",\"note\":\"Breaks the waiting. The brother is the one who has stopped pretending, which the first section only hinted at.\",\"quote\":\"When the telephone finally rang, it was her brother who crossed the room, because he was the only one who had stopped pretending not to wait.\"},{\"title\":\"They close on the kettle being filled\",\"note\":\"Pays off the cold kettle from the opening: action replaces waiting.\",\"quote\":\"Nobody had noticed that either, and she crossed the kitchen and filled it, because it was the one thing in the room that she knew how to do.\"}]}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 900,
+    "completion_tokens": 150,
+    "total_tokens": 1050
+  }
+}
