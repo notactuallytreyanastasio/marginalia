@@ -92,7 +92,7 @@ line says `Bubble`. A request the parser refused is a 400, and a body over
 the cap is a 413.
 
     let logError(req: Request, what: String): Void {
-      sysExec(["mkdir", "-p", logDir()], "", null);
+      do { sysExec(["mkdir", "-p", logDir()], "", null); } orelse do { };
       let line = "${sysUtcNow()} ${req.method} ${req.path} ${what}\n";
       sysAppendFile("${logDir()}/error.log", line);
     }

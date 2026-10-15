@@ -93,7 +93,8 @@ parent process is the forked pid, so its RSS is read with `ps`.
     }
 
     let rssOf(pid: Int): String {
-      let out = sysExec(["ps", "-o", "rss=", "-p", pid.toString()], "", null);
+      let none: List<String> = ["", "?", ""];
+      let out = do { sysExec(["ps", "-o", "rss=", "-p", pid.toString()], "", null) } orelse none;
       out[1]
     }
 
