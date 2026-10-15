@@ -17,7 +17,8 @@
 #   FAKE_LLM_SLOW in the body sleeps 2 s first, then answers as in 3 and 4.
 # The chosen file is returned verbatim as the response body.
 #
-# GET /health answers "ok". Anything else is a 404. One log line per request on
+# GET /quit answers "bye" and exits the server (tests that start it from Temper
+# have no kill builtin). GET /health answers "ok". Anything else is a 404. One log line per request on
 # stdout: "<method> <path> -> <file or marker> <status>".
 #
 # Not handled: Transfer-Encoding: chunked request bodies (the app's client sends
@@ -232,8 +233,15 @@ def handle(fd: Int, dir: String) -> Int do
               puts("GET /health -> ok 200")
               respond(fd, "200 OK", "ok")
             _ ->
-              puts(concat(method, " ", path, " -> none 404"))
-              respond(fd, "404 Not Found", "{\"error\":{\"message\":\"fake_llm: no such route\"}}")
+              case (method == "GET") and (path == "/quit") do
+                true ->
+                  puts("GET /quit -> bye 200")
+                  respond(fd, "200 OK", "bye")
+                  exit(0)
+                _ ->
+                  puts(concat(method, " ", path, " -> none 404"))
+                  respond(fd, "404 Not Found", "{\"error\":{\"message\":\"fake_llm: no such route\"}}")
+              end
           end
       end
   end

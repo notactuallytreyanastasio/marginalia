@@ -70,7 +70,7 @@ wrote to stdout, everything it wrote to stderr. `cwd` may be null. There is
 no timeout.
 
     @connected
-    export let sysExec(argv: List<String>, stdin: String, cwd: String?): List<String>;
+    export let sysExec(argv: List<String>, stdin: String, cwd: String?): List<String> throws Bubble;
 
     @connected
     export let sysSleepMs(ms: Int): Void;
@@ -216,7 +216,7 @@ The interpreter's client runs on a thread. `sysHttpStart` answers a handle;
 strings. Bodies are capped at 8 MiB by the interpreter.
 
     @connected
-    export let sysHttpStart(method: String, url: String, headers: List<String>, body: String, timeoutMs: Int): Int;
+    export let sysHttpStart(method: String, url: String, headers: List<String>, body: String, timeoutMs: Int): Int throws Bubble;
 
     @connected
     export let sysHttpResult(handle: Int): List<String>?;
@@ -242,13 +242,13 @@ row is the column names. A statement with no result columns answers
 `[["changes"], ["N"]]`.
 
     @connected
-    export let sysDbOpen(path: String): Int;
+    export let sysDbOpen(path: String): Int throws Bubble;
 
     @connected
-    export let sysDbExec(db: Int, sql: String): Int;
+    export let sysDbExec(db: Int, sql: String): Int throws Bubble;
 
     @connected
-    export let sysDbQuery(db: Int, sql: String, params: List<String?>): List<List<String?>>;
+    export let sysDbQuery(db: Int, sql: String, params: List<String?>): List<List<String?>> throws Bubble;
 
     @connected
     export let sysDbLastId(db: Int): Int;
