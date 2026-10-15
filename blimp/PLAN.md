@@ -504,6 +504,15 @@ Found while writing Phase 1 (each one cost an agent an hour):
     `c.chat(...)`) must go through a helper that takes `test`.
 28. A `for (let x of xs)` over a parameter with an early `return` inside hit
     "Never reached by macro expander"; a `while` with an index works.
+29. A literal `#{` inside a Temper string becomes Blimp's own interpolation
+    in the emitted code and raises at run time; build it as
+    `sysJoin(["#", "\u{7b}"], "")`.
+30. `x != null && x is T` does not narrow; `x is T` alone does. Narrowing
+    does not survive `&&`.
+31. A function-typed return (`: fn (A): Void`) cannot be declared; pass the
+    function in instead. A lambda argument is `fn (a: T): R { ... }`.
+32. The sqlite builtin binds `$N` by number since temper-blimp f6fa178;
+    before that it bound by order of first appearance.
 24. `now_ms()` in Blimp is monotonic, not epoch. `sysNowMs` is `now() * 1000`;
     `sysMonoMs` is the monotonic one, for timing only.
 
