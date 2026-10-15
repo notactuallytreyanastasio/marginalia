@@ -4,7 +4,7 @@ A request is answered in this order, and the order is the contract:
 
 1. A static file (`/assets/...`, `/images/...`, `favicon.ico`, `robots.txt`)
    if the path is one: no database, no session.
-2. `/healthz` and a placeholder `/sitemap.xml`: no database either.
+2. `/healthz`: no database either.
 3. The database is opened. (A fresh child per request: see `webDispatch`.)
 4. The route is matched, group by group in Phoenix router order. A `POST` with
    `_method=delete` (or `put`, `patch`) is matched as that method, as
@@ -36,6 +36,8 @@ in `log/error.log`. The Temper bubble carries no text; the line says so.
     let { pagesWorksRoutes, pagesWorksGet, pagesWorksEvent } = import("pages_works/src");
     let { pagesCutsRoutes, pagesCutsGet, pagesCutsEvent } = import("pages_cuts/src");
     let { pagesStacksRoutes, pagesStacksGet, pagesStacksEvent } = import("pages_stacks/src");
+    let { pagesDraftsRoutes, pagesDraftsGet, pagesDraftsEvent } = import("pages_drafts/src");
+    let { pagesCasesRoutes, pagesCasesGet, pagesCasesEvent } = import("pages_cases/src");
     let { recoveryRun } = import("runs/src");
     let { portFromEnv } = import("server/src");
 
@@ -69,6 +71,8 @@ so a real `/` wins over the placeholder.
         // pages_cuts    /cuts, /cuts/:id
         // pages_links   /links, /links/:id, /links/:id/read
         // -----------------------------------------------------------------------
+        new WebGroup("pages_cases", pagesCasesRoutes()),
+        new WebGroup("pages_drafts", pagesDraftsRoutes()),
         new WebGroup("pages_stacks", pagesStacksRoutes()),
         new WebGroup("pages_cuts", pagesCutsRoutes()),
         new WebGroup("pages_works", pagesWorksRoutes()),
@@ -97,9 +101,7 @@ Every route of every group, in match order.
 `/` until `pages_public` lands: the app layout and the word Marginalia.
 
     let wrPlaceholderRoutes(): List<Route> {
-      [
-        new Route("GET", "/", "public.home"),
-      ]
+      []
     }
 
     let wrPlaceholderPage(ctx: Ctx, heading: String): Response throws Bubble {
@@ -122,7 +124,11 @@ Every route of every group, in match order.
 ### Handing a request to its group
 
     let wrGroupGet(id: String, ctx: Ctx, match: Match): Response throws Bubble {
-      if (id == "pages_stacks") {
+      if (id == "pages_cases") {
+        pagesCasesGet(ctx, match)
+      } else if (id == "pages_drafts") {
+        pagesDraftsGet(ctx, match)
+      } else if (id == "pages_stacks") {
         pagesStacksGet(ctx, match)
       } else if (id == "pages_cuts") {
         pagesCutsGet(ctx, match)
@@ -139,7 +145,11 @@ Every route of every group, in match order.
     }
 
     let wrGroupEvent(id: String, ctx: Ctx, match: Match, event: String, payload: JsonObject): Response throws Bubble {
-      if (id == "pages_stacks") {
+      if (id == "pages_cases") {
+        pagesCasesEvent(ctx, match, event, payload)
+      } else if (id == "pages_drafts") {
+        pagesDraftsEvent(ctx, match, event, payload)
+      } else if (id == "pages_stacks") {
         pagesStacksEvent(ctx, match, event, payload)
       } else if (id == "pages_cuts") {
         pagesCutsEvent(ctx, match, event, payload)
@@ -334,8 +344,8 @@ repository root (the end-to-end script does that).
       }
     }
 
-A static file for a `GET`, `/healthz`, the placeholder sitemap; null for
-anything else.
+A static file for a `GET`, and `/healthz`; null for anything else.
+(`/sitemap.xml` is `pages_drafts`'s now: it needs the database.)
 
     export let webEarly(req: Request): Response? {
       if (req.method != "GET") { return null; }
@@ -343,8 +353,6 @@ anything else.
       if (asset != null) { return asset; }
       if (req.path == "/healthz") {
         httpText(200, "ok")
-      } else if (req.path == "/sitemap.xml") {
-        new Response(200, [new Pair("Content-Type", "application/xml; charset=utf-8")], "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"></urlset>")
       } else {
         null
       }
