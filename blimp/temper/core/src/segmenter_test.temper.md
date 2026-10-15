@@ -2,7 +2,7 @@
 
 Ported from `test/marginalia/segmenter_test.exs`.
 
-    let titles(sections: List<Section>): String {
+    let titles(sections: List<Segment>): String {
       sections.join(" / ") { (s): String => s.title }
     }
 
@@ -48,7 +48,7 @@ The cases below are not ASCII. Their expected titles and body lengths
 (in code points) were produced by running the Elixir this library replaced
 (`Old.Segmenter.split/1`) on the same input.
 
-    let bodyLengths(sections: List<Section>): String {
+    let bodyLengths(sections: List<Segment>): String {
       sections.join(" ") { (s): String => "${s.body.countBetween(String.begin, s.body.end)}" }
     }
 

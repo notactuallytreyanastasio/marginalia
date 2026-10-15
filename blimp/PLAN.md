@@ -491,6 +491,15 @@ Found while writing Phase 1 (each one cost an agent an hour):
     ListBuilder actor: call `temper_items(x)` before treating it as a Blimp
     list. Blimp tuples (`{:ok, s, b}`) must be turned into lists before they
     cross back. `http_start` wants its headers as a Blimp map.
+25. `import("sys")` imports nothing: import a library by its source directory,
+    `let { sysGetEnv } = import("sys/src");` (as core does with `"orm/src"`).
+26. In literate files an indented code block straight after a bullet list is
+    prose, not code; put a plain paragraph between.
+27. The frontend constant-folds pure calls on compile-time-built objects, so a
+    test that inspects state after a call (`llmLastRequest(c)` after
+    `c.chat(...)`) must go through a helper that takes `test`.
+28. A `for (let x of xs)` over a parameter with an early `return` inside hit
+    "Never reached by macro expander"; a `while` with an index works.
 24. `now_ms()` in Blimp is monotonic, not epoch. `sysNowMs` is `now() * 1000`;
     `sysMonoMs` is the monotonic one, for timing only.
 
@@ -506,6 +515,28 @@ Found while writing Phase 1 (each one cost an agent an hour):
   `Request.param` looks in form first, then query.
 - Library names: the text core is `core`, Alloy is `orm` (import
   `"orm/src"` as core does).
+- `db`: the row class is `DbRow`, not `Row` (core already exports `Row`, and
+  two classes of one name in the flat namespace broke the build with
+  `__new expects 3 arguments`). `Db` has `query/exec/insert/one/script/
+  begin/commit/rollback/inTransaction/close` and a public `lastError`;
+  `dbTransaction(db, body: fn (): Void throws Bubble)` replaces the generic
+  method. `DbRow.json` bubbles on bad JSON; a NULL list column reads as `[]`.
+  Every `sys` function that can fail is `throws Bubble`; without that
+  annotation on a callee the compiler deletes the `orelse` around it.
+- Class names are global. Before declaring a class, run
+  `grep -rn "class <Name>\b" blimp/temper` and pick another name if it
+  exists. Record classes are reserved per context: accounts: `User`,
+  `UserToken`, `Scope`; works: `Work`, `Section`, `GraphNode`, `GraphEdge`,
+  `Conversation`, `Message`, `GraphEvent`, `Correction`, `Revision`,
+  `Attachment`, `DocumentSummary`; folders: `Folder`; links: `Link`,
+  `LinkEdge`; cuts: `Cut`; stacks: `StackStep`, `StackStory`; runs: `Run`,
+  `Mutter`. (`Node`, `Edge`, `Row`, `Param`, `Statement`, `Part`, `Section`
+  are taken or ambiguous: `Section` belongs to works; core's segmenter
+  `Section` must be aliased at import.)
+- `llm`: error kinds are `no_key`, `rate_limited` (429 and 5xx after three
+  attempts), `length`, `invalid_json`, `http`, `timeout`, `transport`.
+  Fakes: `llmFake(replies)`, `llmFakeScript(List<LlmFakeResponse>)`,
+  `llmRequests(client)`.
 - `blimp.js` keeps the Phoenix attribute names (`phx-click`, `phx-value-*`,
   `phx-submit`, `phx-change`, `phx-debounce`, `phx-click-away`,
   `phx-window-keydown`, `phx-key`, `phx-hook`, `phx-update="ignore"`,

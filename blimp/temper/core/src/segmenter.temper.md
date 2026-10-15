@@ -9,19 +9,19 @@ a boundary, not a promise of brevity. This is `Marginalia.Works.Segmenter`.
 
     @connected export let graphemePrefix(s: String, n: Int): String;
 
-    @imu export class Section(public title: String, public body: String) {}
+    @imu export class Segment(public title: String, public body: String) {}
 
     let targetWords = 1800;
     let minWords = 250;
     let maxWords = 4000;
 
-    export let segment(raw: String): List<Section> {
+    export let segment(raw: String): List<Segment> {
       let text = normalize(raw);
       if (text.isEmpty) { return []; }
       let chunks = byMarkdown(text) ?? byMarker(text) ?? byWindows(text);
       // one sentence per line inside every prose paragraph, after the split:
       // reflowing first would fold "Chapter 2" into its first paragraph
-      chunks.map { (c): Section => new Section(c.title, reflow(c.body)) }
+      chunks.map { (c): Segment => new Segment(c.title, reflow(c.body)) }
     }
 
 Line endings normalised, runs of blank lines collapsed, trimmed.
@@ -80,7 +80,7 @@ At least two lines matching `^\#{1,3}\s+\S`; the title is the line with
       trim(line.slice(i, line.end))
     }
 
-    let byMarkdown(text: String): List<Section>? {
+    let byMarkdown(text: String): List<Segment>? {
       let lines = text.split("\n");
       if (lines.filter { (l): Boolean => isMarkdownHead(l) }.length < 2) { return null; }
       finish(chunkOn(lines, true))
@@ -229,7 +229,7 @@ Where the head alternatives end, or null.
       i
     }
 
-    let byMarker(text: String): List<Section>? {
+    let byMarker(text: String): List<Segment>? {
       let lines = text.split("\n");
       if (lines.filter { (l): Boolean => isMarker(l) }.length < 2) { return null; }
       finish(chunkOn(lines, false))
@@ -241,7 +241,7 @@ Prose before the first head is its own section, "Opening".
 
     class HeadChunk(public title: String, public lines: ListBuilder<String>) {}
 
-    let chunkOn(lines: List<String>, markdown: Boolean): List<Section> {
+    let chunkOn(lines: List<String>, markdown: Boolean): List<Segment> {
       let chunks = new ListBuilder<HeadChunk>();
       for (var k = 0; k < lines.length; ++k) {
         let line = lines[k];
@@ -257,8 +257,8 @@ Prose before the first head is its own section, "Opening".
           chunks[chunks.length - 1].lines.add(line);
         }
       }
-      chunks.toList().map { (c): Section =>
-        new Section(untitledIfBlank(c.title), trim(joinWith(c.lines.toList(), "\n")))
+      chunks.toList().map { (c): Segment =>
+        new Segment(untitledIfBlank(c.title), trim(joinWith(c.lines.toList(), "\n")))
       }
     }
 
@@ -272,12 +272,12 @@ Paragraphs packed into windows of about 1,800 words, never split: one
 longer than that is its own window, too big, but cutting a sentence in half
 would break every quote anchored into it.
 
-    let byWindows(text: String): List<Section> {
+    let byWindows(text: String): List<Segment> {
       let bodies = window(text);
-      let out = new ListBuilder<Section>();
+      let out = new ListBuilder<Segment>();
       for (var k = 0; k < bodies.length; ++k) {
         let body = reflow(bodies[k]);
-        out.add(new Section(deriveTitle(body, k + 1), body));
+        out.add(new Segment(deriveTitle(body, k + 1), body));
       }
       finish(out.toList()) ?? []
     }
@@ -393,33 +393,33 @@ before it when that one is under 1,800; then any section over 4,000 words
 windowed, keeping its title. Nothing left is null, so the next strategy is
 tried.
 
-    let finish(chunks: List<Section>): List<Section>? {
-      let kept = new ListBuilder<Section>();
+    let finish(chunks: List<Segment>): List<Segment>? {
+      let kept = new ListBuilder<Segment>();
       for (var k = 0; k < chunks.length; ++k) {
         let chunk = chunks[k];
         if (trim(chunk.body).isEmpty) { continue; }
         let n = kept.length;
         if (n > 0 && wordCount(chunk.body) < minWords && wordCount(kept[n - 1].body) < targetWords) {
           let prev = kept[n - 1];
-          kept[n - 1] = new Section(prev.title, "${prev.body}\n\n${chunk.body}");
+          kept[n - 1] = new Segment(prev.title, "${prev.body}\n\n${chunk.body}");
         } else {
           kept.add(chunk);
         }
       }
-      let out = new ListBuilder<Section>();
+      let out = new ListBuilder<Segment>();
       let all = kept.toList();
       for (var k = 0; k < all.length; ++k) { out.addAll(subdivide(all[k])); }
       if (out.isEmpty) { null } else { out.toList() }
     }
 
-    let subdivide(chunk: Section): List<Section> {
+    let subdivide(chunk: Segment): List<Segment> {
       if (wordCount(chunk.body) <= maxWords) { return [chunk]; }
       let parts = window(chunk.body);
       let n = parts.length;
       if (n < 2) { return [chunk]; }
-      let out = new ListBuilder<Section>();
+      let out = new ListBuilder<Segment>();
       for (var k = 0; k < n; ++k) {
-        out.add(new Section("${chunk.title} (${(k + 1).toString()}/${n.toString()})", parts[k]));
+        out.add(new Segment("${chunk.title} (${(k + 1).toString()}/${n.toString()})", parts[k]));
       }
       out.toList()
     }

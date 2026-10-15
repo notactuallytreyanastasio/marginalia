@@ -1,8 +1,7 @@
 #!/bin/bash
 # build.sh: temper build -b blimp -w temper, then out/marginalia.blimp =
-#   generated server/main.blimp + the _connected.blimp of every library the
-#   server imports (the backend splices only the built library's own) +
-#   entry.blimp; then static/js/app.js. Exits non-zero on any failure.
+#   generated server/main.blimp (which carries every imported library and
+#   its _connected.blimp) + entry.blimp; then static/js/app.js. Exits non-zero on any failure.
 #
 # Overridable: TEMPER (the CLI), BLIMP_BIN (a directory holding the 115 blimp),
 # JAVA_HOME.
@@ -35,29 +34,9 @@ tail -5 "$LOG"
 GEN=temper/temper.out/blimp/server/main.blimp
 [ -f "$GEN" ] || fail "no $GEN after the build"
 
-# Libraries the server imports, transitively: import("lib/src") in the sources.
-libs="server"
-queue="server"
-while [ -n "$queue" ]; do
-  next=""
-  for l in $queue; do
-    for d in $(cat temper/"$l"/src/*.temper.md 2>/dev/null | grep -o 'import("[A-Za-z0-9_]*/src")' | sed 's/import("//; s|/src")||' | sort -u); do
-      case " $libs " in *" $d "*) ;; *) libs="$libs $d"; next="$next $d" ;; esac
-    done
-  done
-  queue="$next"
-done
-
 mkdir -p out
 {
   cat "$GEN"
-  for l in $libs; do
-    f=temper/$l/src/_connected.blimp
-    [ -f "$f" ] || continue
-    echo
-    echo "# ---- $f ----"
-    cat "$f"
-  done
   echo
   cat entry.blimp
 } > out/marginalia.blimp || fail "could not write out/marginalia.blimp"
@@ -68,13 +47,7 @@ echo "static/js/app.js: $bytes bytes"
 
 gen_lines="$(wc -l < "$GEN" | tr -d ' ')"
 hand_lines="$(wc -l < entry.blimp | tr -d ' ')"
-conn_lines=0
-for l in $libs; do
-  f=temper/$l/src/_connected.blimp
-  [ -f "$f" ] && conn_lines=$((conn_lines + $(wc -l < "$f" | tr -d ' ')))
-done
 total="$(wc -l < out/marginalia.blimp | tr -d ' ')"
 echo "== out/marginalia.blimp: $total lines"
 echo "   generated:                 $gen_lines"
-echo "   hand-written _connected:   $conn_lines  (libraries: $libs)"
 echo "   hand-written entry.blimp:  $hand_lines"
