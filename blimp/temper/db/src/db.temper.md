@@ -170,7 +170,7 @@ columns default to `'[]'`, and Postgres let them be NULL too.
 `handle` is the `sys` handle. Statements take `$1`-style parameters, every
 parameter text, `null` for NULL.
 
-    export class Db(public handle: Int) {
+    export class Db(public var handle: Int) {
       public var lastError: String = "";
       private var depth: Int = 0;
 
