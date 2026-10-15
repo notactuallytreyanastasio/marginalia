@@ -408,3 +408,60 @@ at the reader.
       rdTrue(test, g.beats[0].id < g.beats[1].id, "same section, so by id");
       rdText(test, rdOr(g.beats[0].why, "?"), "it opens here");
     }
+
+## The render cache
+
+Every block of a page is a miss the first time and a hit the second, the HTML
+is the same either way, and what the first render wrote is what the table
+holds.
+
+    let cacheRender(cache: ReadingCache, page: List<ReadingSection>): String {
+      let out = new ListBuilder<String>();
+      for (let s of page) {
+        for (let b of s.blocks) { out.add(readingRenderBlockCached(cache, b.text, b.mark, b.ref, null)); }
+      }
+      sysJoin(out.toList(), "")
+    }
+
+    let cacheRows(db: Db): Int throws Bubble {
+      db.query("SELECT count(*) AS n FROM render_cache", [])[0].int("n")
+    }
+
+    test("cache: misses the first time, hits the second, the same HTML both times") { test =>
+      let fx = readingFixture();
+      let page = pageOf(fx, null);
+      var blocks = 0;
+      for (let s of page) { blocks += s.blocks.length; }
+      let first = readingCacheLoad(fx.db, page);
+      let html1 = cacheRender(first, page);
+      rdInt(test, first.misses, blocks);
+      rdInt(test, first.hits, 0);
+      rdInt(test, readingCacheSave(fx.db, first), blocks);
+      rdInt(test, cacheRows(fx.db), blocks);
+      let second = readingCacheLoad(fx.db, page);
+      let html2 = cacheRender(second, page);
+      rdInt(test, second.hits, blocks);
+      rdInt(test, second.misses, 0);
+      rdInt(test, readingCacheSave(fx.db, second), 0);
+      rdText(test, html2, html1);
+      rdText(test, html1, sysJoin(readingEntries(fx.db, fx.work).map { (b: ReadingBlock): String => readingRenderBlock(b.text, b.mark, b.ref, null) }, ""));
+    }
+
+A highlighted block keys on its highlight too: the same text with a different
+span is a different row, and the mark's id follows the ref, not the row.
+
+    test("cache: the highlight is part of the key, the ref is not") { test =>
+      let fx = readingFixture();
+      let text = "The kettle went cold on the counter, and nobody moved to fill it again.";
+      let cache = readingCacheLoad(fx.db, []);
+      let plain = readingRenderBlockCached(cache, text, null, "s1p1", null);
+      let marked = readingRenderBlockCached(cache, text, "kettle went cold", "s1p1", null);
+      let again = readingRenderBlockCached(cache, text, "kettle went cold", "s2p7", null);
+      rdInt(test, cache.misses, 2);
+      rdInt(test, cache.hits, 1);
+      rdHas(test, marked, "<mark id=\"anchor-s1p1\">kettle went cold</mark>");
+      rdHas(test, again, "<mark id=\"anchor-s2p7\">kettle went cold</mark>");
+      rdLacks(test, plain, "<mark");
+      rdInt(test, readingCacheSave(fx.db, cache), 2);
+      rdInt(test, readingCacheSweep(fx.db, 30), 0);
+    }

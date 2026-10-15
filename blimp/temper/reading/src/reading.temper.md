@@ -9,14 +9,14 @@ own text, the exact paragraph it came from can be found and the note put
 beside it. A note whose quote cannot be located in any paragraph is not
 dropped; it is attached to the section instead, and says so.
 
-    let { Db } = import("db/src");
+    let { Db, dbTransaction } = import("db/src");
     let {
       Work, Section, GraphNode, GraphEdge, FullConnection,
       worksListSections, worksNodes, worksAllConnections, worksListEdges,
     } = import("works/src");
     let { markdownToHtmlSoft, markdownParagraphs } = import("html/src");
     let { diff, Part } = import("core/src");
-    let { sysStringReplace, sysJoin, sysUtf8Downcase } = import("sys/src");
+    let { sysStringReplace, sysJoin, sysUtf8Downcase, sysSha256 } = import("sys/src");
 
 ## Blocks
 
@@ -122,6 +122,21 @@ only of delimiters yields an empty `<mark>` pair.
     }
 
     let readingRenderMarkdown(text: String, mark: String?, ref: String): String {
+      readingFinishMarkdown(markdownToHtmlSoft(readingBlockSource(text, mark)), ref)
+    }
+
+The mark's sentinels become the `<mark>` whose id names the block.
+
+    let readingFinishMarkdown(html: String, ref: String): String {
+      let opened = sysStringReplace(html, readingMarkOpen(), "<mark id=\"anchor-${ref}\">");
+      sysStringReplace(opened, readingMarkClose(), "</mark>")
+    }
+
+The Markdown a block renders from: the text with the highlight's sentinels
+inserted, the delimiters at its edges left outside them. What the render
+cache keys on.
+
+    export let readingBlockSource(text: String, mark: String?): String {
       var source = text;
       if (mark != null) {
         if (readingIndexOf(text, mark) >= 0) {
@@ -140,10 +155,97 @@ only of delimiters yields an empty `<mark>` pair.
         }
       }
       // A draft, not a reply: a newline inside a paragraph is a sentence end,
-      // not a line break the writer wants on the page.
+      // not a line break the writer wants on the page (markdownToHtmlSoft).
+      source
+    }
+
+## The render cache
+
+A block renders to the same HTML whenever its source is the same, and a
+12,000-word draft of emphasis-heavy prose took 1.4 s to render on every
+view. The `render_cache` table keeps the HTML (with the mark sentinels still
+in it, so one row serves every ref) by the SHA-256 of the source. A page
+loads the keys of every block it will show in one query, renders only the
+misses, and writes them back in one transaction. A preview (a rewrite shown
+in place) is never cached: it is one block, once.
+
+    export class ReadingCache(
+      public have: MapBuilder<String, String>,
+      public fresh: ListBuilder<Pair<String, String>>,
+    ) {
+      public var hits: Int = 0;
+      public var misses: Int = 0;
+    }
+
+The keys of every block of these sections, looked up in groups of five
+hundred, which stays under SQLite's limit on parameters.
+
+    export let readingCacheLoad(db: Db, sections: List<ReadingSection>): ReadingCache throws Bubble {
+      let keys = new ListBuilder<String>();
+      for (let sec of sections) {
+        for (let b of sec.blocks) { keys.add(sysSha256(readingBlockSource(b.text, b.mark))); }
+      }
+      let have = new MapBuilder<String, String>();
+      let all = keys.toList();
+      var at = 0;
+      while (at < all.length) {
+        let stop = if (at + 500 < all.length) { at + 500 } else { all.length };
+        let group = all.slice(at, stop);
+        let marks = new ListBuilder<String>();
+        for (var i = 0; i < group.length; ++i) { marks.add("$${(i + 1).toString()}"); }
+        let params = new ListBuilder<String?>();
+        for (let k of group) { params.add(k); }
+        for (let row of db.query("SELECT key, html FROM render_cache WHERE key IN (${sysJoin(marks.toList(), ",")})", params.toList())) {
+          have.set(row.str("key"), row.str("html"));
+        }
+        at = stop;
+      }
+      new ReadingCache(have, new ListBuilder<Pair<String, String>>())
+    }
+
+`readingRenderBlock` through the cache.
+
+    export let readingRenderBlockCached(
+      cache: ReadingCache, text: String, mark: String?, ref: String, preview: ReadingPreview?,
+    ): String {
+      if (preview != null) { return readingRenderBlock(text, mark, ref, preview); }
+      let source = readingBlockSource(text, mark);
+      let key = sysSha256(source);
+      let hit = cache.have.getOr(key, "");
+      if (!hit.isEmpty) {
+        cache.hits += 1;
+        return readingFinishMarkdown(hit, ref);
+      }
+      cache.misses += 1;
       let html = markdownToHtmlSoft(source);
-      let opened = sysStringReplace(html, readingMarkOpen(), "<mark id=\"anchor-${ref}\">");
-      sysStringReplace(opened, readingMarkClose(), "</mark>")
+      cache.have.set(key, html);
+      cache.fresh.add(new Pair<String, String>(key, html));
+      readingFinishMarkdown(html, ref)
+    }
+
+What the page rendered for the first time, written back; a row another
+request wrote first is left alone.
+
+    export let readingCacheSave(db: Db, cache: ReadingCache?): Int throws Bubble {
+      let c = cache;
+      if (c != null) {
+        let rows: List<Pair<String, String>> = c.fresh.toList();
+        if (rows.length == 0) { return 0; }
+        dbTransaction(db) { (): Void throws Bubble =>
+          for (let r of rows) {
+            db.exec("INSERT OR IGNORE INTO render_cache (key, html) VALUES ($1, $2)", [r.key, r.value]);
+          }
+        };
+        rows.length
+      } else {
+        0
+      }
+    }
+
+Rows nobody has needed for `days` days go, in the start-up sweep.
+
+    export let readingCacheSweep(db: Db, days: Int): Int throws Bubble {
+      db.exec("DELETE FROM render_cache WHERE made < datetime('now', '-${days.toString()} days')", [])
     }
 
 ## The page

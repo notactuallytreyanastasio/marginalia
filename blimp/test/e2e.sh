@@ -14,7 +14,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"   # the worktree root: APP and the stub's css path are relative to it
 cd "$ROOT" || exit 2
 
-BLIMP="${BLIMP:-/Users/bg/code/temper-blimp-114/blimp/chunks/lang/zig-out/bin/blimp}"
+BLIMP="${BLIMP:-/Users/bg/code/temper-blimp-115/blimp/chunks/lang/zig-out/bin/blimp}"
 [ -x "$BLIMP" ] || BLIMP="$(command -v blimp)"
 [ -x "$BLIMP" ] || { echo "no blimp interpreter (set BLIMP=)" >&2; exit 2; }
 APP="${APP:-blimp/out/marginalia.blimp}"
