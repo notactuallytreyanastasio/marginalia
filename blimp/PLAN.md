@@ -574,6 +574,12 @@ Found while writing Phase 1 (each one cost an agent an hour):
   many sections should still cache rendered HTML per section keyed by a
   body fingerprint (Phase 4); until then render only what the page shows.
   `markdownToHtmlSoft` keeps newlines (Reading.render_block).
+- Seen once, not reproduced (2026-10-15): in one full e2e run the server
+  stopped accepting right after a second read job finished (every request
+  from "read again: with the same beats" on got connection refused); the
+  same file alone and the next full run passed 1806/0. The parent had no
+  line in its log. If it recurs, keep the temp dir (E2E_KEEP=1) and look at
+  whether the parent died or only its listening socket.
 - Memory: since fork commits 731552e, 7eb02e1 and 3510871 (2026-10-15) the
   interpreter compacts between top-level statements, follows the pointers
   buffers hold, drops unreachable actors in a plain run, and be-blimp emits
@@ -588,8 +594,11 @@ Found while writing Phase 1 (each one cost an agent an hour):
   equal (3.7 s on an unchanged 17,000-word draft before).
 - Show page on a read 12,000-word draft, measured with curl against the
   forked server: plain prose read view 0.32 s (120 KB), emphasis-and-link
-  heavy prose 1.4 s; graph/spine/threads 0.05-0.06 s. The per-section
-  render cache is still the fix for heavy prose and is not done.
+  heavy prose 1.4 s; graph/spine/threads 0.05-0.06 s. With the render cache
+  (`render_cache`, schema v3, keyed by the SHA-256 of a block's Markdown
+  source; `reading` loads a page's keys in one query and writes the misses)
+  the heavy read view is 0.12 s, trace/prompts 0.10 s, the Changes tab
+  0.05 s.
 
 ## 7. Phases and who does what
 
