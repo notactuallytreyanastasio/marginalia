@@ -34,6 +34,7 @@ in `log/error.log`. The Temper bubble carries no text; the line says so.
     let { JsonObject, JsonString, JsonSyntaxTree, parseJson } = import("std/json");
     let { pagesUsersRoutes, pagesUsersGet, pagesUsersEvent } = import("pages_users/src");
     let { pagesWorksRoutes, pagesWorksGet, pagesWorksEvent } = import("pages_works/src");
+    let { pagesImportRoutes, pagesImportGet, pagesImportEvent } = import("pages_import/src");
     let { pagesCutsRoutes, pagesCutsGet, pagesCutsEvent } = import("pages_cuts/src");
     let { pagesLinksRoutes, pagesLinksGet, pagesLinksEvent } = import("pages_links/src");
     let { pagesStacksRoutes, pagesStacksGet, pagesStacksEvent } = import("pages_stacks/src");
@@ -79,6 +80,7 @@ so a real `/` wins over the placeholder.
         new WebGroup("pages_cuts", pagesCutsRoutes()),
         new WebGroup("pages_links", pagesLinksRoutes()),
         new WebGroup("pages_works", pagesWorksRoutes()),
+        new WebGroup("pages_import", pagesImportRoutes()),
         new WebGroup("pages_show", pagesShowRoutes()),
         new WebGroup("pages_users", pagesUsersRoutes()),
         // The placeholders for pages whose group has not landed. Keep last.
@@ -140,6 +142,8 @@ Every route of every group, in match order.
         pagesLinksGet(ctx, match)
       } else if (id == "pages_works") {
         pagesWorksGet(ctx, match)
+      } else if (id == "pages_import") {
+        pagesImportGet(ctx, match)
       } else if (id == "pages_show") {
         pagesShowGet(ctx, match)
       } else if (id == "pages_users") {
@@ -165,6 +169,8 @@ Every route of every group, in match order.
         pagesLinksEvent(ctx, match, event, payload)
       } else if (id == "pages_works") {
         pagesWorksEvent(ctx, match, event, payload)
+      } else if (id == "pages_import") {
+        pagesImportEvent(ctx, match, event, payload)
       } else if (id == "pages_show") {
         pagesShowEvent(ctx, match, event, payload)
       } else if (id == "pages_users") {

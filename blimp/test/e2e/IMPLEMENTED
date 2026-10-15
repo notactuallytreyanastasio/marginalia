@@ -8,6 +8,7 @@
 60_cuts.sh
 80_stacks.sh
 20_works.sh
+25_import.sh
 30_public.sh
 70_links.sh
 50_show.sh
