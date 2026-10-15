@@ -270,7 +270,11 @@ logout
 assert_redirect_to "/" "session: log-out redirects to /"
 get /
 assert_not_contains "$U1" "session: after log-out the email is gone from the menu"
-assert_contains "Logged out successfully" "session: the flash says Logged out successfully"
+# The controller test read the flash off the conn. The landing page is the bare layout with no
+# flash group, so the message is never shown; the page still takes it, so it is gone by the next.
+assert_not_contains "Logged out successfully" "session: the landing page has no flash group to show Logged out successfully"
+get /users/log-in
+assert_not_contains "Logged out successfully" "session: the landing page took the log-out flash, so the next page does not show it"
 
 # test "succeeds even if the user is not logged in"
 new_visitor session-out-anon

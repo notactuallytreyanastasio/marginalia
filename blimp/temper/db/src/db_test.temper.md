@@ -77,7 +77,7 @@ literal escape in a connected call breaks the frontend.
     let expectedTables(): List<String> {
       [
         "conversations", "corrections", "cuts", "document_summaries", "edges",
-        "folders", "graph_events", "link_edges", "links", "messages",
+        "folders", "graph_events", "import_pulls", "link_edges", "links", "messages",
         "mutterings", "nodes", "revisions", "runs", "schema_migrations",
         "sections", "sessions", "stack_steps", "stack_stories", "users",
         "users_tokens", "versions", "work_attachments", "works",
@@ -90,7 +90,7 @@ literal escape in a connected call breaks the frontend.
       let db = dbOpen(":memory:");
       let got = column(db, "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name", "name");
       expectText(test, got, joinStrings(expectedTables()));
-      expectInt(test, expectedTables().length, 24);
+      expectInt(test, expectedTables().length, 25);
     }
 
     test("the partial and unique indexes are there") { test =>
@@ -105,18 +105,20 @@ literal escape in a connected call breaks the frontend.
 
     test("dbSchemaVersions is ordered and starts at 1") { test =>
       let versions = dbSchemaVersions();
-      expectInt(test, versions.length, 1);
+      expectInt(test, versions.length, 2);
       expectInt(test, versions[0].key, 1);
+      expectInt(test, versions[1].key, 2);
       expectTrue(test, hasText(versions[0].value, "CREATE TABLE works"), "works in the script");
+      expectTrue(test, hasText(versions[1].value, "CREATE TABLE import_pulls"), "import_pulls in version 2");
     }
 
     test("migrating twice applies nothing the second time") { test =>
       let db = new Db(sysDbOpen(":memory:"));
-      expectInt(test, dbMigrate(db), 1);
+      expectInt(test, dbMigrate(db), 2);
       expectInt(test, dbMigrate(db), 0);
       expectInt(test, dbMigrate(db), 0);
-      expectText(test, column(db, "SELECT version FROM schema_migrations", "version"), "1");
-      let stamp = one(db, "SELECT inserted_at FROM schema_migrations");
+      expectText(test, column(db, "SELECT version FROM schema_migrations ORDER BY version", "version"), "1,2");
+      let stamp = one(db, "SELECT inserted_at FROM schema_migrations ORDER BY version LIMIT 1");
       expectInt(test, sysByteLength(stamp), 19);
     }
 

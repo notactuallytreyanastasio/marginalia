@@ -216,7 +216,8 @@ get "/cuts/$CUT"
 ev delete '{}' "/cuts/$CUT"
 assert_contains '"redirect":"/cuts"' "delete: the event sends the browser to the list"
 assert_eq "$(sq 'SELECT count(*) FROM cuts')" "1" "delete: the reading is gone"
-assert_eq "$(sq 'SELECT count(*) FROM works')" "3" "delete: and its drafts are not"
+# only this file's drafts (seed_work gives them cuts- slugs): the suite shares one database
+assert_eq "$(sq "SELECT count(*) FROM works WHERE slug LIKE 'cuts-%'")" "3" "delete: and its drafts are not"
 get /cuts
 assert_contains "Reading deleted." "delete: the list says so"
 get "/cuts/$CUT"
