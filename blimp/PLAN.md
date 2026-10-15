@@ -434,11 +434,15 @@ name the build emits.)
 1. End every assignment statement with `;`. An assignment as the last statement
    of a block without one crashes the compiler with no location.
 2. No string `+`. Use interpolation, `ListBuilder<String>` + `join`, or `H`.
-3. Never `ListBuilder.add` or `StringBuilder.append` more than ~2,000 times in
-   one builder: both copy everything on every call. Build pages as nested `H`
-   and join once natively. Build big strings from `split`/`map`/`join`.
-4. `Map` is a linear list: O(n) get. Fine for a row, wrong for an index. Use
-   the database for lookups, or a sorted list with binary search.
+3. (Lifted on 2026-10-15 by temper-blimp 7634e93.) `ListBuilder.add`,
+   `StringBuilder.append` and `MapBuilder.set/get` are amortised O(1) now,
+   backed by native buffers: 20,000 adds 87 ms / 17 MB, 20,000 map sets
+   41 ms. Still O(n) per call: `splice`, `addAt`, `sort`, `reverse`, and a
+   read of a builder's items right after a write. Pages still go through the
+   nested-list tree and one native join; that is simply the cheapest shape.
+4. (Lifted, same commit.) `Map` lookups are hashed for String, Int, Float,
+   Atom and Boolean keys and lists of those. A key that is a closure or a
+   Blimp map is a TypeError. `removeLast` on an empty builder bubbles.
 5. Lambda parameters must be typed: `{ (x: Int): Int => x + 1 }`.
 6. `orelse` catches bubbles, not null. Test `== null`.
 7. Ids are `Int`. Timestamps are `String` "YYYY-MM-DD HH:MM:SS" UTC. Money,
@@ -548,6 +552,11 @@ Found while writing Phase 1 (each one cost an agent an hour):
   (GET, `accept: application/json`) every N seconds and gets the same JSON.
   Hook names: the two Composers are `ChatComposer` (work show) and
   `LinkChatComposer`.
+- `html`: Markdown costs ~30 µs per inline character (100 paragraphs ≈ 1 s).
+  Pages that render many sections must cache rendered HTML per section in
+  a table keyed by a body fingerprint (Phase 4 adds `rendered_html` to
+  `sections` or a `render_cache` table); until then render only what the
+  page shows. `markdownToHtmlSoft` keeps newlines (Reading.render_block).
 - `core` timings in the interpreter: `segment` of 12,000 words 1.7-2.5 s,
   paragraph `rows` of 2,000 words 0.2 s, word `diff` of 2,000 words 17.9 s.
   Word diff runs per changed paragraph only, never over a whole draft.
