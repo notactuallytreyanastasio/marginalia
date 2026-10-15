@@ -123,11 +123,15 @@ A form post carrying the token the browser last saw.
 
 ## Routes
 
-    test("routes: the placeholder is last") { test =>
+    test("routes: / is the landing, in pages_cases, and no placeholder remains") { test =>
       let routes = webRoutes();
-      let last = routes.getOr(routes.length - 1, new Route("", "", ""));
-      expectText(test, last.pattern, "/");
-      expectText(test, last.name, "public.home");
+      let first = routes.getOr(0, new Route("", "", ""));
+      expectText(test, first.pattern, "/");
+      expectText(test, first.name, "public.landing");
+      for (let g of webGroups()) {
+        expectTrue(test, g.id != "web", "no web placeholder group");
+        expectTrue(test, g.routes.length > 0, "${g.id} has routes");
+      }
     }
 
     test("routes: pages_users and pages_works are both in") { test =>
@@ -154,7 +158,7 @@ A form post carrying the token the browser last saw.
       let groups = webGroups();
       for (var i = 0; i < groups.length; ++i) { n += groups.getOr(i, new WebGroup("", [])).routes.length; }
       expectInt(test, webRoutes().length, n);
-      expectText(test, groups.getOr(groups.length - 1, new WebGroup("", [])).id, "web");
+      expectText(test, groups.getOr(groups.length - 1, new WebGroup("", [])).id, "pages_users");
     }
 
     test("routes: every route name starts with a plug prefix") { test =>
@@ -181,7 +185,7 @@ A form post carrying the token the browser last saw.
       expectTrue(test, users != null, "found");
       expectText(test, if (users != null) { users.group } else { "?" }, "pages_users");
       let home = webFind("GET", "/");
-      expectText(test, if (home != null) { home.group } else { "?" }, "web");
+      expectText(test, if (home != null) { home.group } else { "?" }, "pages_cases");
       expectTrue(test, webFind("GET", "/nothing/here") == null, "unknown");
       expectTrue(test, webFind("PUT", "/users/log-in") == null, "wrong method");
     }
@@ -207,13 +211,13 @@ A form post carrying the token the browser last saw.
 
 ## Pages
 
-    test("page: the placeholder home") { test =>
+    test("page: / is the landing in the bare layout, with no app header") { test =>
       let db = dbOpen(":memory:");
       let r = webRespond(db, ":memory:", tRaw("GET", "/", "", ""));
       expectInt(test, r.status, 200);
       expectHas(test, r.body, "Marginalia");
-      expectHas(test, r.body, "<header class=\"mg-bar\">");
-      expectHas(test, r.body, "id=\"flash-group\"");
+      expectHas(test, r.body, "id=\"landing\"");
+      expectLacks(test, r.body, "<header class=\"mg-bar\">");
     }
 
     test("page: a route group's page is served, with a session cookie") { test =>
@@ -461,13 +465,15 @@ A form post carrying the token the browser last saw.
       tGet(db, b, "/users/log-in");
       let login = tPost(db, b, "/users/log-in", tLoginForm("flow@example.com", "hello world!"));
       expectInt(test, login.status, 303);
-      let home = tGet(db, b, "/");
+      // The landing page is the bare layout, with no flash group and no menu,
+      // so the menu and the flashes are read off /works, the app layout.
+      let home = tGet(db, b, "/works");
       expectHas(test, home.body, "Welcome back!");
       expectHas(test, home.body, "flow@example.com");
       expectHas(test, home.body, "action=\"/users/log-out\"");
       let out = tPost(db, b, "/users/log-out", "_method=delete");
       expectText(test, tHeader(out, "Location"), "/");
-      let after = tGet(db, b, "/");
+      let after = tGet(db, b, "/works");
       expectHas(test, after.body, "Logged out successfully.");
       expectLacks(test, after.body, "flow@example.com");
     }
