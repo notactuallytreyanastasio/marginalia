@@ -26,7 +26,7 @@ guest, who has no password. `seenTours` is a JSON array column.
       public insertedAt: String,
       public updatedAt: String,
     ) {
-      public static fromRow(row: DbRow): User {
+      public static fromRow(row: DbRow): User throws Bubble {
         new User(
           row.int("id"),
           row.str("email"),
