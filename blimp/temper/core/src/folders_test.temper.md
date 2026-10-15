@@ -43,7 +43,7 @@ the `test`, so the frontend cannot work it out while compiling.
       statementIs(
         test,
         p.statement as Statement orelse panic(),
-        "INSERT INTO folders (name, parent_id, user_id, inserted_at, updated_at) VALUES ($1, $2, $3, date_trunc('second', now() at time zone 'utc'), date_trunc('second', now() at time zone 'utc')) RETURNING id, name, published_at, slug, user_id, parent_id, inserted_at, updated_at",
+        "INSERT INTO folders (name, parent_id, user_id, inserted_at, updated_at) VALUES ($1, $2, $3, strftime('%Y-%m-%d %H:%M:%S','now'), strftime('%Y-%m-%d %H:%M:%S','now')) RETURNING id, name, published_at, slug, user_id, parent_id, inserted_at, updated_at",
         "text:Notes,int:4,int:7",
       );
     }
@@ -60,7 +60,7 @@ the `test`, so the frontend cannot work it out while compiling.
       statementIs(
         test,
         moveFolder(7i64, 3i64, null),
-        "UPDATE folders SET parent_id = NULL, updated_at = date_trunc('second', now() at time zone 'utc') WHERE user_id = $1 AND id = $2 RETURNING id, name, published_at, slug, user_id, parent_id, inserted_at, updated_at",
+        "UPDATE folders SET parent_id = NULL, updated_at = strftime('%Y-%m-%d %H:%M:%S','now') WHERE user_id = $1 AND id = $2 RETURNING id, name, published_at, slug, user_id, parent_id, inserted_at, updated_at",
         "int:7,int:3",
       );
     }
