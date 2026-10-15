@@ -535,10 +535,10 @@ literal escape in a connected call breaks the frontend.
 `core`'s `folders.temper.md` was written for Postgres. Each statement it
 builds is run here, against the migrated schema, with a user and a folder
 and a work in place, to see whether the SQL text is SQLite's. A statement
-that fails is listed by name in `foldersFailures`, and the list is asserted,
-so the day the app agent replaces them this test says so. The reason is the
-same for all seven: `now` in `folders.temper.md` is
-`date_trunc('second', now() at time zone 'utc')`, which SQLite does not have.
+that fails is listed by name in `foldersFailures`, and the list is asserted
+to be empty. Seven of them once failed together, because `now` in
+`folders.temper.md` was Postgres's `date_trunc('second', now() at time zone
+'utc')`; it is now `strftime('%Y-%m-%d %H:%M:%S','now')`.
 
     let paramText(s: Statement): List<String?> {
       let out = new ListBuilder<String?>();
@@ -604,10 +604,10 @@ text otherwise.
       failed.toList()
     }
 
-    test("the Folders statements: exactly the ones that use date_trunc and now() are refused") { test =>
+    test("every Folders statement from core runs on SQLite") { test =>
       expectText(
         test,
         joinStrings(foldersFailures()),
-        "createFolder,createFolder child,renameFolder,moveFolder,moveWork,publish,unpublish",
+        "",
       );
     }

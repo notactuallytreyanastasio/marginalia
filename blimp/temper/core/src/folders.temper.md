@@ -93,11 +93,11 @@ Every column the struct has, in one place, so a `SELECT` and a
 
     let columnIds(): List<SafeIdentifier> { columns.map { (c): SafeIdentifier => id(c) } }
 
-The timestamps are `timestamp(0)` columns that Ecto used to fill in from
-the application, truncated to the second, in UTC. They have no database
-default, so their default here is that same expression as SQL.
+The timestamps are text columns holding `YYYY-MM-DD HH:MM:SS` in UTC, the
+second SQLite's `strftime` gives for `'now'`. Ecto used to fill them in from
+the application; here the statement carries the same expression as SQL.
 
-    let now = "date_trunc('second', now() at time zone 'utc')";
+    let now = "strftime('%Y-%m-%d %H:%M:%S','now')";
 
     let folders = new TableDef(
       id("folders"),
