@@ -1,0 +1,22 @@
+# The native half of html: one flatten-and-join over a tree of nested lists.
+# TODO: when the 115 interpreter has flat_deep, the body of connected_htmlFlatJoin
+# becomes: join(flat_deep(parts), "")   and html_flat_deep goes away.
+# flat raises TypeError on a non-list element, so scalars are wrapped first.
+
+def html_wrap(v: Any) -> Any do
+  case type_of(v) == :list do
+    true -> v
+    _ -> [v]
+  end
+end
+
+def html_flat_deep(xs: Any) -> Any do
+  case length(filter(xs, fn(v: Any) -> Bool do type_of(v) == :list end)) == 0 do
+    true -> xs
+    _ -> html_flat_deep(flat(map(xs, fn(v: Any) -> Any do html_wrap(v) end)))
+  end
+end
+
+def connected_htmlFlatJoin(parts: Any) -> Any do join(html_flat_deep(parts), "") end
+
+def connected_htmlNowMs() -> Any do now_ms() end
