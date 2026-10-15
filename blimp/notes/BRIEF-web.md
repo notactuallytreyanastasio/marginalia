@@ -55,6 +55,20 @@ before any POST or `/ev/`; forms include `webCsrfField(ctx)`. `data-poll`
 goes through the `poll` argument, never written by hand. Log out is a form
 posting `_method=delete` to `/users/log-out`.
 
+## The router as implemented
+
+`blimp/temper/web/src/web.temper.md` has `webGroups`, a marked list where a
+page group is appended as `(routes, get, event)` in Phoenix router order;
+read it and `pages_users` for a worked example. The router opens the Db per
+request, serves static files, matches, checks CSRF on POST and `/ev/`,
+mounts the scope, applies the plug from the route-name prefix, dispatches.
+`/ev/<name>` is matched by the `path` in its JSON body. Your library must
+have NO tests of its own if it is imported by `web`? No: page libraries may
+have tests; only `web` and `server` may not, and `webtest` holds the
+router's. For isolated builds the dependency list is long; copy the one in
+`webtest`'s brief: `tb.sh <lib> webcore sys db alloy core http html accounts
+server runs llm <domain libs>`.
+
 ## Markup rules
 
 - Class names are copied from the HEEx exactly; the compiled CSS is fixed.
