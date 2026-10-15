@@ -513,6 +513,11 @@ Found while writing Phase 1 (each one cost an agent an hour):
     function in instead. A lambda argument is `fn (a: T): R { ... }`.
 32. The sqlite builtin binds `$N` by number since temper-blimp f6fa178;
     before that it bound by order of first appearance.
+33. The interpreter compiles SQLite 3.54.0 from a vendored amalgamation
+    since temper-blimp c50aaf7. Before that, macOS's libsqlite3 segfaulted
+    in forked children (any sqlite call after a fork once the process had
+    run an exec, 4 to 6 runs in 10); OS_ACTIVITY_MODE=disable is no longer
+    needed anywhere.
 24. `now_ms()` in Blimp is monotonic, not epoch. `sysNowMs` is `now() * 1000`;
     `sysMonoMs` is the monotonic one, for timing only.
 

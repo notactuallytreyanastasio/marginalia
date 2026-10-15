@@ -123,20 +123,30 @@ A form post carrying the token the browser last saw.
 
 ## Routes
 
-    test("routes: pages_users first, the placeholder last") { test =>
+    test("routes: the placeholder is last") { test =>
       let routes = webRoutes();
-      expectText(test, routes.getOr(0, new Route("", "", "")).pattern, "/users/settings");
       let last = routes.getOr(routes.length - 1, new Route("", "", ""));
-      expectText(test, last.pattern, "/works");
-      expectText(test, last.name, "public.works");
+      expectText(test, last.pattern, "/");
+      expectText(test, last.name, "public.home");
     }
 
-    test("page: the /works placeholder is the app layout and mints no guest") { test =>
+    test("routes: pages_users and pages_works are both in") { test =>
+      var users = false;
+      var works = false;
+      for (let r of webRoutes()) {
+        if (r.pattern == "/users/settings") { users = true; }
+        if (r.pattern == "/works/new" && r.method == "POST") { works = true; }
+      }
+      expectTrue(test, users, "/users/settings");
+      expectTrue(test, works, "POST /works/new");
+    }
+
+    test("page: /works is pages_works', and it mints a guest") { test =>
       let db = dbOpen(":memory:");
       let r = webRespond(db, ":memory:", tRaw("GET", "/works", "", ""));
       expectInt(test, r.status, 200);
       expectHas(test, r.body, "Your drafts");
-      expectInt(test, tCount(db, "SELECT COUNT(*) AS n FROM users"), 0);
+      expectInt(test, tCount(db, "SELECT COUNT(*) AS n FROM users"), 1);
     }
 
     test("routes: webRoutes is the groups' routes in order") { test =>
@@ -144,7 +154,6 @@ A form post carrying the token the browser last saw.
       let groups = webGroups();
       for (var i = 0; i < groups.length; ++i) { n += groups.getOr(i, new WebGroup("", [])).routes.length; }
       expectInt(test, webRoutes().length, n);
-      expectText(test, groups.getOr(0, new WebGroup("", [])).id, "pages_users");
       expectText(test, groups.getOr(groups.length - 1, new WebGroup("", [])).id, "web");
     }
 
@@ -244,11 +253,9 @@ A form post carrying the token the browser last saw.
       expectText(test, r.body, "ok");
     }
 
-    test("early: the placeholder sitemap") { test =>
+    test("early: the sitemap is not early any more, it lists the database's pages") { test =>
       let r = webDispatch("/nonexistent-dir/never.sqlite3", tRaw("GET", "/sitemap.xml", "", ""));
-      expectInt(test, r.status, 200);
-      expectHas(test, tHeader(r, "Content-Type"), "application/xml");
-      expectHas(test, r.body, "<urlset");
+      expectInt(test, r.status, 500);
     }
 
     test("early: a static-looking path that is not there is a 404 before the database") { test =>

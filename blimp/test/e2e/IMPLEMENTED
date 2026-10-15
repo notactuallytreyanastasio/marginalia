@@ -3,7 +3,8 @@
 # add the file name on its own line (00_smoke.sh always runs; it needs no entry).
 #
 10_accounts.sh
-# 20_works.sh
+60_cuts.sh
+20_works.sh
 # 30_public.sh
 
 # ---------------------------------------------------------------------------
