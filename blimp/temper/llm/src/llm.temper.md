@@ -16,7 +16,10 @@ The two imports: std/json for the wire format, sys for the machine.
 
 ## Values
 
-    export class LlmMessage(public role: String, public content: String) {}
+    export class LlmMessage(public role: String, public content: String) {
+      public var toolCallsJson: String? = null;
+      public var toolCallId: String? = null;
+    }
 
 `parametersJson` is the JSON Schema object, as text; it is parsed and embedded,
 never concatenated.
@@ -154,9 +157,26 @@ for an Elixir map, so a body here is byte-identical to the one Elixir sent.
     let writeMessage(p: JsonTextProducer, m: LlmMessage): Void {
       p.startObject();
       p.objectKey("content");
-      p.stringValue(m.content);
+      let calls = m.toolCallsJson;
+      if (calls != null && m.content == "") {
+        p.nullValue();
+      } else {
+        p.stringValue(m.content);
+      }
       p.objectKey("role");
       p.stringValue(m.role);
+      let callId = m.toolCallId;
+      if (callId != null) {
+        p.objectKey("tool_call_id");
+        p.stringValue(callId);
+      }
+      if (calls != null) {
+        let parsed: JsonSyntaxTree? = parseJson(calls) orelse null;
+        if (parsed != null) {
+          p.objectKey("tool_calls");
+          parsed.produce(p);
+        }
+      }
       p.endObject();
     }
 
@@ -356,7 +376,8 @@ answers canned responses and remembers what it was asked.
 
     export class LlmSysTransport extends LlmTransport {
       public send(url: String, headers: List<String>, body: String, timeoutMs: Int): List<String> {
-        sysHttpAwait(sysHttpStart("POST", url, headers, body, timeoutMs))
+        let failed: List<String> = ["error", "transport: could not start the request"];
+        do { sysHttpAwait(sysHttpStart("POST", url, headers, body, timeoutMs)) } orelse failed
       }
       public sent(): List<String> { [] }
     }
