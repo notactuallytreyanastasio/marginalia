@@ -574,9 +574,22 @@ Found while writing Phase 1 (each one cost an agent an hour):
   many sections should still cache rendered HTML per section keyed by a
   body fingerprint (Phase 4); until then render only what the page shows.
   `markdownToHtmlSoft` keeps newlines (Reading.render_block).
-- `core` timings in the interpreter: `segment` of 12,000 words 1.7-2.5 s,
-  paragraph `rows` of 2,000 words 0.2 s, word `diff` of 2,000 words 17.9 s.
-  Word diff runs per changed paragraph only, never over a whole draft.
+- Memory: since fork commits 731552e, 7eb02e1 and 3510871 (2026-10-15) the
+  interpreter compacts between top-level statements, follows the pointers
+  buffers hold, drops unreachable actors in a plain run, and be-blimp emits
+  one statement per test, so `temper test` needs no `BLIMP_HEAP_LIMIT`:
+  pages_show's 293 tests peak at 980 MB in 119 s. The server still forks a
+  child per request; the parent's heap does not grow with requests.
+- `core` timings in the interpreter (2026-10-15, after the lookup work):
+  `segment` of 12,000 words 2.5 s (was 3.5), paragraph `rows` of 2,000 words
+  0.22 s, word `diff` of 2,000 words with 20 changes 0.29 s (was 17.9 s on
+  a worse case). Word diff runs per changed paragraph only, never over a
+  whole draft; the Changes view skips `rows` when baseline and body are
+  equal (3.7 s on an unchanged 17,000-word draft before).
+- Show page on a read 12,000-word draft, measured with curl against the
+  forked server: plain prose read view 0.32 s (120 KB), emphasis-and-link
+  heavy prose 1.4 s; graph/spine/threads 0.05-0.06 s. The per-section
+  render cache is still the fix for heavy prose and is not done.
 
 ## 7. Phases and who does what
 
