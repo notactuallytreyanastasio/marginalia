@@ -392,9 +392,10 @@ accept loop:
 
 `let clockPid = mutteringsClockStart(dbPath, db, llmFromEnv);`
 
-`db` is the server's own handle; the child closes its inherited copy before
-opening its own (see `runs.temper.md`: an inherited connection makes a second
-open of the same file fail).
+`db` is the server's own `Db`. It is closed before the fork and reopened from
+`dbPath` in the parent afterwards (`db.handle` is reassigned), so the clock
+child starts with no inherited connection (see `runs.temper.md` for why a
+child must never close one).
 
 This forks. The parent gets the child's pid back and goes on to accept
 connections; it reaps the child with its other children (`sysReapChildren`),
@@ -403,12 +404,13 @@ and exits if it ever returns. The child inherits the listening socket and
 never uses it. Nothing restarts a clock that dies; the next server boot
 starts a new one.
 
-    export let mutteringsClockStart(dbPath: String, inherited: Db, makeLlm: fn (): LlmClient): Int {
+    export let mutteringsClockStart(dbPath: String, db: Db, makeLlm: fn (): LlmClient): Int throws Bubble {
+      db.close();
       let pid = sysFork();
       if (pid == 0) {
-        inherited.close();
         mutteringsClockMain(dbPath, makeLlm);
         sysExit(0);
       }
+      db.handle = sysDbOpen(dbPath);
       pid
     }

@@ -27,16 +27,17 @@ the caller passes. This is why `runsStart` takes `dbPath`, and why an
 in-memory database (`:memory:`) is refused: the job would open a different,
 empty one.
 
-It must also close the inherited handle first, and this was observed, not
-guessed: with the inherited connection still open, `sqlite_open` of the same
-file in the child fails with "locking protocol" (SQLite's per-process inode
-table is copied by `fork` and still believes the parent's locks are the
-child's), and on macOS the system SQLite has been seen to segfault in the
-same call. Closing the copy in the child is safe: POSIX locks are not
-inherited, and the parent's connection holds the shared lock a WAL database
-keeps while it is open, so the child's close cannot checkpoint or delete the
-write-ahead log (the file stays after the child exits, as observed). Only
-the child's copy of the handle goes; the parent's `Db` is untouched.
+Nor does any child ever close it. Closing an inherited connection in a forked
+child was tried and is not safe on macOS: the system SQLite segfaults
+intermittently inside libsystem_trace (about half the runs once the process
+had used `exec`), and leaving it open makes a second `sqlite_open` of the
+same file fail with "locking protocol". So the process that opened the
+connection closes it, before the fork, and opens a fresh one after it:
+`runsStart` closes `db`'s handle, forks, and in the request process sets
+`db.handle` to a new connection from `dbPath` (`Db.handle` is a `var` for
+this). The caller keeps the same `Db` object and it keeps working. The middle
+process and the job start with no connection at all and open their own.
+`runsStart` must therefore not be called inside a transaction.
 
     let { Db, DbRow, dbOpen } = import("db/src");
     let { sysFork, sysExit, sysWaitPid, sysExec, sysUtcNow, sysDbOpen, sysStringTrim } = import("sys/src");
@@ -266,8 +267,7 @@ the final status, each a no-op on a bubble.
       sysExit(0);
     }
 
-    let runsJob(dbPath: String, inherited: Db, key: String, body: fn (Db): Void throws Bubble): Void {
-      inherited.close();
+    let runsJob(dbPath: String, key: String, body: fn (Db): Void throws Bubble): Void {
       let own = runsOpenOwn(dbPath);
       if (own != null) {
         runsJobWith(own, key, body);
@@ -311,17 +311,25 @@ result in `detail`): the wrapper's finish then changes nothing.
       );
       if (claimed == 0) { return false; }
       versionsBump(db, versionsRunTopic(key));
+      if (db.inTransaction()) {
+        console.log("runs: runsStart cannot fork inside a transaction");
+        runsFinish(db, key, "crashed", "started inside a transaction");
+        bubble()
+      }
+      db.close();
       let middle = sysFork();
       if (middle == 0) {
         let job = sysFork();
         if (job == 0) {
-          runsJob(dbPath, db, key, body);
+          runsJob(dbPath, key, body);
         }
         sysExit(0);
-      } else if (middle < 0) {
-        runsFinish(db, key, "crashed", "fork failed");
-        bubble()
       } else {
+        db.handle = sysDbOpen(dbPath);
+        if (middle < 0) {
+          runsFinish(db, key, "crashed", "fork failed");
+          bubble()
+        }
         sysWaitPid(middle, false);
       }
       true

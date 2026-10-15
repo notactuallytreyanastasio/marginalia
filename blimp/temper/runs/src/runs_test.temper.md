@@ -506,7 +506,7 @@ pid is asked for only after the run, because asking uses `exec`.
       }
       let recorded = one(db, "SELECT pid FROM runs WHERE key = 'ppid:1'");
       expectText(test, "pid ${recorded}", pid);
-      expectFalse(test, runsPidAlive(recorded.toInt32() orelse 999999), "the job has exited");
+      expectFalse(test, waitExited(recorded.toInt32() orelse 999999), "the job has exited");
     }
 
 ## After the forks
@@ -986,4 +986,15 @@ The last request body the fake saw, or `<null>`.
     let lastRequest(test: Test, llm: LlmClient): String {
       let all = llmRequests(llm);
       if (all.length == 0) { "<null>" } else { all[all.length - 1] }
+    }
+
+Wait up to two seconds for a process to exit (the row says done a moment before the job exits). Answers whether it is still alive.
+
+    let waitExited(pid: Int): Boolean {
+      var tries = 0;
+      while (tries < 20 && runsPidAlive(pid)) {
+        sysSleepMs(100);
+        tries += 1;
+      }
+      runsPidAlive(pid)
     }
