@@ -9,6 +9,8 @@
 80_stacks.sh
 20_works.sh
 30_public.sh
+70_links.sh
+50_show.sh
 
 # ---------------------------------------------------------------------------
 # PLANNED FILES: one per page group of notes/tests.md parts 5-9 (491 web tests).

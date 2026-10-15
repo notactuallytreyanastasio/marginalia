@@ -35,9 +35,11 @@ in `log/error.log`. The Temper bubble carries no text; the line says so.
     let { pagesUsersRoutes, pagesUsersGet, pagesUsersEvent } = import("pages_users/src");
     let { pagesWorksRoutes, pagesWorksGet, pagesWorksEvent } = import("pages_works/src");
     let { pagesCutsRoutes, pagesCutsGet, pagesCutsEvent } = import("pages_cuts/src");
+    let { pagesLinksRoutes, pagesLinksGet, pagesLinksEvent } = import("pages_links/src");
     let { pagesStacksRoutes, pagesStacksGet, pagesStacksEvent } = import("pages_stacks/src");
     let { pagesDraftsRoutes, pagesDraftsGet, pagesDraftsEvent } = import("pages_drafts/src");
     let { pagesCasesRoutes, pagesCasesGet, pagesCasesEvent } = import("pages_cases/src");
+    let { pagesShowRoutes, pagesShowGet, pagesShowEvent } = import("pages_show/src");
     let { recoveryRun } = import("runs/src");
     let { portFromEnv } = import("server/src");
 
@@ -75,7 +77,9 @@ so a real `/` wins over the placeholder.
         new WebGroup("pages_drafts", pagesDraftsRoutes()),
         new WebGroup("pages_stacks", pagesStacksRoutes()),
         new WebGroup("pages_cuts", pagesCutsRoutes()),
+        new WebGroup("pages_links", pagesLinksRoutes()),
         new WebGroup("pages_works", pagesWorksRoutes()),
+        new WebGroup("pages_show", pagesShowRoutes()),
         new WebGroup("pages_users", pagesUsersRoutes()),
         // The placeholders for pages whose group has not landed. Keep last.
         new WebGroup("web", wrPlaceholderRoutes()),
@@ -132,8 +136,12 @@ Every route of every group, in match order.
         pagesStacksGet(ctx, match)
       } else if (id == "pages_cuts") {
         pagesCutsGet(ctx, match)
+      } else if (id == "pages_links") {
+        pagesLinksGet(ctx, match)
       } else if (id == "pages_works") {
         pagesWorksGet(ctx, match)
+      } else if (id == "pages_show") {
+        pagesShowGet(ctx, match)
       } else if (id == "pages_users") {
         pagesUsersGet(ctx, match)
       } else if (id == "web") {
@@ -153,8 +161,12 @@ Every route of every group, in match order.
         pagesStacksEvent(ctx, match, event, payload)
       } else if (id == "pages_cuts") {
         pagesCutsEvent(ctx, match, event, payload)
+      } else if (id == "pages_links") {
+        pagesLinksEvent(ctx, match, event, payload)
       } else if (id == "pages_works") {
         pagesWorksEvent(ctx, match, event, payload)
+      } else if (id == "pages_show") {
+        pagesShowEvent(ctx, match, event, payload)
       } else if (id == "pages_users") {
         pagesUsersEvent(ctx, match, event, payload)
       } else {
