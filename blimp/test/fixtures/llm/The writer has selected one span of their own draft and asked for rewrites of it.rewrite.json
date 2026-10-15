@@ -1,0 +1,31 @@
+{
+  "id": "fake-rewrite",
+  "object": "chat.completion",
+  "created": 1760000000,
+  "model": "fake-model",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_fake-rewrite",
+            "type": "function",
+            "function": {
+              "name": "propose_rewrites",
+              "arguments": "{\"reading\": \"The line announces a stall and then spends a clause explaining it.\", \"rewrites\": [{\"text\": \"The kettle went cold; nobody refilled it.\", \"move\": \"Cuts the gloss\", \"cost\": \"Loses the again\"}, {\"text\": \"Nobody moved, and the kettle went cold on the counter.\", \"move\": \"Puts people first\", \"cost\": \"Buries the kettle\"}, {\"text\": \"The kettle went cold, and no one got up to fill it.\", \"move\": \"Plainer verbs\", \"cost\": \"Flattens the rhythm\"}]}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 900,
+    "completion_tokens": 150,
+    "total_tokens": 1050
+  }
+}

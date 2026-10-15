@@ -1,0 +1,31 @@
+{
+  "id": "fake-summary",
+  "object": "chat.completion",
+  "created": 1760000000,
+  "model": "fake-model",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_fake-summary",
+            "type": "function",
+            "function": {
+              "name": "report_section",
+              "arguments": "{\"summary\": \"A household waits at the window while the kettle goes cold and the telephone stays unanswered.\", \"covers\": [\"window\", \"kettle\", \"telephone\"], \"follows_from\": [], \"sets_up\": \"The thermostat section that follows.\"}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 900,
+    "completion_tokens": 150,
+    "total_tokens": 1050
+  }
+}
