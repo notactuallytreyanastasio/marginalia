@@ -79,6 +79,7 @@ export MARGINALIA_LLM_ENDPOINT="http://127.0.0.1:$FAKE_PORT/chat/completions"
 export MARGINALIA_LLM_PROVIDER=deepseek
 export DEEPSEEK_API_KEY=test-key
 export MARGINALIA_OWNER_EMAIL=owner@example.com
+export OWNER_EMAIL=owner@example.com   # what accounts reads, as the Elixir runtime.exs did
 export MARGINALIA_SECRET='test-secret-32-bytes-long-string!!'
 export MARGINALIA_LLM_BACKOFF_MS="${MARGINALIA_LLM_BACKOFF_MS:-0}"   # optional: the app may ignore it
 

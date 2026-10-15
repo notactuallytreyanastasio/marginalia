@@ -1,0 +1,31 @@
+{
+  "id": "fake-report-step",
+  "object": "chat.completion",
+  "created": 1760000000,
+  "model": "fake-model",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_fake-report-step",
+            "type": "function",
+            "function": {
+              "name": "report_step",
+              "arguments": "{\"capability\": \"Watch from the window first\", \"requires\": [], \"lesson\": \"Stand at the window and wait before anything else is built.\", \"pitfall\": \"\", \"pitfall_quote\": \"\", \"excerpts\": []}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 400,
+    "completion_tokens": 80,
+    "total_tokens": 480
+  }
+}

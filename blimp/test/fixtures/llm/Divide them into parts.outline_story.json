@@ -1,0 +1,31 @@
+{
+  "id": "fake-outline",
+  "object": "chat.completion",
+  "created": 1760000000,
+  "model": "fake-model",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_fake-outline",
+            "type": "function",
+            "function": {
+              "name": "outline_story",
+              "arguments": "{\"title\": \"How the watching gets built\", \"opening\": \"It begins at a window.\", \"closing\": \"That is the whole of it.\", \"parts\": [{\"heading\": \"The window\", \"steps\": [1, 2]}]}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 400,
+    "completion_tokens": 80,
+    "total_tokens": 480
+  }
+}
