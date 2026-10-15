@@ -362,6 +362,8 @@
     const el = t.closest("[phx-click]");
     if (!el || el.disabled) return;
     if (el.tagName === "A" && el.getAttribute("href") === "#") e.preventDefault();
+    // data-confirm, as phoenix_html did: a cancelled confirm sends nothing.
+    if (el.dataset.confirm && !window.confirm(el.dataset.confirm)) return;
     const undo = el.hasAttribute("phx-disable-with") ? disableWith(el) : undefined;
     send(el.getAttribute("phx-click"), valuesOf(el), el, "phx-click-loading", undo);
   });

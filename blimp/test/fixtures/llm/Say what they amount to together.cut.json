@@ -1,0 +1,26 @@
+{
+  "id": "chatcmpl-fake",
+  "object": "chat.completion",
+  "created": 1760000000,
+  "model": "fake-model",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"thesis\": \"Both drafts keep a vigil for news that has already arrived.\", \"threads\": [{\"claim\": \"Both wait for something nobody will name.\", \"evidence\": [{\"member\": 1, \"quote\": \"The kettle goes cold\"}, {\"member\": 2, \"quote\": \"The lamp turns all night\"}]}, {\"claim\": \"Made up, so it is dropped.\", \"evidence\": [{\"member\": 1, \"quote\": \"the kettle screams\"}, {\"member\": 2, \"quote\": \"The lamp turns all night\"}]}], \"tensions\": [{\"claim\": \"One waits indoors and the other in the open.\", \"evidence\": [{\"member\": 1, \"quote\": \"before anyone admits the news\"}, {\"member\": 2, \"quote\": \"nobody on the shore looks up\"}]}], \"not_supported\": \"Nothing here says what the news was.\"}"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 100,
+    "completion_tokens": 20,
+    "total_tokens": 120,
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 100,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    }
+  }
+}

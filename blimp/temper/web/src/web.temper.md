@@ -33,6 +33,9 @@ in `log/error.log`. The Temper bubble carries no text; the line says so.
     let { h, htext, attr } = import("html/src");
     let { JsonObject, JsonString, JsonSyntaxTree, parseJson } = import("std/json");
     let { pagesUsersRoutes, pagesUsersGet, pagesUsersEvent } = import("pages_users/src");
+    let { pagesWorksRoutes, pagesWorksGet, pagesWorksEvent } = import("pages_works/src");
+    let { pagesCutsRoutes, pagesCutsGet, pagesCutsEvent } = import("pages_cuts/src");
+    let { pagesStacksRoutes, pagesStacksGet, pagesStacksEvent } = import("pages_stacks/src");
     let { recoveryRun } = import("runs/src");
     let { portFromEnv } = import("server/src");
 
@@ -66,6 +69,9 @@ so a real `/` wins over the placeholder.
         // pages_cuts    /cuts, /cuts/:id
         // pages_links   /links, /links/:id, /links/:id/read
         // -----------------------------------------------------------------------
+        new WebGroup("pages_stacks", pagesStacksRoutes()),
+        new WebGroup("pages_cuts", pagesCutsRoutes()),
+        new WebGroup("pages_works", pagesWorksRoutes()),
         new WebGroup("pages_users", pagesUsersRoutes()),
         // The placeholders for pages whose group has not landed. Keep last.
         new WebGroup("web", wrPlaceholderRoutes()),
@@ -93,7 +99,6 @@ Every route of every group, in match order.
     let wrPlaceholderRoutes(): List<Route> {
       [
         new Route("GET", "/", "public.home"),
-        new Route("GET", "/works", "public.works"),
       ]
     }
 
@@ -105,14 +110,9 @@ Every route of every group, in match order.
       )
     }
 
-`/works` stands in for the drafts list (the smoke test asks for it). It does not
-mint a guest, as the real route will; `pages_works` replaces it.
-
     let wrPlaceholderGet(ctx: Ctx, match: Match): Response throws Bubble {
       if (match.route.name == "public.home") {
         wrPlaceholderPage(ctx, "Marginalia")
-      } else if (match.route.name == "public.works") {
-        wrPlaceholderPage(ctx, "Your drafts")
       } else {
         console.log("web: no handler for route ${match.route.name}");
         bubble()
@@ -122,7 +122,13 @@ mint a guest, as the real route will; `pages_works` replaces it.
 ### Handing a request to its group
 
     let wrGroupGet(id: String, ctx: Ctx, match: Match): Response throws Bubble {
-      if (id == "pages_users") {
+      if (id == "pages_stacks") {
+        pagesStacksGet(ctx, match)
+      } else if (id == "pages_cuts") {
+        pagesCutsGet(ctx, match)
+      } else if (id == "pages_works") {
+        pagesWorksGet(ctx, match)
+      } else if (id == "pages_users") {
         pagesUsersGet(ctx, match)
       } else if (id == "web") {
         wrPlaceholderGet(ctx, match)
@@ -133,7 +139,13 @@ mint a guest, as the real route will; `pages_works` replaces it.
     }
 
     let wrGroupEvent(id: String, ctx: Ctx, match: Match, event: String, payload: JsonObject): Response throws Bubble {
-      if (id == "pages_users") {
+      if (id == "pages_stacks") {
+        pagesStacksEvent(ctx, match, event, payload)
+      } else if (id == "pages_cuts") {
+        pagesCutsEvent(ctx, match, event, payload)
+      } else if (id == "pages_works") {
+        pagesWorksEvent(ctx, match, event, payload)
+      } else if (id == "pages_users") {
         pagesUsersEvent(ctx, match, event, payload)
       } else {
         console.log("web: group ${id} has no events (${event})");
