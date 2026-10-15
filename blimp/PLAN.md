@@ -465,6 +465,62 @@ name the build emits.)
 14. Each library's README section in `blimp/README.md` says what does not work,
     by name.
 
+Found while writing Phase 1 (each one cost an agent an hour):
+
+15. There is no `??` and no postfix `!`. Write `if (x != null) { x } else { d }`
+    in a helper.
+16. `else` goes on the same line as the closing `}`. A newline before it
+    crashes the translator.
+17. `new Map<K,V>()` and `new List<T>()` do not exist: `new MapBuilder<K,V>()`
+    then `.toMap()`, `new ListBuilder<T>()` then `.toList()`. A list literal
+    containing `null` cannot be typed `List<String?>`; build it with a
+    ListBuilder.
+18. Null narrowing works for a `let` or a parameter inside
+    `if (x != null) { ... }`, and nowhere else: not after an early return, not
+    for a `var`. Copy a `var` to a `let` first.
+19. A `\u{..}` escape inside a string literal that is the argument of a
+    `@connected` call breaks the frontend ("Explicit return type required" on
+    the enclosing `let`). Put the literal in a function and call it.
+20. Do not name a local `name`: it collides with the library config's export.
+21. A block lambda followed by a method call on the same expression
+    (`xs.join(",") { ... }.split(x)`) does not parse; bind the lambda call to a
+    `let` first.
+22. `temper test` in a work root needs `--library <name>`; the server library
+    has none so the shipped file never calls exit(1) on load.
+23. In `_connected.blimp`, a Temper `List` argument may arrive as a
+    ListBuilder actor: call `temper_items(x)` before treating it as a Blimp
+    list. Blimp tuples (`{:ok, s, b}`) must be turned into lists before they
+    cross back. `http_start` wants its headers as a Blimp map.
+24. `now_ms()` in Blimp is monotonic, not epoch. `sysNowMs` is `now() * 1000`;
+    `sysMonoMs` is the monotonic one, for timing only.
+
+## 6a. Amendments to the contract (binding)
+
+- `html`: the tree type `H` is a plain nested Temper list (`List<AnyValue>`)
+  with String leaves, not a class, because the native flatten+join can only
+  see lists. `text`/`raw` are `htext`/`hraw`.
+- `sys` grew `sysMonoMs`, `sysReapChildren`, `sysCloseFd`; `sysWriteFile`
+  returns `Boolean`; `sysHttpAwait(handle)` polls to completion.
+- `http`: `httpStatic` returns a 404 Response (not null) for a static-looking
+  path whose file is missing or unsafe; null only for non-static paths.
+  `Request.param` looks in form first, then query.
+- Library names: the text core is `core`, Alloy is `orm` (import
+  `"orm/src"` as core does).
+- `blimp.js` keeps the Phoenix attribute names (`phx-click`, `phx-value-*`,
+  `phx-submit`, `phx-change`, `phx-debounce`, `phx-click-away`,
+  `phx-window-keydown`, `phx-key`, `phx-hook`, `phx-update="ignore"`,
+  `phx-disable-with`, `phx-mounted`, `data-phx-theme`). Events are
+  `POST /ev/<name>` with JSON `{"payload", "path"}` and headers
+  `x-requested-with: blimp`, `x-csrf-token`. Replies are JSON
+  `{"regions": {"#main": html}, "events": [...], "redirect", "title",
+  "flash": {"info", "error"}}`. A page with `[data-poll="N"]` is re-fetched
+  (GET, `accept: application/json`) every N seconds and gets the same JSON.
+  Hook names: the two Composers are `ChatComposer` (work show) and
+  `LinkChatComposer`.
+- `core` timings in the interpreter: `segment` of 12,000 words 1.7-2.5 s,
+  paragraph `rows` of 2,000 words 0.2 s, word `diff` of 2,000 words 17.9 s.
+  Word diff runs per changed paragraph only, never over a whole draft.
+
 ## 7. Phases and who does what
 
 Phase 0 (TODO): native builtins in temper-blimp-115, rebuilt interpreter and
