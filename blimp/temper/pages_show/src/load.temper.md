@@ -158,6 +158,8 @@ is the key after `work:<id>:`.
         }
       } else if (what == "read") {
         if (run.status == "crashed") { new Pair("error", "The read crashed.") } else { null }
+      } else if (showStartsWith(what, "thread:")) {
+        showChatThreadFlash(run)
       } else { null }
     }
 
@@ -411,6 +413,7 @@ strip of threads and the questions left. The drawer's own events change these.
       }
       let user = state.user;
       if (user != null) { state.quota = chatRemaining(ctx.db, user); }
+      showChatSettle(ctx, state);
     }
 
 The clock counts from the start of this read: the read run's own start, or, for
