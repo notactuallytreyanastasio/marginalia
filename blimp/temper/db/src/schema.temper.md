@@ -150,6 +150,20 @@ was a second place a table was defined.
       ]
     }
 
+## Version 3: rendered blocks
+
+A paragraph of a draft renders to the same HTML every time its text and its
+highlight are the same, and a 12,000-word draft of emphasis-heavy prose took
+1.4 s to render on every view. `render_cache` keeps that HTML by the SHA-256
+of the block's Markdown source; the `reading` library loads a page's keys in
+one query and inserts the misses. Rows are swept when thirty days old.
+
+    let renderCacheSql(): List<String> {
+      [
+        "CREATE TABLE render_cache (key TEXT PRIMARY KEY, html TEXT NOT NULL, made TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now')))",
+      ]
+    }
+
 ## The list
 
 `dbMigrate` runs each script whose version is not in `schema_migrations`,
@@ -166,5 +180,6 @@ edited once a database has it.
       }
       let script = stmts.toList().join(";\n") { (p: String): String => p };
       let v2 = importSql().join(";\n") { (p: String): String => p };
-      [new Pair<Int, String>(1, script), new Pair<Int, String>(2, v2)]
+      let v3 = renderCacheSql().join(";\n") { (p: String): String => p };
+      [new Pair<Int, String>(1, script), new Pair<Int, String>(2, v2), new Pair<Int, String>(3, v3)]
     }

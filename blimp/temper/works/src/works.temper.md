@@ -186,7 +186,7 @@ configured" and yields nothing.
     export let worksPublicDrafts(db: Db, ownerId: Int?): List<Work> throws Bubble {
       if (ownerId != null) {
         worksWorksOf(db.query(
-          "SELECT ${workColumns} FROM works WHERE user_id = $1 ORDER BY inserted_at DESC, id DESC",
+          "SELECT ${workColumns} FROM works WHERE user_id = $1 ORDER BY inserted_at DESC, id ASC",
           worksArgs().n(ownerId).build(),
         ))
       } else {

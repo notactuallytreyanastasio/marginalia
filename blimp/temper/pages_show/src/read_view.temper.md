@@ -17,7 +17,10 @@ notes (or, with the toggle on, of changes).
     let { sysGraphemeTake, sysStringReplace } = import("sys/src");
     let { Row } = import("core/src");
     let { Section, Revision } = import("works/src");
-    let { ReadingSection, ReadingBlock, ReadingNote, readingRenderBlock, readingOutline } = import("reading/src");
+    let {
+      ReadingSection, ReadingBlock, ReadingNote, ReadingCache, readingRenderBlock, readingOutline,
+      readingCacheLoad, readingCacheSave, readingRenderBlockCached,
+    } = import("reading/src");
     let { ChatThread } = import("chat/src");
 
 ## One paragraph
@@ -96,7 +99,12 @@ is dismissed.
       if (applied != null) {
         if (psLanded(applied, b.text)) { return psApplied(applied); }
       }
-      hraw(readingRenderBlock(b.text, b.mark, b.ref, state.preview))
+      let cache = state.renderCache;
+      if (cache != null) {
+        hraw(readingRenderBlockCached(cache, b.text, b.mark, b.ref, state.preview))
+      } else {
+        hraw(readingRenderBlock(b.text, b.mark, b.ref, state.preview))
+      }
     }
 
     let psTick(sec: Section, b: ReadingBlock, t: ChatThread?): List<AnyValue> {
@@ -230,14 +238,21 @@ move into the prose column beside the paragraph that caused them.
       } else if (page.length == 0) {
         h("p", attr("class", "mg-empty mt-6"), htext("Nothing read yet."))
       } else {
-        [
+        // The rendered blocks come from the render cache where it has them;
+        // what it had not is written back once the column is built. A
+        // database that cannot answer leaves the page rendering every block.
+        let loaded: ReadingCache? = do { readingCacheLoad(ctx.db, page) } orelse null;
+        state.renderCache = loaded;
+        let built: List<AnyValue> = [
           showMinimap(readingOutline(page), state.work.wordCount),
           h("div", "${attr("class", if (state.chatOpen) { "mg-read mt-6 collapsed" } else { "mg-read mt-6" })}${attr("id", "read-rail")}${attr("phx-hook", "MarginNotes")}", [
             showDocBox(state),
             psProseColumn(state, page),
             if (state.changesOn) { psChangesRail(state) } else { psNotesRail(page) },
           ]),
-        ]
+        ];
+        let saved = do { readingCacheSave(ctx.db, state.renderCache) } orelse 0;
+        built
       };
       h("div", "", [psHead(state), body])
     }

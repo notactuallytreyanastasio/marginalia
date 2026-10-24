@@ -574,12 +574,31 @@ Found while writing Phase 1 (each one cost an agent an hour):
   many sections should still cache rendered HTML per section keyed by a
   body fingerprint (Phase 4); until then render only what the page shows.
   `markdownToHtmlSoft` keeps newlines (Reading.render_block).
+- Seen once, not reproduced (2026-10-15): in one full e2e run the server
+  stopped accepting right after a second read job finished (every request
+  from "read again: with the same beats" on got connection refused); the
+  same file alone and the next full run passed 1806/0. The parent had no
+  line in its log. If it recurs, keep the temp dir (E2E_KEEP=1) and look at
+  whether the parent died or only its listening socket.
 - Memory: since fork commits 731552e, 7eb02e1 and 3510871 (2026-10-15) the
   interpreter compacts between top-level statements, follows the pointers
   buffers hold, drops unreachable actors in a plain run, and be-blimp emits
   one statement per test, so `temper test` needs no `BLIMP_HEAP_LIMIT`:
   pages_show's 293 tests peak at 980 MB in 119 s. The server still forks a
   child per request; the parent's heap does not grow with requests.
+- Interpreter speed (2026-10-15, thirteen fork commits a5cfa7b..174a8a3,
+  mirrored on Blimp main with a note each under docs/lang_design/ and the
+  summary evaluator-speed-2026-10-15.md): the Markdown bench 1.97 s to
+  0.77 s, the core bench 2.82 s to 1.15 s, pages_show's 293 tests 119 s to
+  22 s, the e2e suite still 1806/0. The big ones were the scheduler no
+  longer walking every actor (the html library's token actors made every
+  4,000 reductions a walk of thousands), nodes evaluated by pointer, names
+  hashed once by the parser with slot hints, and builtin calls no longer
+  walking the stack on a bloom false alarm. The profile is now flat under
+  the dispatch switch; the next step would be a resolver or bytecode, not
+  more caches. Numbers above that predate this (33 ms paragraphs, 2.5 s
+  segment, 0.32 s read view) are upper bounds now and were not re-measured
+  page by page.
 - `core` timings in the interpreter (2026-10-15, after the lookup work):
   `segment` of 12,000 words 2.5 s (was 3.5), paragraph `rows` of 2,000 words
   0.22 s, word `diff` of 2,000 words with 20 changes 0.29 s (was 17.9 s on
@@ -588,8 +607,11 @@ Found while writing Phase 1 (each one cost an agent an hour):
   equal (3.7 s on an unchanged 17,000-word draft before).
 - Show page on a read 12,000-word draft, measured with curl against the
   forked server: plain prose read view 0.32 s (120 KB), emphasis-and-link
-  heavy prose 1.4 s; graph/spine/threads 0.05-0.06 s. The per-section
-  render cache is still the fix for heavy prose and is not done.
+  heavy prose 1.4 s; graph/spine/threads 0.05-0.06 s. With the render cache
+  (`render_cache`, schema v3, keyed by the SHA-256 of a block's Markdown
+  source; `reading` loads a page's keys in one query and writes the misses)
+  the heavy read view is 0.12 s, trace/prompts 0.10 s, the Changes tab
+  0.05 s.
 
 ## 7. Phases and who does what
 

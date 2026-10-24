@@ -351,7 +351,7 @@ What the chosen view needs and the others do not (`load_for_view/1`).
         // unchanged 17,000-word draft took 3.7 s to find nothing: the two
         // texts are compared whole first, and only a changed draft is diffed.
         let baseline = worksBaseline(ctx.db, work);
-        let diff = if (baseline == work.body) { [] } else { rows(baseline, work.body) };
+        let diff: List<Row> = if (baseline == work.body) { [] } else { rows(baseline, work.body) };
         state.diffRows = diff;
         state.diffStat = showDiffStatOf(diff);
       } else if (state.view == "prompts") {

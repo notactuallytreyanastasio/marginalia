@@ -35,7 +35,8 @@ history.
     let { LinkEdgeEnds } = import("links/src");
     let { LlmMessage, LlmClient, llmFromEnv } = import("llm/src");
     let {
-      ReadingNote, ReadingBlock, ReadingSection, ReadingOptions, readingPage, readingRenderBlock,
+      ReadingNote, ReadingBlock, ReadingSection, ReadingOptions, ReadingCache, readingPage, readingRenderBlock,
+      readingCacheLoad, readingCacheSave, readingRenderBlockCached,
     } = import("reading/src");
     let {
       CaseStudy, CaseReading, CaseNote, CaseSource, CaseChatResult, casesGet, casesDefaultLead,
@@ -66,7 +67,11 @@ pointing at, `citedEnds` those edges with their two nodes.
       public cited: List<Int>,
       public citedEnds: List<LinkEdgeEnds>,
       public walk: Boolean,
-    ) {}
+    ) {
+      /// The rendered blocks `render_cache` had for this page, loaded with
+      /// the page; what the render adds is saved by `pagesCasesReadAnswer`.
+      public var renderCache: ReadingCache? = null;
+    }
 
 ### The lead
 
@@ -211,10 +216,12 @@ A comma-separated list of ids.
       let r = reading;
       var page: List<PgcSection> = [];
       var citedEnds: List<LinkEdgeEnds> = [];
+      var cache: ReadingCache? = null;
       let cited = pagesCasesIdsOf(pagesCasesGetKey(ctx, slug, "cited"));
       if (r != null) {
         let sections = readingPage(ctx.db, r.lead, new ReadingOptions(null, null, pgcReadingNotes(r.notes)));
         page = pgcPageOf(r.notes, sections);
+        cache = do { readingCacheLoad(ctx.db, sections) } orelse null;
         if (cited.length > 0) {
           let wanted = new ListBuilder<LinkEdgeEnds>();
           for (let se of casesChatEdges(ctx.db, r)) {
@@ -223,12 +230,33 @@ A comma-separated list of ids.
           citedEnds = wanted.toList();
         }
       }
-      new CasesReadState(
+      let state = new CasesReadState(
         c, r, page,
         pagesCasesOptional(ctx, slug, "only"), pagesCasesOptional(ctx, slug, "source"), pagesCasesOptional(ctx, slug, "peek"),
         pagesCasesFlag(ctx, slug, "chat_open"), pagesCasesHistoryOf(pagesCasesGetKey(ctx, slug, "chat")),
         cited, citedEnds, pagesCasesFlag(ctx, slug, "walk"),
-      )
+      );
+      state.renderCache = cache;
+      state
+    }
+
+A block's HTML, from the cache when the page has one.
+
+    let pgcBlockHtml(state: CasesReadState, text: String, mark: String?, ref: String): String {
+      let cache = state.renderCache;
+      if (cache != null) {
+        readingRenderBlockCached(cache, text, mark, ref, null)
+      } else {
+        readingRenderBlock(text, mark, ref, null)
+      }
+    }
+
+The page, then what it rendered for the first time written to the cache.
+
+    let pagesCasesReadAnswer(ctx: Ctx, state: CasesReadState, flash: Pair<String, String>?): Response throws Bubble {
+      let tree = renderCasesRead(state);
+      let saved = do { readingCacheSave(ctx.db, state.renderCache) } orelse 0;
+      pagesCasesAnswer(ctx, pagesCasesReadMeta(state), tree, flash, "bleed")
     }
 
 ## What the margin shows
@@ -563,7 +591,7 @@ name when it is not.
 Prose nothing else in the case touches. Folded, never dropped: a reader must
 be able to satisfy themselves that the quiet stretches really are quiet.
 
-    let pgcGap(blocks: List<PgcBlock>): List<AnyValue> {
+    let pgcGap(state: CasesReadState, blocks: List<PgcBlock>): List<AnyValue> {
       h("details", attr("class", "cr-gap"), [
         "\n                ",
         h("summary", "", [
@@ -580,7 +608,7 @@ be able to satisfy themselves that the quiet stretches really are quiet.
           [
             h("div", attr("class", "cr-quiet"), [
               "\n                  ",
-              hraw(readingRenderBlock(b.block.text, null, b.block.ref, null)),
+              hraw(pgcBlockHtml(state, b.block.text, null, b.block.ref)),
               "\n                ",
             ]),
             "\n                ",
@@ -633,7 +661,7 @@ A paragraph and its notes are one row: the text, then the notes beside it.
       [
         h("div", "${attr("class", pagesCasesCls(["cr-text", if (linked) { "linked" } else { "" }]))}${attr("id", "b-${b.block.ref}")}", [
           "\n                ",
-          hraw(readingRenderBlock(b.block.text, mark, b.block.ref, null)),
+          hraw(pgcBlockHtml(state, b.block.text, mark, b.block.ref)),
           "\n              ",
         ]),
         "\n              ",
@@ -650,7 +678,7 @@ A paragraph and its notes are one row: the text, then the notes beside it.
     }
 
     let pgcRun(state: CasesReadState, r: CaseReading, run: PgcRun): List<AnyValue> {
-      if (run.gap) { pgcGap(run.blocks) } else { pgcRow(state, r, run.blocks[0]) }
+      if (run.gap) { pgcGap(state, run.blocks) } else { pgcRow(state, r, run.blocks[0]) }
     }
 
     let pgcSection(state: CasesReadState, r: CaseReading, s: PgcSection): List<AnyValue> {
@@ -791,7 +819,7 @@ A plain visit shuts a sheet that was open and takes the walk from the address
           pagesCasesSetFlag(ctx, slug, "walk", ctx.req.query.getOr("walk", "") == "1");
         }
         let state = loadCasesRead(ctx, c, leadSlug);
-        pagesCasesAnswer(ctx, pagesCasesReadMeta(state), renderCasesRead(state), null, "bleed")
+        pagesCasesReadAnswer(ctx, state, null)
       } else {
         webRedirect(ctx, "/cases", new Pair("error", "No such case."))
       }
@@ -942,5 +970,5 @@ are let go either way.
         return pagesCasesUnhandled("/cases/:slug/read", event);
       }
       let state = loadCasesRead(ctx, c, leadSlug);
-      pagesCasesAnswer(ctx, pagesCasesReadMeta(state), renderCasesRead(state), flash, "bleed")
+      pagesCasesReadAnswer(ctx, state, flash)
     }

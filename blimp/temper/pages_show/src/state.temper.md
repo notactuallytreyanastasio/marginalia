@@ -26,7 +26,7 @@ database, so what is rendered is always what is stored.
     let { Work, Section, GraphNode, GraphEvent, Revision, DocumentSummary, WorkCounts, EventStats } = import("works/src");
     let { User } = import("accounts/src");
     let { Conversation, ChatTurn, ChatSummary, ChatThread, ChatQuota, ChatMode } = import("chat/src");
-    let { ReadingSection, ReadingFocus, ReadingCite, ReadingPreview, RewriteCandidate } = import("reading/src");
+    let { ReadingSection, ReadingFocus, ReadingCite, ReadingPreview, ReadingCache, RewriteCandidate } = import("reading/src");
     let { LinkWorks } = import("links/src");
     let { GraphStats, AnalysisPass } = import("analysis/src");
     let { TourCard, WalkStep } = import("cases/src");
@@ -214,6 +214,9 @@ The other views' data, loaded only for the view that shows it
 pretty-printed export) and stats, the Trace tab's events and stats.
 
       public var diffRows: List<Row> = [];
+      /// The rendered blocks the read view found in `render_cache`, set by
+      /// `renderReadView` for the request and never saved anywhere.
+      public var renderCache: ReadingCache? = null;
       public var diffStat: ShowDiffStat? = null;
       public var graphJson: String? = null;
       public var graphStats: GraphStats? = null;

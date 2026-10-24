@@ -41,6 +41,7 @@ in `log/error.log`. The Temper bubble carries no text; the line says so.
     let { pagesCasesRoutes, pagesCasesGet, pagesCasesEvent } = import("pages_cases/src");
     let { pagesShowRoutes, pagesShowGet, pagesShowEvent } = import("pages_show/src");
     let { recoveryRun } = import("runs/src");
+    let { readingCacheSweep } = import("reading/src");
     let { portFromEnv } = import("server/src");
 
 Every top-level name here is shared by the library's files and, in the built
@@ -429,7 +430,8 @@ process is fine).
         let db = dbOpen(path);
         let recovered = recoveryRun(db);
         let pruned = webPruneSessions(db, 30);
-        console.log("marginalia: ${recovered.toString()} interrupted rows marked, ${pruned.toString()} old sessions pruned");
+        let swept = readingCacheSweep(db, 30);
+        console.log("marginalia: ${recovered.toString()} interrupted rows marked, ${pruned.toString()} old sessions pruned, ${swept.toString()} old rendered blocks dropped");
         db.close();
         true
       } orelse false;
