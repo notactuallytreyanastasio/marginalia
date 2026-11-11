@@ -1,19 +1,49 @@
-<div id="loose-leaf" class="ll-stage" data-phase="title">
+<div id="loose-leaf" class="ll-stage" data-phase="title" data-screen="title" data-booting>
   <canvas id="loose-leaf-canvas" class="ll-canvas" data-ll="canvas"></canvas>
 
   <header id="loose-leaf-hud" class="ll-hud">
-    <span class="ll-chip ll-level" data-ll="level">1 · First Page</span>
+    <button id="loose-leaf-pause" type="button" class="ll-chip ll-round ll-pause" data-ll="pause" aria-label="Pause"><span class="ll-bars" aria-hidden="true"></span></button>
+    <span class="ll-chip ll-level"><span data-ll="level-number">1</span><span class="ll-level-name" data-ll="level">First Page</span></span>
     <span class="ll-chip ll-gems"><span class="ll-gem" aria-hidden="true"></span><span data-ll="gems">0/0</span></span>
-    <span class="ll-chip ll-time" data-ll="time">60.0</span>
-    <button id="loose-leaf-mute" type="button" class="ll-chip ll-mute" data-ll="mute" aria-label="Mute sound" aria-pressed="false">♪</button>
+    <span class="ll-chip ll-time" data-ll="time-chip"><span data-ll="time">60.0</span></span>
+    <button id="loose-leaf-mute" type="button" class="ll-chip ll-round ll-mute" data-ll="mute" aria-label="Mute sound" aria-pressed="false"><span class="ll-note" aria-hidden="true">♪</span></button>
   </header>
+
+  <span class="ll-chip ll-speed" data-ll="speed-chip"><span data-ll="speed">0.0</span><small>m/s</small></span>
 
   <p id="loose-leaf-banner" class="ll-banner" data-ll="banner" aria-live="polite"></p>
 
-  <section id="loose-leaf-card" class="ll-card">
-    <h1 data-ll="card-title">Loose Leaf</h1>
-    <p data-ll="card-body">Roll the marble to the ring before the clock runs out. Drag anywhere to tilt the page.</p>
-    <button id="loose-leaf-action" type="button" class="ll-button" data-ll="action">Play</button>
+  <div class="ll-scrim" aria-hidden="true"></div>
+
+  <section id="loose-leaf-card" class="ll-card" data-ll="card" role="dialog" aria-labelledby="loose-leaf-card-title">
+    <p class="ll-kicker" data-ll="card-kicker"></p>
+    <h1 id="loose-leaf-card-title" data-ll="card-title">Loose Leaf</h1>
+    <p class="ll-body" data-ll="card-body">Roll the marble to the ring before the clock runs out. Drag anywhere to tilt the page.</p>
+
+    <div id="loose-leaf-stages" class="ll-grid" data-ll="grid" role="list"></div>
+
+    <div id="loose-leaf-results" class="ll-results" data-ll="results">
+      <div class="ll-medal" data-ll="medal" data-medal="none"><span data-ll="medal-name">No medal</span></div>
+      <dl class="ll-stats">
+        <div><dt>Time</dt><dd data-ll="result-time">0.0s</dd></div>
+        <div><dt>Gems</dt><dd data-ll="result-gems">0/0</dd></div>
+        <div><dt>Best</dt><dd data-ll="result-best">–</dd></div>
+      </dl>
+      <ol class="ll-par" data-ll="par" aria-label="Medal times">
+        <li data-medal="gold"><span data-ll="par-gold">0.0s</span></li>
+        <li data-medal="silver"><span data-ll="par-silver">0.0s</span></li>
+        <li data-medal="bronze"><span data-ll="par-bronze">0.0s</span></li>
+      </ol>
+      <p class="ll-callout" data-ll="callout" aria-live="polite"></p>
+    </div>
+
+    <div class="ll-actions">
+      <button id="loose-leaf-action" type="button" class="ll-button" data-ll="action">Play</button>
+      <div class="ll-row">
+        <button id="loose-leaf-secondary" type="button" class="ll-button ll-quiet" data-ll="secondary">Stages</button>
+        <button id="loose-leaf-tertiary" type="button" class="ll-button ll-quiet" data-ll="tertiary" hidden></button>
+      </div>
+    </div>
   </section>
 
   <p id="loose-leaf-unsupported" class="ll-card ll-unsupported">This needs WebGL, and this browser will not give it one.</p>

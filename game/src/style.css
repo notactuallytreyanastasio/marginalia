@@ -1,7 +1,9 @@
 /* Loose Leaf. One fixed look: a comic-inked toy on squared paper. A full-screen
-   canvas with a thin layer of DOM over it; no light/dark variants by design. */
+   canvas with a thin layer of DOM over it; no light/dark variants by design.
+   Every colour on the page comes from these tokens. */
 :root {
   --paper: #fbfaf7;
+  --paper-dim: #efece4;
   --ink: #1c1a17;
   --dim: #6b665e;
   --sky: #f6dcc0;
@@ -9,21 +11,39 @@
   --go-hover: #f25e4f;
   --go-text: #fffaf0;
   --gem: #ffc72e;
+  --urgent: #d7263d;
+  --focus: #2f6fdf;
+  --gold: #f4b81c;
+  --silver: #c9ced6;
+  --bronze: #cd8a4e;
+  --scrim: rgb(28 26 23 / 0.28);
+  --stick-ring: rgb(251 250 247 / 0.28);
+  --stick-knob: rgb(251 250 247 / 0.9);
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  /* the side gutter every HUD control keeps from the edge */
+  --gutter-left: max(16px, env(safe-area-inset-left, 0px));
+  --gutter-right: max(16px, env(safe-area-inset-right, 0px));
+  --top: calc(10px + env(safe-area-inset-top, 0px));
+  --bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  /* the smallest comfortable thumb target */
+  --target: 44px;
   color-scheme: light;
 }
 html, body { height: 100%; }
 body { background: var(--sky); color: var(--ink); overflow: hidden; }
 *, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 /* ===========================================================================
-   Loose Leaf — the marble game at /play
+   Loose Leaf
    ---------------------------------------------------------------------------
-   A canvas that fills the screen and a thin layer of DOM over it. The hook
-   sets data-phase on the stage (title, ready, playing, goal, cleared,
-   fallout, timeup, unsupported) and everything here keys off that, so the
-   script never touches a style except to move the stick.
+   A canvas that fills the screen and a thin layer of DOM over it. main.ts
+   sets two attributes on the stage and everything here keys off them:
+     data-screen  title, select, playing, paused, results, unsupported
+     data-phase   the game's own phase (ready, playing, goal, cleared,
+                  fallout, timeup), or title before the first stage
+   so the script never touches a style except to move the stick.
    =========================================================================== */
 .ll-stage {
   position: fixed;
@@ -42,15 +62,17 @@ body { background: var(--sky); color: var(--ink); overflow: hidden; }
 }
 .ll-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
+/* --- HUD --------------------------------------------------------------- */
 .ll-hud {
   position: absolute;
-  top: calc(10px + env(safe-area-inset-top, 0px));
-  left: max(16px, env(safe-area-inset-left, 0px));
-  right: max(16px, env(safe-area-inset-right, 0px));
+  top: var(--top);
+  left: var(--gutter-left);
+  right: var(--gutter-right);
   display: flex;
   align-items: center;
   gap: 0.4rem;
   pointer-events: none;
+  transition: opacity 0.2s ease;
 }
 .ll-chip {
   display: inline-flex;
@@ -59,33 +81,71 @@ body { background: var(--sky); color: var(--ink); overflow: hidden; }
   min-height: 2.25rem;
   padding: 0 0.7rem;
   background: var(--paper);
+  color: var(--ink);
   border: 2px solid var(--ink);
   border-radius: 999px;
   box-shadow: 0 3px 0 var(--ink);
-  font-size: 0.82rem;
-  font-weight: 700;
-  line-height: 1;
+  font: 700 0.82rem/1 var(--sans);
   white-space: nowrap;
-  pointer-events: auto;
 }
-.ll-level { min-width: 0; overflow: hidden; text-overflow: ellipsis; display: block; line-height: 2rem; }
-.ll-time { margin-left: auto; min-width: 4.1rem; justify-content: center; font-variant-numeric: tabular-nums; }
-
-.ll-mute { width: 2.25rem; padding: 0; justify-content: center; cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease; }
-.ll-mute:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+.ll-level { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; display: block; line-height: 2rem; }
+.ll-level-name::before { content: " · "; }
+.ll-gems { flex: none; font-variant-numeric: tabular-nums; }
+.ll-time {
+  flex: none;
+  margin-left: auto;
+  min-width: 4.1rem;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.ll-time[data-urgent] { background: var(--urgent); color: var(--go-text); animation: ll-throb 1s ease-in-out infinite; }
 .ll-gem { width: 0.7rem; height: 0.7rem; background: var(--gem); border: 2px solid var(--ink); transform: rotate(45deg); }
-.ll-mute { font-size: 1.05rem; color: var(--ink); }
-.ll-mute[aria-pressed="true"] { text-decoration: line-through; opacity: 0.6; }
-.ll-stage[data-phase="title"] :is(.ll-level, .ll-gems, .ll-time),
-.ll-stage[data-phase="unsupported"] :is(.ll-level, .ll-gems, .ll-time, .ll-mute) { visibility: hidden; }
 
+/* Round icon buttons. The visible chip stays the size of its neighbours;
+   an invisible ring round it makes the target a full 44px. */
+.ll-round {
+  position: relative;
+  flex: none;
+  width: 2.25rem;
+  padding: 0;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+.ll-round::after { content: ""; position: absolute; inset: calc((2.25rem - var(--target)) / 2 - 2px); border-radius: 50%; }
+.ll-round:hover { background: var(--paper-dim); }
+.ll-round:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+.ll-mute { font-size: 1.05rem; }
+.ll-mute[aria-pressed="true"] .ll-note { text-decoration: line-through; opacity: 0.55; }
+.ll-bars { display: block; width: 0.7rem; height: 0.8rem; border-left: 3px solid var(--ink); border-right: 3px solid var(--ink); }
+
+.ll-speed {
+  position: absolute;
+  left: var(--gutter-left);
+  bottom: var(--bottom);
+  min-width: 4.6rem;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.ll-speed small { font-size: 0.68rem; font-weight: 600; color: var(--dim); }
+
+/* What shows on which screen. The HUD stays up behind the pause card so the
+   clock is still readable; the pause button only works mid-stage. */
+.ll-stage:is([data-screen="title"], [data-screen="select"], [data-screen="results"], [data-screen="unsupported"]) :is(.ll-level, .ll-gems, .ll-time, .ll-pause),
+.ll-stage[data-screen="unsupported"] .ll-mute { visibility: hidden; }
+.ll-stage:not([data-screen="playing"]) :is(.ll-pause, .ll-speed) { visibility: hidden; }
+.ll-stage[data-screen="paused"] .ll-hud > :not(.ll-mute) { opacity: 0.55; }
+
+/* --- banner ------------------------------------------------------------ */
 .ll-banner {
   position: absolute;
   top: 22%;
-  left: 0;
-  right: 0;
+  left: var(--gutter-left);
+  right: var(--gutter-right);
   margin: 0;
-  padding: 0 1rem;
   text-align: center;
   font-family: var(--serif);
   font-size: clamp(1.5rem, 7vw, 2.6rem);
@@ -99,18 +159,33 @@ body { background: var(--sky); color: var(--ink); overflow: hidden; }
   pointer-events: none;
 }
 .ll-banner:empty { display: none; }
-.ll-stage[data-phase="ready"] .ll-banner,
-.ll-stage[data-phase="goal"] .ll-banner,
-.ll-stage[data-phase="fallout"] .ll-banner,
-.ll-stage[data-phase="timeup"] .ll-banner { animation: ll-pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.ll-stage:is([data-phase="ready"], [data-phase="goal"], [data-phase="fallout"], [data-phase="timeup"]) .ll-banner {
+  animation: ll-pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+/* --- cards ------------------------------------------------------------- */
+.ll-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.ll-stage:is([data-screen="paused"], [data-screen="select"], [data-screen="results"]) .ll-scrim { opacity: 1; }
 
 .ll-card {
   position: absolute;
   left: 50%;
-  bottom: max(12%, calc(env(safe-area-inset-bottom) + 2rem));
-  width: min(22rem, calc(100% - 2rem));
+  bottom: max(10%, calc(env(safe-area-inset-bottom, 0px) + 1.5rem));
+  width: min(22rem, calc(100% - var(--gutter-left) - var(--gutter-right)));
+  max-height: calc(100% - var(--top) - 3.5rem - max(10%, calc(env(safe-area-inset-bottom, 0px) + 1.5rem)));
   margin: 0;
-  padding: 1.3rem 1.3rem 1.4rem;
+  padding: 1.2rem 1.2rem 1.3rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* the grid may scroll on a short screen; that drag is the card's, not the stick's */
+  touch-action: pan-y;
   transform: translateX(-50%);
   background: var(--paper);
   border: 2px solid var(--ink);
@@ -119,29 +194,165 @@ body { background: var(--sky); color: var(--ink); overflow: hidden; }
   text-align: center;
   display: none;
 }
-.ll-stage[data-phase="title"] .ll-card:not(.ll-unsupported),
-.ll-stage[data-phase="cleared"] .ll-card:not(.ll-unsupported),
-.ll-stage[data-phase="unsupported"] .ll-unsupported { display: block; animation: ll-rise 0.3s ease-out both; }
+.ll-stage[data-screen="select"] .ll-card { width: min(34rem, calc(100% - var(--gutter-left) - var(--gutter-right))); }
+.ll-stage:is([data-screen="title"], [data-screen="select"], [data-screen="paused"], [data-screen="results"]) .ll-card:not(.ll-unsupported),
+.ll-stage[data-screen="unsupported"] .ll-unsupported { display: block; animation: ll-rise 0.3s ease-out both; }
+/* until the viewer has said where to resume, show the picture alone */
+.ll-stage[data-booting] .ll-card { visibility: hidden; }
+
+.ll-kicker { margin: 0 0 0.2rem; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
+.ll-kicker:empty { display: none; }
 .ll-card h1 { margin: 0 0 0.35rem; font-family: var(--serif); font-size: 1.7rem; font-style: italic; line-height: 1.15; }
-.ll-card p { margin: 0 0 1rem; font-size: 0.92rem; line-height: 1.45; color: var(--dim); }
+.ll-body { margin: 0 0 1rem; font-size: 0.92rem; line-height: 1.45; color: var(--dim); }
+.ll-body:empty { display: none; }
 .ll-unsupported { font-size: 0.95rem; line-height: 1.45; }
+
+.ll-grid, .ll-results { display: none; }
+.ll-stage[data-screen="select"] .ll-grid { display: grid; }
+.ll-stage[data-screen="results"] .ll-results { display: block; }
+.ll-stage[data-screen="select"] .ll-card h1 { margin-bottom: 0.8rem; }
+
+/* --- stage select ------------------------------------------------------ */
+.ll-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0 0 1rem;
+  padding: 0 0 4px;
+}
+.ll-tile {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 0.5rem;
+  row-gap: 0.15rem;
+  width: 100%;
+  min-height: 3.6rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 0 3px 0 var(--ink);
+  text-align: left;
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+.ll-tile:hover:not(:disabled) { background: var(--paper-dim); transform: translateY(-1px); box-shadow: 0 4px 0 var(--ink); }
+.ll-tile:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+.ll-tile:disabled { cursor: not-allowed; color: var(--dim); border-style: dashed; box-shadow: none; background: var(--paper-dim); }
+.ll-tile-number {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font: italic 700 1rem/1 var(--serif);
+}
+.ll-tile-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  padding-right: 1rem;
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.15;
+  /* whole words to the next line; only a word too long for the tile breaks */
+  overflow-wrap: break-word;
+}
+.ll-tile-detail { font-size: 0.72rem; font-weight: 600; color: var(--dim); font-variant-numeric: tabular-nums; }
+.ll-tile-medal {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  display: none;
+}
+.ll-tile[data-medal="gold"] .ll-tile-medal { display: block; background: var(--gold); }
+.ll-tile[data-medal="silver"] .ll-tile-medal { display: block; background: var(--silver); }
+.ll-tile[data-medal="bronze"] .ll-tile-medal { display: block; background: var(--bronze); }
+
+/* --- results ----------------------------------------------------------- */
+.ll-medal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.3rem 0 0.8rem;
+  font: italic 700 1.1rem/1 var(--serif);
+}
+.ll-medal::before {
+  content: "";
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  box-shadow: 0 3px 0 var(--ink), inset 0 0 0 4px var(--paper);
+  background: var(--paper-dim);
+  animation: ll-stamp 0.45s cubic-bezier(0.2, 1.5, 0.4, 1) 0.15s both;
+}
+.ll-medal[data-medal="gold"]::before { background: var(--gold); }
+.ll-medal[data-medal="silver"]::before { background: var(--silver); }
+.ll-medal[data-medal="bronze"]::before { background: var(--bronze); }
+.ll-medal[data-medal="none"] { color: var(--dim); }
+.ll-medal[data-medal="none"]::before { border-style: dashed; box-shadow: none; }
+
+.ll-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; margin: 0 0 0.6rem; }
+.ll-stats div { padding: 0.45rem 0.2rem; border: 2px solid var(--ink); border-radius: 10px; background: var(--paper-dim); }
+.ll-stats dt { font-size: 0.66rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
+.ll-stats dd { margin: 0.2rem 0 0; font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.ll-callout { min-height: 1.2em; margin: 0 0 0.9rem; font-size: 0.85rem; font-weight: 700; color: var(--dim); }
+.ll-callout:empty { display: none; }
+.ll-callout[data-best="true"] { color: var(--go); animation: ll-pop 0.4s cubic-bezier(0.2, 1.4, 0.4, 1) 0.3s both; }
+
+/* --- buttons ----------------------------------------------------------- */
+.ll-actions { display: grid; gap: 0.55rem; }
+/* the three medal times, the one earned picked out */
+.ll-par { display: flex; justify-content: center; gap: 0.9rem; margin: 0 0 0.55rem; padding: 0; list-style: none; font-size: 0.82rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--dim); }
+.ll-par li { display: flex; align-items: center; gap: 0.3rem; padding: 0.1rem 0.4rem; border-radius: 999px; transition: background-color 160ms ease, color 160ms ease; }
+.ll-par li::before { content: ""; width: 0.7rem; height: 0.7rem; border: 2px solid var(--ink); border-radius: 50%; }
+.ll-par li[data-medal="gold"]::before { background: var(--gold); }
+.ll-par li[data-medal="silver"]::before { background: var(--silver); }
+.ll-par li[data-medal="bronze"]::before { background: var(--bronze); }
+.ll-par li[data-earned] { color: var(--ink); background: var(--paper-dim); }
+.ll-row { display: flex; gap: 0.55rem; }
+.ll-row:not(:has(> :not([hidden]))) { display: none; }
+.ll-row > * { flex: 1 1 0; }
 .ll-button {
   width: 100%;
   min-height: 3rem;
+  padding: 0 1rem;
   background: var(--go);
   color: var(--go-text);
   border: 2px solid var(--ink);
   border-radius: 999px;
   box-shadow: 0 4px 0 var(--ink);
-  font-size: 1.05rem;
-  font-weight: 800;
+  font: 800 1.05rem/1.1 var(--sans);
   letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
-.ll-button:hover { background: var(--go-hover); }
+.ll-button:hover { background: var(--go-hover); transform: translateY(-1px); box-shadow: 0 5px 0 var(--ink); }
 .ll-button:active { transform: translateY(4px); box-shadow: 0 0 0 var(--ink); }
+.ll-quiet { min-height: var(--target); background: var(--paper); color: var(--ink); font-size: 0.92rem; box-shadow: 0 3px 0 var(--ink); }
+.ll-quiet:hover { background: var(--paper-dim); box-shadow: 0 4px 0 var(--ink); }
 
+/* A keyboard player always sees where they are. */
+:is(.ll-button, .ll-tile, .ll-round):focus { outline: none; }
+:is(.ll-button, .ll-tile, .ll-round):focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+
+/* --- stick ------------------------------------------------------------- */
 /* The stick appears under the thumb, wherever that lands. */
 .ll-stick {
   position: absolute;
@@ -155,11 +366,47 @@ body { background: var(--sky); color: var(--ink); overflow: hidden; }
 }
 .ll-stick[data-active] { opacity: 1; }
 .ll-stick::before, .ll-stick span { content: ""; position: absolute; border-radius: 50%; border: 2px solid var(--ink); }
-.ll-stick::before { inset: -64px; width: 128px; height: 128px; background: rgb(251 250 247 / 0.28); }
-.ll-stick span { top: -22px; left: -22px; width: 44px; height: 44px; background: rgb(251 250 247 / 0.9); box-shadow: 0 3px 0 var(--ink); }
+.ll-stick::before { inset: -64px; width: 128px; height: 128px; background: var(--stick-ring); }
+.ll-stick span { top: -22px; left: -22px; width: 44px; height: 44px; background: var(--stick-knob); box-shadow: 0 3px 0 var(--ink); }
+
+/* --- short screens (a phone on its side) ------------------------------- */
+/* A small phone: the HUD keeps the stage number and drops its name, and
+   tiles give the number's column to the name so words are not split. */
+@media (max-width: 360px) {
+  .ll-level-name { display: none; }
+  .ll-tile { grid-template-columns: 1fr; }
+  .ll-tile-number { display: none; }
+}
+
+@media (max-height: 520px) {
+  .ll-card { bottom: var(--bottom); padding: 0.85rem 1rem 1rem; max-height: calc(100% - var(--top) - 3.25rem - var(--bottom)); }
+  .ll-card h1 { font-size: 1.35rem; }
+  .ll-body { margin-bottom: 0.7rem; }
+  .ll-stage[data-screen="select"] .ll-card h1 { margin-bottom: 0.55rem; }
+  .ll-grid { margin-bottom: 0.7rem; }
+  .ll-tile { min-height: 3.1rem; padding: 0.35rem 0.6rem; }
+  .ll-medal { margin: 0.1rem 0 0.5rem; }
+  .ll-callout { margin-bottom: 0.6rem; }
+  /* side by side, so the card is short enough to leave the picture visible */
+  .ll-actions { grid-template-columns: 1fr 1fr; }
+  .ll-actions .ll-button { min-height: var(--target); font-size: 0.95rem; }
+  .ll-stage:is([data-screen="results"], [data-screen="paused"]) .ll-card { width: min(28rem, calc(100% - var(--gutter-left) - var(--gutter-right))); }
+}
+@media (min-width: 560px) {
+  .ll-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 
 @keyframes ll-pop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
 @keyframes ll-rise { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+@keyframes ll-stamp { from { opacity: 0; transform: scale(1.8) rotate(-20deg); } to { opacity: 1; transform: scale(1) rotate(0deg); } }
+@keyframes ll-throb { 50% { transform: scale(1.06); } }
+
+/* No pops, rises, stamps or throbs for anyone who has asked for less motion;
+   transitions shrink to a blink so state changes still read. */
 @media (prefers-reduced-motion: reduce) {
-  .ll-banner, .ll-card { animation: none !important; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

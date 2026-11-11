@@ -4,10 +4,12 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node --test \"test/*.test.*\"",
-    "build": "node build.mjs"
+    "test": "node --test \"test/*.test.ts\"",
+    "build": "node build.mjs",
+    "check:any": "node scripts/check-any.mjs"
   },
   "devDependencies": {
+    "@types/node": "22.20.5",
     "esbuild": "0.25.4",
     "typescript": "5.8.3"
   }

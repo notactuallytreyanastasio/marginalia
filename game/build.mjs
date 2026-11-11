@@ -4,10 +4,11 @@
 // (and a browser opening it directly copes without).
 
 import {build} from "esbuild"
-import {existsSync, mkdirSync, readFileSync, writeFileSync} from "node:fs"
+import {mkdirSync, readFileSync, writeFileSync} from "node:fs"
 
 const here = new URL(".", import.meta.url).pathname
-const entry = ["main.ts", "main.js"].map(f => `${here}src/${f}`).find(existsSync)
+// esbuild strips the types without checking them; `npm run typecheck` does that.
+const entry = `${here}src/main.ts`
 
 const result = await build({
   entryPoints: [entry],
