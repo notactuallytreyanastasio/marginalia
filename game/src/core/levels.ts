@@ -308,6 +308,10 @@ export const levelAt = (index: number, levels: readonly Level[] = LEVELS): Level
   return level
 }
 
+// The lowest any surface of the stage ever gets: below this a ball is no
+// longer on the page, only falling past it.
+export const pageBottom = (level: Level): number =>
+  Math.min(...level.platforms.map(p => p.center[1] - (p.kind === "mover" ? Math.abs(p.motion.amplitude[1]) : 0)))
+
 // The height below which a ball is gone for good.
-export const killHeight = (level: Level): number =>
-  Math.min(...level.platforms.map(p => p.center[1] - (p.kind === "mover" ? Math.abs(p.motion.amplitude[1]) : 0))) - 9
+export const killHeight = (level: Level): number => pageBottom(level) - 9

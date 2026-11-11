@@ -31,7 +31,7 @@ import {
   scale,
 } from "./math.ts"
 import {BALL_RADIUS, stepBall} from "./physics.ts"
-import {LEVELS, killHeight, levelAt} from "./levels.ts"
+import {LEVELS, killHeight, levelAt, pageBottom} from "./levels.ts"
 import type {Ball, Camera, GameEvent, GameState, Input, Level, Particle, Phase, Vec3} from "./types.ts"
 
 export const GRAVITY = 24
@@ -55,6 +55,12 @@ const GEM_REACH = BALL_RADIUS + 0.55
 const DROP_HEIGHT = 1.2
 const CAMERA_TURN = 2.2
 const CAMERA_FOLLOW = 10
+// Once in the ring the ball's sideways speed is traded, this fast, for a
+// gentle pull back to the ring's centre. Plain braking is not enough: a ball
+// arriving at full speed would coast a few metres, and on some stages the
+// ring is closer to the edge than that.
+const GOAL_GRIP = 10
+const GOAL_PULL = 3
 // Any odd constant would do; each stage mixes in its own number so two stages
 // do not throw the same confetti.
 const SEED = 0x2545f491
@@ -155,9 +161,10 @@ export const tiltTarget = (input: Input, yaw: number): Vec3 => {
 export const goalCenter = (level: Level): Vec3 => add(level.goal.position, [0, BALL_RADIUS, 0])
 export const gemCenter = (gem: Vec3): Vec3 => add(gem, [0, GEM_HEIGHT, 0])
 
-const followCamera = (camera: Camera, ball: Ball, phase: Phase, dt: number): Camera => {
-  // A ball that has gone over the edge is watched, not chased.
-  if (phase === "fallout") return camera
+const followCamera = (camera: Camera, ball: Ball, phase: Phase, floor: number, dt: number): Camera => {
+  // A ball that has gone over the edge is watched, not chased, whatever the
+  // phase says: a camera that follows it down leaves an empty page behind.
+  if (phase === "fallout" || ball.position[1] < floor) return camera
 
   const [vx, , vz] = ball.velocity
   const speed = Math.hypot(vx, vz)
@@ -276,7 +283,7 @@ const simulate = (state: GameState, level: Level, tiltGoal: Vec3, dt: number, ho
     tilt,
     grounded,
     speed: Math.hypot(ball.velocity[0], ball.velocity[2]),
-    camera: followCamera(state.camera, ball, state.phase, dt),
+    camera: followCamera(state.camera, ball, state.phase, pageBottom(level), dt),
     events: [...thud, ...kicks],
     particles: ageParticles(state.particles, dt),
   }
@@ -328,6 +335,16 @@ const collectGems = (state: GameState, level: Level): GameState => {
   )
 }
 
+// Steer the ball's sideways velocity toward one that carries it back to the
+// ring's centre, leaving its vertical motion to gravity and the floor.
+const catchBall = (ball: Ball, center: Vec3, dt: number): Ball => {
+  const k = 1 - Math.exp(-GOAL_GRIP * dt)
+  const [vx, vy, vz] = ball.velocity
+  const wantX = (center[0] - ball.position[0]) * GOAL_PULL
+  const wantZ = (center[2] - ball.position[2]) * GOAL_PULL
+  return {...ball, velocity: [vx + (wantX - vx) * k, vy, vz + (wantZ - vz) * k]}
+}
+
 const celebrate = (state: GameState, level: Level): GameState =>
   throwInto(state, {
     origin: add(level.goal.position, [0, GOAL_RADIUS * 2, 0]),
@@ -365,13 +382,11 @@ export const step = (state: GameState, input: Input, dt: number, levels: readonl
     }
 
     case "goal": {
-      // Level the stage and let the ball coast to a stop.
-      const coasting = simulate(timed, level, ZERO, dt)
-      const braked = {
-        ...coasting,
-        ball: {...coasting.ball, velocity: scale(coasting.ball.velocity, Math.exp(-3 * dt))},
-      }
-      return phaseTime >= GOAL_TIME ? enter(braked, "cleared") : braked
+      // Level the stage and let the ring catch the ball. The grip goes on
+      // before the physics step, so this step already moves at the new speed.
+      const caught = {...timed, ball: catchBall(timed.ball, goalCenter(level), dt)}
+      const settled = simulate(caught, level, ZERO, dt)
+      return phaseTime >= GOAL_TIME ? enter(settled, "cleared") : settled
     }
 
     case "fallout":

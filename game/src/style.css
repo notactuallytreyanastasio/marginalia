@@ -385,8 +385,15 @@ body { background: var(--sky); color: var(--ink); overflow: hidden; }
   .ll-stage[data-screen="select"] .ll-card h1 { margin-bottom: 0.55rem; }
   .ll-grid { margin-bottom: 0.7rem; }
   .ll-tile { min-height: 3.1rem; padding: 0.35rem 0.6rem; }
-  .ll-medal { margin: 0.1rem 0 0.5rem; }
-  .ll-callout { margin-bottom: 0.6rem; }
+  /* the results card has the most to say; at 342px tall (a big phone on its
+     side) it only fits with a smaller medal and tighter stat boxes */
+  .ll-medal { margin: 0 0 0.35rem; }
+  .ll-medal::before { width: 1.6rem; height: 1.6rem; }
+  .ll-stats { margin-bottom: 0.4rem; }
+  .ll-stats div { padding: 0.25rem 0.2rem; }
+  .ll-stats dd { margin-top: 0.05rem; }
+  .ll-par { margin-bottom: 0.3rem; }
+  .ll-callout { margin-bottom: 0.45rem; }
   /* side by side, so the card is short enough to leave the picture visible */
   .ll-actions { grid-template-columns: 1fr 1fr; }
   .ll-actions .ll-button { min-height: var(--target); font-size: 0.95rem; }

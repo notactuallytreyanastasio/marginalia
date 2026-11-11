@@ -1,4 +1,3 @@
-/// <reference types="node" />
 // Run with: npm test
 //
 // The core has no canvas and no clock of its own, so whole runs can be played
@@ -509,6 +508,49 @@ test("reaching the goal throws confetti", () => {
   assert.equal(next.phase, "goal")
   assert.ok(next.particles.length >= 30)
   assert.ok(next.particles.every(p => p.life > 0 && p.life <= p.maxLife))
+})
+
+test("a ball driven into the ring at full stick stays on the page through the celebration", () => {
+  const level = levelAt(0)
+  const base = startLevel(0)
+  const from: Vec3 = [4.5, BALL_RADIUS, -24]
+  // facing +x, the way the ring lies from here, so full stick runs straight at it
+  let state: GameState = {...base, phase: "playing", ball: {...base.ball, position: from}, camera: {yaw: -Math.PI / 2, focus: from}}
+  let entry = 0
+  for (let i = 0; i < 900 && state.phase !== "cleared"; i++) {
+    const was = state.phase
+    state = step(state, {x: 0, y: 1}, DT)
+    if (was === "playing" && state.phase === "goal") entry = state.speed
+    assert.notEqual(state.phase, "fallout")
+  }
+  assert.equal(state.phase, "cleared")
+  assert.ok(entry > 9, `entered the ring at only ${entry.toFixed(1)} m/s`)
+  assert.ok(near(state.ball.position[1], goalCenter(level)[1], 0.05), `ball at y ${state.ball.position[1].toFixed(2)}`)
+  assert.ok(length(sub(state.ball.position, goalCenter(level))) < 0.5, "the ring holds the ball near its centre")
+})
+
+test("on every stage the ring catches a ball arriving at top speed from any side", () => {
+  LEVELS.forEach((level, index) => {
+    for (const heading of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+      const base = startLevel(index)
+      const center = goalCenter(level)
+      const velocity: Vec3 = [Math.cos(heading) * 16, 0, Math.sin(heading) * 16]
+      let state: GameState = {...base, phase: "goal", ball: {...base.ball, position: center, velocity}, camera: {yaw: 0, focus: center}}
+      while (state.phase === "goal") state = step(state, {x: 0, y: 0}, DT)
+      const where = state.ball.position.map(n => n.toFixed(2)).join(",")
+      assert.ok(near(state.ball.position[1], center[1], 0.05), `${level.name}, heading ${heading.toFixed(2)}: ball at ${where}`)
+      assert.ok(near(state.camera.focus[1], center[1], 0.2), `${level.name}: the camera stayed with the page`)
+    }
+  })
+})
+
+test("the camera stops following a ball that has dropped below the page", () => {
+  const level = levelAt(0)
+  const base = startLevel(0)
+  const below: Vec3 = [0, killHeight(level) + 2, -50]
+  const state: GameState = {...base, phase: "goal", ball: {...base.ball, position: below, velocity: [0, -5, 0]}}
+  const next = step(state, {x: 0, y: 0}, DT)
+  assert.deepEqual(next.camera, state.camera)
 })
 
 test("hitting a bumper during play is reported with its index, with a few sparks", () => {

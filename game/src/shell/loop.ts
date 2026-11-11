@@ -29,6 +29,9 @@ export const paced = (owed: number, since: number): Paced => {
 }
 
 export interface LoopHooks {
+  // once per frame, before anything else and on every screen, so devices that
+  // have to be asked (a gamepad) are heard even while the game is stopped
+  readonly poll: () => void
   // whether the simulation should run this frame
   readonly running: () => boolean
   readonly step: (dt: number) => void
@@ -51,6 +54,7 @@ export const startLoop = (hooks: LoopHooks): Loop => {
     const since = last === null ? 0 : (now - last) / 1000
     last = now
 
+    hooks.poll()
     if (hooks.running()) {
       const next = paced(owed, since)
       owed = next.owed

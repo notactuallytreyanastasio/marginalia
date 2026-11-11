@@ -6,7 +6,9 @@
 //
 // The rest of the game only ever sees `read()`: an {x, y} pair, each -1..1,
 // x to the right and y away from the player, plus a few commands (pause,
-// restart, confirm) handed to the `command` callback as they happen.
+// restart, confirm) handed to the `command` callback as they happen. A
+// gamepad cannot tell us when its buttons change, so `poll()` has to be
+// called once a frame on every screen for them to work.
 
 import type {Input} from "../core/types.ts"
 
@@ -64,6 +66,8 @@ export interface InputOptions {
 }
 
 export interface InputReader {
+  // asks the gamepad, if any, for its buttons and stick
+  poll(): void
   read(): Input
   // While false, no stick is shown and nothing leans; a stick in use is let go.
   setActive(active: boolean): void
@@ -105,6 +109,7 @@ export const createInput = ({surface, stick, command}: InputOptions): InputReade
   const padHeld = new Set<number>()
   let pointer: Pointer | null = null
   let value: Input = STILL
+  let padStick: Input = STILL
   let active = false
 
   const show = (at: Pointer): void => {
@@ -234,12 +239,14 @@ export const createInput = ({surface, stick, command}: InputOptions): InputReade
   window.addEventListener("blur", blur)
 
   return {
+    poll() {
+      padStick = fromPad()
+    },
+
     read() {
-      // Poll the pad whatever happens, so its buttons work on every screen.
-      const pad = fromPad()
       if (!active) return STILL
       if (pointer) return shape(value.x, value.y)
-      if (pad.x !== 0 || pad.y !== 0) return pad
+      if (padStick.x !== 0 || padStick.y !== 0) return padStick
       return fromKeys()
     },
 

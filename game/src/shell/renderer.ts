@@ -100,7 +100,10 @@ precision mediump float;
 
 // Shadow lookups need more than mediump where it is to be had: a 1024 texel
 // map addressed at mediump lands on the wrong texel, and depth compared at
-// mediump needs a bias big enough to lift shadows off their casters.
+// mediump needs a bias big enough to lift shadows off their casters. The
+// paper grid needs it too: phones run mediump as half floats, whose step is
+// already 0.03 by 32 m out, as wide as a grid line, so far down a long stage
+// the lines would come out in blocks.
 #if defined(GL_FRAGMENT_PRECISION_HIGH)
 #define SHADOWP highp
 #else
@@ -116,7 +119,7 @@ uniform vec3 uLight;
 uniform vec3 uEye;
 uniform vec4 uBall;
 
-varying vec3 vWorld;
+varying SHADOWP vec3 vWorld;
 varying vec3 vNormal;
 varying vec3 vLocal;
 
@@ -145,7 +148,9 @@ float band(float edge, float x) {
   return smoothstep(edge - w, edge + w, x);
 }
 
-float gridLine(float coordinate, float spacing, float width) {
+// The coordinate comes in at full precision and is wrapped before anything
+// else is done with it; what is left is small enough for mediump.
+float gridLine(SHADOWP float coordinate, float spacing, float width) {
   float d = abs(fract(coordinate / spacing + 0.5) - 0.5) * spacing;
   return 1.0 - smoothstep(width, width * 2.2, d);
 }

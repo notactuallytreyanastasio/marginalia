@@ -422,8 +422,9 @@ export const start = (root: HTMLElement): void => {
     if (hasCard(screen) && keyboardLast) {
       // Keyboard players land on the primary button. Touch and mouse players
       // are left alone, or a ring would sit on a button nobody aimed at.
-      const primary = screen === "select" ? parts.grid.querySelector<HTMLButtonElement>(".ll-tile:not(:disabled)") : parts.action
-      ;(primary ?? parts.action).focus({preventScroll: true})
+      const tile = screen === "select" ? parts.grid.querySelector(".ll-tile:not(:disabled)") : null
+      const primary = tile instanceof HTMLButtonElement ? tile : parts.action
+      primary.focus({preventScroll: true})
     } else if (document.activeElement instanceof HTMLElement && parts.card.contains(document.activeElement)) {
       document.activeElement.blur()
     }
@@ -463,6 +464,8 @@ export const start = (root: HTMLElement): void => {
   }
 
   const loop = startLoop({
+    // the pad is asked on every screen, or A and Start would be dead on the cards
+    poll: () => input.poll(),
     running: () => screen === "playing",
     step: dt => {
       if (screen !== "playing") return

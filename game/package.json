@@ -9,7 +9,6 @@
     "check:any": "node scripts/check-any.mjs"
   },
   "devDependencies": {
-    "@types/node": "22.20.5",
     "esbuild": "0.25.4",
     "typescript": "5.8.3"
   }
