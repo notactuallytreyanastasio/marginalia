@@ -1,0 +1,14 @@
+{
+  "name": "loose-leaf",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"test/*.test.*\"",
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.4",
+    "typescript": "5.8.3"
+  }
+}

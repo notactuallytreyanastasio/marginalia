@@ -56,12 +56,6 @@ defmodule MarginaliaWeb.Router do
     live_session :landing,
       on_mount: [{MarginaliaWeb.UserAuth, :mount_current_scope}] do
       live "/", LandingLive, :index
-
-      # The marble game. It sits here rather than with the other public pages
-      # for the same reason the landing page does: it fills the whole screen
-      # and the scaffold's header would be in the way of a thumb. Nothing
-      # about it is per-user, so it needs no account and mints no guest.
-      live "/play", PlayLive, :index
     end
   end
 

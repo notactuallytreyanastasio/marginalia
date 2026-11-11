@@ -1,4 +1,4 @@
-// The imperative shell, as a LiveView hook. Everything with a side effect
+// The imperative shell. Everything with a side effect
 // lives here or under ./shell: the canvas, the clock, the listeners, the
 // sound, the DOM. It holds exactly one piece of game data — the current
 // state — and replaces it wholesale with whatever the core returns.
@@ -162,3 +162,7 @@ export const LooseLeafGame = {
     document.removeEventListener("visibilitychange", this.onVisibility)
   },
 }
+
+const game = Object.create(LooseLeafGame)
+game.el = document.getElementById("loose-leaf")
+game.mounted()

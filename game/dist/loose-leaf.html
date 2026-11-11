@@ -1,0 +1,311 @@
+<title>Loose Leaf</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Loose Leaf. One fixed look: a comic-inked toy on squared paper. A full-screen
+   canvas with a thin layer of DOM over it; no light/dark variants by design. */
+:root {
+  --paper: #fbfaf7;
+  --ink: #1c1a17;
+  --dim: #6b665e;
+  --sky: #f6dcc0;
+  --go: #ee4d3d;
+  --go-hover: #f25e4f;
+  --go-text: #fffaf0;
+  --gem: #ffc72e;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+body { background: var(--sky); color: var(--ink); overflow: hidden; }
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ===========================================================================
+   Loose Leaf — the marble game at /play
+   ---------------------------------------------------------------------------
+   A canvas that fills the screen and a thin layer of DOM over it. The hook
+   sets data-phase on the stage (title, ready, playing, goal, cleared,
+   fallout, timeup, unsupported) and everything here keys off that, so the
+   script never touches a style except to move the stick.
+   =========================================================================== */
+.ll-stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--sky);
+  color: var(--ink);
+  font-family: var(--sans);
+  /* the page must not scroll, zoom or select under a dragging thumb */
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.ll-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.ll-hud {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  pointer-events: none;
+}
+.ll-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  padding: 0 0.7rem;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 0 3px 0 var(--ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+.ll-level { min-width: 0; overflow: hidden; text-overflow: ellipsis; display: block; line-height: 2rem; }
+.ll-time { margin-left: auto; min-width: 4.1rem; justify-content: center; font-variant-numeric: tabular-nums; }
+
+.ll-mute { width: 2.25rem; padding: 0; justify-content: center; cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease; }
+.ll-mute:active { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+.ll-gem { width: 0.7rem; height: 0.7rem; background: var(--gem); border: 2px solid var(--ink); transform: rotate(45deg); }
+.ll-mute { font-size: 1.05rem; color: var(--ink); }
+.ll-mute[aria-pressed="true"] { text-decoration: line-through; opacity: 0.6; }
+.ll-stage[data-phase="title"] :is(.ll-level, .ll-gems, .ll-time),
+.ll-stage[data-phase="unsupported"] :is(.ll-level, .ll-gems, .ll-time, .ll-mute) { visibility: hidden; }
+
+.ll-banner {
+  position: absolute;
+  top: 22%;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0 1rem;
+  text-align: center;
+  font-family: var(--serif);
+  font-size: clamp(1.5rem, 7vw, 2.6rem);
+  font-weight: 700;
+  font-style: italic;
+  color: var(--paper);
+  /* an inked outline, to match the picture behind it */
+  text-shadow:
+    -2px -2px 0 var(--ink), 2px -2px 0 var(--ink), -2px 2px 0 var(--ink),
+    2px 2px 0 var(--ink), 0 4px 0 var(--ink);
+  pointer-events: none;
+}
+.ll-banner:empty { display: none; }
+.ll-stage[data-phase="ready"] .ll-banner,
+.ll-stage[data-phase="goal"] .ll-banner,
+.ll-stage[data-phase="fallout"] .ll-banner,
+.ll-stage[data-phase="timeup"] .ll-banner { animation: ll-pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+
+.ll-card {
+  position: absolute;
+  left: 50%;
+  bottom: max(12%, calc(env(safe-area-inset-bottom) + 2rem));
+  width: min(22rem, calc(100% - 2rem));
+  margin: 0;
+  padding: 1.3rem 1.3rem 1.4rem;
+  transform: translateX(-50%);
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 0 6px 0 var(--ink);
+  text-align: center;
+  display: none;
+}
+.ll-stage[data-phase="title"] .ll-card:not(.ll-unsupported),
+.ll-stage[data-phase="cleared"] .ll-card:not(.ll-unsupported),
+.ll-stage[data-phase="unsupported"] .ll-unsupported { display: block; animation: ll-rise 0.3s ease-out both; }
+.ll-card h1 { margin: 0 0 0.35rem; font-family: var(--serif); font-size: 1.7rem; font-style: italic; line-height: 1.15; }
+.ll-card p { margin: 0 0 1rem; font-size: 0.92rem; line-height: 1.45; color: var(--dim); }
+.ll-unsupported { font-size: 0.95rem; line-height: 1.45; }
+.ll-button {
+  width: 100%;
+  min-height: 3rem;
+  background: var(--go);
+  color: var(--go-text);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 0 4px 0 var(--ink);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+.ll-button:hover { background: var(--go-hover); }
+.ll-button:active { transform: translateY(4px); box-shadow: 0 0 0 var(--ink); }
+
+/* The stick appears under the thumb, wherever that lands. */
+.ll-stick {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.ll-stick[data-active] { opacity: 1; }
+.ll-stick::before, .ll-stick span { content: ""; position: absolute; border-radius: 50%; border: 2px solid var(--ink); }
+.ll-stick::before { inset: -64px; width: 128px; height: 128px; background: rgb(251 250 247 / 0.28); }
+.ll-stick span { top: -22px; left: -22px; width: 44px; height: 44px; background: rgb(251 250 247 / 0.9); box-shadow: 0 3px 0 var(--ink); }
+
+@keyframes ll-pop { from { opacity: 0; transform: scale(0.6); } to { opacity: 1; transform: scale(1); } }
+@keyframes ll-rise { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .ll-banner, .ll-card { animation: none !important; }
+}
+</style>
+<div id="loose-leaf" class="ll-stage" data-phase="title">
+  <canvas id="loose-leaf-canvas" class="ll-canvas" data-ll="canvas"></canvas>
+
+  <header id="loose-leaf-hud" class="ll-hud">
+    <span class="ll-chip ll-level" data-ll="level">1 · First Page</span>
+    <span class="ll-chip ll-gems"><span class="ll-gem" aria-hidden="true"></span><span data-ll="gems">0/0</span></span>
+    <span class="ll-chip ll-time" data-ll="time">60.0</span>
+    <button id="loose-leaf-mute" type="button" class="ll-chip ll-mute" data-ll="mute" aria-label="Mute sound" aria-pressed="false">♪</button>
+  </header>
+
+  <p id="loose-leaf-banner" class="ll-banner" data-ll="banner" aria-live="polite"></p>
+
+  <section id="loose-leaf-card" class="ll-card">
+    <h1 data-ll="card-title">Loose Leaf</h1>
+    <p data-ll="card-body">Roll the marble to the ring before the clock runs out. Drag anywhere to tilt the page.</p>
+    <button id="loose-leaf-action" type="button" class="ll-button" data-ll="action">Play</button>
+  </section>
+
+  <p id="loose-leaf-unsupported" class="ll-card ll-unsupported">This needs WebGL, and this browser will not give it one.</p>
+
+  <div class="ll-stick" data-ll="stick" aria-hidden="true"><span></span></div>
+</div>
+<script>
+(()=>{var N=[0,1,0],E=(t,e)=>[t[0]+e[0],t[1]+e[1],t[2]+e[2]],y=(t,e)=>[t[0]-e[0],t[1]-e[1],t[2]-e[2]],g=(t,e)=>[t[0]*e,t[1]*e,t[2]*e],A=(t,e,o)=>[t[0]+e[0]*o,t[1]+e[1]*o,t[2]+e[2]*o],R=(t,e)=>t[0]*e[0]+t[1]*e[1]+t[2]*e[2],x=(t,e)=>[t[1]*e[2]-t[2]*e[1],t[2]*e[0]-t[0]*e[2],t[0]*e[1]-t[1]*e[0]],w=t=>Math.hypot(t[0],t[1],t[2]),z=(t,e)=>w(y(t,e)),T=t=>{let e=w(t);return e>1e-9?g(t,1/e):[0,0,0]},U=(t,e,o)=>[t[0]+(e[0]-t[0])*o,t[1]+(e[1]-t[1])*o,t[2]+(e[2]-t[2])*o],S=(t,e,o)=>Math.min(o,Math.max(e,t)),pt=(t,e)=>{let o=(e-t)%(2*Math.PI);return o>Math.PI?o-2*Math.PI:o<=-Math.PI?o+2*Math.PI:o},j=[0,0,0,1],Vt=(t,e)=>[t[3]*e[0]+t[0]*e[3]+t[1]*e[2]-t[2]*e[1],t[3]*e[1]-t[0]*e[2]+t[1]*e[3]+t[2]*e[0],t[3]*e[2]+t[0]*e[1]-t[1]*e[0]+t[2]*e[3],t[3]*e[3]-t[0]*e[0]-t[1]*e[1]-t[2]*e[2]],Gt=t=>{let e=Math.hypot(t[0],t[1],t[2],t[3]);return e>1e-9?[t[0]/e,t[1]/e,t[2]/e,t[3]/e]:j},ht=(t,e,o)=>{let n=[e[0],e[1],e[2],0],r=Vt(n,t),s=o/2;return Gt([t[0]+r[0]*s,t[1]+r[1]*s,t[2]+r[2]*s,t[3]+r[3]*s])},dt=([t,e,o,n])=>[[1-2*(e*e+o*o),2*(t*e+o*n),2*(t*o-e*n)],[2*(t*e-o*n),1-2*(t*t+o*o),2*(e*o+t*n)],[2*(t*o+e*n),2*(e*o-t*n),1-2*(t*t+e*e)]],K=[[1,0,0],[0,1,0],[0,0,1]],q=t=>{let e=Math.cos(t),o=Math.sin(t);return[[e,0,-o],[0,1,0],[o,0,e]]},V=t=>[-Math.sin(t),0,-Math.cos(t)],ft=t=>[Math.cos(t),0,-Math.sin(t)];var D=(t,e)=>{let o=new Array(16);for(let n=0;n<4;n++)for(let r=0;r<4;r++)o[n*4+r]=t[r]*e[n*4]+t[4+r]*e[n*4+1]+t[8+r]*e[n*4+2]+t[12+r]*e[n*4+3];return o},Q=([t,e,o])=>[1,0,0,0,0,1,0,0,0,0,1,0,t,e,o,1],F=(t,e)=>[e[0][0],e[0][1],e[0][2],0,e[1][0],e[1][1],e[1][2],0,e[2][0],e[2][1],e[2][2],0,t[0],t[1],t[2],1],vt=(t,e)=>{let[o,n,r]=T(t),s=Math.cos(e),i=Math.sin(e),a=1-s;return[a*o*o+s,a*o*n+i*r,a*o*r-i*n,0,a*o*n-i*r,a*n*n+s,a*n*r+i*o,0,a*o*r+i*n,a*n*r-i*o,a*r*r+s,0,0,0,0,1]},gt=(t,e,o,n)=>{let r=1/Math.tan(t/2),s=1/(o-n);return[r/e,0,0,0,0,r,0,0,0,0,(n+o)*s,-1,0,0,2*n*o*s,0]},Et=(t,e,o=N)=>{let n=T(y(t,e)),r=T(x(o,n)),s=x(n,r);return[r[0],s[0],n[0],0,r[1],s[1],n[1],0,r[2],s[2],n[2],0,-R(r,t),-R(s,t),-R(n,t),1]};var b=.5,Xt=.38,Wt=1.2,$t=.9,yt=.22,zt=4,wt=45,jt=4,Kt=2/7,xt=1.4,Z=(t,e)=>{let o=t.motion;if(!o)return{center:t.center,velocity:[0,0,0]};let n=2*Math.PI/o.period,r=n*e+(o.phase||0),s=S(xt*Math.sin(r),-1,1),i=s*(3-s*s)/2,a=Math.abs(s)<1?1.5*(1-s*s)*xt*Math.cos(r)*n:0;return{center:A(t.center,o.amplitude,i),velocity:g(o.amplitude,a)}},qt=(t,e,o,n,r)=>{let s=y(t,o),i=[R(s,r[0]),R(s,r[1]),R(s,r[2])],a=[S(i[0],-n[0],n[0]),S(i[1],-n[1],n[1]),S(i[2],-n[2],n[2])],c=y(i,a),u=w(c);if(u>=e)return null;let l,m;if(u>1e-6)l=g(c,1/u),m=e-u;else{let d=0,p=1/0;for(let f=0;f<3;f++){let v=n[f]-Math.abs(i[f]);v<p&&(p=v,d=f)}l=[0,0,0],l[d]=i[d]>=0?1:-1,m=e+p}return{normal:E(E(g(r[0],l[0]),g(r[1],l[1])),g(r[2],l[2])),depth:m}},Qt=(t,e,o)=>{let n=null;for(let r of o){let s=qt(t,e,r.center,r.collider.half,r.collider.axes);s&&(!n||s.depth>n.depth)&&(n={...s,velocity:r.velocity})}return n},At=(t,e,o,n,r,s=b)=>{let i=A(t.velocity,n,r),a=w(i);a>wt&&(i=g(i,wt/a));let c=A(t.position,i,r),u=t.angularVelocity,l=!1,m=0,h=[0,0,0],d=e.map(p=>({collider:p,...Z(p,o)}));for(let p=0;p<jt;p++){let f=Qt(c,s,d);if(!f)break;let v=f.normal;c=A(c,v,f.depth);let I=y(i,f.velocity),H=R(I,v);if(H<0){let at=-(1+(-H>Wt?Xt:0))*H;i=A(i,v,at),m=Math.max(m,-H);let ct=g(v,-s),lt=E(y(i,f.velocity),x(u,ct)),ut=A(lt,v,-R(lt,v)),$=w(ut);if($>1e-6){let Ot=$*Kt,Ht=$t*at,mt=g(ut,-Math.min(Ot,Ht)/$);i=E(i,mt),u=E(u,g(x(ct,mt),1/(.4*s*s)))}}v[1]>.5&&(l=!0,h=f.velocity)}if(l){let p=w(h)>1e-6,f=Math.exp(-(p?zt:yt)*r);i=E(h,g(y(i,h),f)),u=g(u,Math.exp(-yt*r))}return{ball:{position:c,velocity:i,angularVelocity:u,orientation:ht(t.orientation,u,r)},grounded:l,impact:m}};var G=.6,M=(t,e,o,n={})=>({kind:"floor",center:[t[0],t[1]-G/2,t[2]],half:[e,G/2,o],axes:K,...n}),k=(t,e,o,n={})=>{let r=T(y(e,t)),s=T(x(N,r)),i=x(r,s);return{kind:"floor",center:A(U(t,e,.5),i,-G/2),half:[o/2,G/2,w(y(e,t))/2],axes:[s,i,r],...n}},Mt=(t,e,o,n=.8)=>({kind:"wall",center:[t[0],t[1]+n/2,t[2]],half:[e,n/2,o],axes:K}),Lt=(t,e,o,n,r,s=0)=>M(t,e,o,{kind:"mover",motion:{amplitude:n,period:r,phase:s}}),J={morning:{top:[.42,.67,.93],bottom:[.99,.9,.78]},noon:{top:[.2,.55,.85],bottom:[.78,.93,.96]},dusk:{top:[.36,.27,.6],bottom:[.99,.72,.56]}},L=[{name:"First Page",hint:"Drag anywhere to tilt the page",time:60,sky:J.morning,start:[0,0,1.5],startYaw:0,goal:{position:[17,0,-24],yaw:Math.PI/2},platforms:[M([0,0,-12],4,16),M([12,0,-24],8,4),Mt([0,0,-27.7],4,.3),Mt([-3.7,0,-23.7],.3,3.7)],gems:[[0,0,-4],[0,0,-9],[0,0,-14],[2.4,0,-11.5],[-2.4,0,-19],[5,0,-24],[9,0,-24],[13,0,-24]]},{name:"Fold",hint:"Ease off before the narrow parts",time:60,sky:J.noon,start:[0,0,.5],startYaw:0,goal:{position:[1.5,-.5,-30],yaw:Math.PI/2},platforms:[M([0,0,0],3,3),k([0,0,-3],[0,-2,-11],4),M([0,-2,-14],3,3),k([3,-2,-14],[13,-2,-14],2.2),M([16,-2,-14],3,3),k([16,-2,-17],[16,-2,-27],1.8),M([16,-2,-30],3,3),k([13,-2,-30],[5,-.5,-30],3),M([2,-.5,-30],3,3)],gems:[[0,-.75,-6],[0,-1.5,-9],[5.5,-2,-14],[8,-2,-14],[10.5,-2,-14],[16,-2,-19.5],[16,-2,-22],[16,-2,-24.5],[10.5,-1.53,-30],[7.5,-.97,-30]]},{name:"Loose Leaf",hint:"Wait for the page to come to you",time:75,sky:J.dusk,start:[0,0,.5],startYaw:0,goal:{position:[-12,3,-37],yaw:0},platforms:[M([0,0,0],3,3),k([0,0,-3],[0,0,-9],3),Lt([0,0,-16],2,2,[0,0,5],7,Math.PI/2),M([0,0,-26],3,3),k([-3,0,-26],[-9,0,-26],2.2),M([-12,0,-26],3,3),Lt([-12,1.5,-31],2,2,[0,1.5,0],6,-Math.PI/2),M([-12,3,-36],3,3)],gems:[[0,0,-5],[0,0,-7.5],[0,0,-13],[0,0,-16],[0,0,-19],[-5,0,-26],[-7.5,0,-26],[-12,0,-24.5],[-12,3,-31],[-12,3,-34.5]]}],bt=t=>Math.min(...t.platforms.map(e=>e.center[1]-Math.abs(e.motion?.amplitude[1]||0)))-9;var tt=24,ot=.4,Zt=1.4,Jt=1.8,to=1.6,et=.85,P=1.25,Tt=2,oo=9,eo=b+.55,no=1.2,ro=2.2,so=10,io=t=>({position:[t.start[0],t.start[1]+b+no,t.start[2]],velocity:[0,0,0],angularVelocity:[0,0,0],orientation:j}),nt=(t,e=0,o=L)=>{let n=o[t],r=io(n);return{levelIndex:t,phase:"ready",phaseTime:0,clock:0,timeLeft:n.time,ball:r,grounded:!1,tilt:[0,0,0],camera:{yaw:n.startYaw,focus:[n.start[0],n.start[1]+b,n.start[2]]},collected:n.gems.map(()=>!1),gems:0,banked:e,attempts:1,events:[]}},rt=(t=L)=>nt(0,0,t),st=(t,e=L)=>t.levelIndex>=e.length-1,It=(t,e=L)=>t.phase!=="cleared"?t:st(t,e)?rt(e):nt(t.levelIndex+1,t.banked+t.gems,e),ao=(t,e=L)=>({...nt(t.levelIndex,t.banked,e),attempts:t.attempts+1}),co=t=>{let e=Math.min(1,w(t));if(e<1e-6)return[0,-tt,0];let o=e*ot,n=Math.sin(o)*tt/e;return[t[0]*n,-Math.cos(o)*tt,t[2]*n]},lo=(t,e)=>{let o=t?.x||0,n=t?.y||0,r=Math.hypot(o,n),s=r>1?1/r:1;return E(g(ft(e),o*s),g(V(e),n*s))},uo=t=>E(t.goal.position,[0,b,0]),mo=t=>E(t,[0,et,0]),po=(t,e,o,n)=>{if(o==="fallout")return t;let[r,,s]=e.velocity,i=Math.hypot(r,s),a=t.yaw;if(o==="playing"&&i>1){let c=Math.atan2(-r,-s),u=S((i-1)/6,0,1);a+=pt(a,c)*Math.min(1,ro*u*n)}return{yaw:a,focus:U(t.focus,e.position,Math.min(1,so*n))}},X=(t,e,o,n)=>{let r=U(t.tilt,o,Math.min(1,oo*n)),s=co(r),i=n/Tt,a=t.ball,c=t.clock,u=!1,l=0;for(let h=0;h<Tt;h++){c+=i;let d=At(a,e.platforms,c,s,i);a=d.ball,u=u||d.grounded,l=Math.max(l,d.impact)}let m=l>2.5?[{type:"bounce",strength:S(l/14,0,1)}]:[];return{...t,ball:a,clock:c,tilt:r,grounded:u,camera:po(t.camera,a,t.phase,n),events:m}},Y=(t,e,o)=>({...t,phase:e,phaseTime:0,events:o?[...t.events,o]:t.events}),ho=(t,e)=>{let o=t.collected,n=t.events;return e.gems.forEach((r,s)=>{!o[s]&&z(t.ball.position,mo(r))<eo&&(o===t.collected&&(o=[...o]),o[s]=!0,n=[...n,{type:"gem",index:s}])}),o===t.collected?t:{...t,collected:o,gems:o.filter(Boolean).length,events:n}},Rt=(t,e,o,n=L)=>{let r=n[t.levelIndex],s=t.phaseTime+o,i={...t,phaseTime:s};switch(t.phase){case"ready":{let a=X(i,r,[0,0,0],o);return s>=Zt?Y(a,"playing",{type:"go"}):a}case"playing":{let a=X(i,r,lo(e,t.camera.yaw),o),c=ho({...a,timeLeft:Math.max(0,t.timeLeft-o)},r);return z(c.ball.position,uo(r))<P?Y(c,"goal",{type:"goal"}):c.ball.position[1]<bt(r)?Y(c,"fallout",{type:"fallout"}):c.timeLeft<=0?Y(c,"timeup",{type:"timeup"}):c}case"goal":{let a=X(i,r,[0,0,0],o),c={...a,ball:{...a.ball,velocity:g(a.ball.velocity,Math.exp(-3*o))}};return s>=Jt?Y(c,"cleared"):c}case"fallout":case"timeup":{let a=X(i,r,[0,0,0],o);return s>=to?ao(t,n):a}default:return{...t,events:[]}}},St=(t,e=L)=>e[t.levelIndex].time-t.timeLeft;var W=(t,e,o,n)=>({positions:new Float32Array(t),normals:new Float32Array(e),smooth:new Float32Array(o),indices:new Uint16Array(n)}),fo=()=>{let t=[],e=[],o=[],n=[];for(let r=0;r<3;r++)for(let s of[-1,1]){let i=(r+1)%3,a=(r+2)%3,c=t.length/3;for(let[u,l]of[[-1,-1],[1,-1],[1,1],[-1,1]]){let m=[0,0,0];m[r]=s,m[i]=u,m[a]=l;let h=[0,0,0];h[r]=s,t.push(...m),e.push(...h),o.push(...T(m))}s>0?n.push(c,c+1,c+2,c,c+2,c+3):n.push(c,c+2,c+1,c,c+3,c+2)}return W(t,e,o,n)},vo=(t=28,e=18)=>{let o=[],n=[];for(let r=0;r<=e;r++){let s=r/e*Math.PI;for(let i=0;i<=t;i++){let a=i/t*2*Math.PI;o.push(Math.sin(s)*Math.cos(a),Math.cos(s),Math.sin(s)*Math.sin(a))}}for(let r=0;r<e;r++)for(let s=0;s<t;s++){let i=r*(t+1)+s,a=i+t+1;n.push(i,i+1,a,a,i+1,a+1)}return W(o,o,o,n)},go=(t=.09,e=36,o=10)=>{let n=[],r=[],s=[];for(let i=0;i<=e;i++){let a=i/e*2*Math.PI;for(let c=0;c<=o;c++){let u=c/o*2*Math.PI,l=[Math.cos(u)*Math.cos(a),Math.cos(u)*Math.sin(a),Math.sin(u)];n.push(Math.cos(a)+t*l[0],Math.sin(a)+t*l[1],t*l[2]),r.push(...l)}}for(let i=0;i<e;i++)for(let a=0;a<o;a++){let c=i*(o+1)+a,u=c+o+1;s.push(c,u,c+1,u,u+1,c+1)}return W(n,r,r,s)},Eo=()=>{let t=[0,1,0],e=[0,-1,0],o=[[.62,0,0],[0,0,-.62],[-.62,0,0],[0,0,.62]],n=[],r=[],s=[],i=[],a=(c,u,l)=>{let m=T(x(y(u,c),y(l,c))),h=n.length/3;for(let d of[c,u,l])n.push(...d),r.push(...m),s.push(...T(d));i.push(h,h+1,h+2)};for(let c=0;c<4;c++){let u=o[c],l=o[(c+1)%4];a(t,u,l),a(e,l,u)}return W(n,r,s,i)},Pt=()=>({box:fo(),sphere:vo(),torus:go(),gem:Eo()});var B={plain:0,paper:1,ball:2},_={paper:{color:[.98,.96,.9],color2:[.6,.73,.9],color3:[.84,.77,.65]},mover:{color:[1,.92,.68],color2:[.93,.62,.4],color3:[.85,.68,.38]},wall:[.18,.6,.62],ball:{color:[.93,.3,.24],color2:[1,.97,.9],color3:[.7,.16,.22]},gem:[1,.78,.18],goal:[.2,.74,.47],goalDone:[1,.78,.18]},yo=[.42,.84,.34],wo=.55,O=.0036,xo=(t,e)=>{let o=e<1,n=(o?62:50)*Math.PI/180,r=o?8.2:7.4,s=o?6.2:4.8,i=o?3.2:2.2,{yaw:a,focus:c}=t.camera,u=V(a),l=E(A(c,u,-r),[0,s,0]),m=t.phase==="fallout"?t.ball.position:A(c,u,i);return{eye:l,target:m,fov:n}},Ao=(t,e)=>{let o=Math.min(1,w(t));if(o<1e-4)return null;let n=vt(x(N,t),o*ot*wo);return D(Q(e),D(n,Q(g(e,-1))))},Mo=(t,e)=>{let{center:o}=Z(t,e),n=F(o,t.axes);if(t.kind==="wall")return{mesh:"box",model:n,scale:t.half,pattern:B.plain,color:_.wall,outline:O};let r=t.kind==="mover"?_.mover:_.paper;return{mesh:"box",model:n,scale:t.half,pattern:B.paper,...r,outline:O}},Lo=(t,e,o)=>{let n=Math.sin(o*2.4+e)*.12;return{mesh:"gem",model:F(E(t,[0,et+n,0]),q(o*2+e)),scale:[.4,.4,.4],pattern:B.plain,color:_.gem,outline:O}},bo=(t,e)=>{let o=q(t.yaw),n=e?_.goalDone:_.goal;return[{mesh:"torus",model:F(E(t.position,[0,P+.1,0]),o),scale:[P,P,P],pattern:B.plain,color:n,outline:O},{mesh:"box",model:F(E(t.position,[0,.02,0]),o),scale:[P+.2,.02,.35],pattern:B.plain,color:n,outline:0}]},_t=(t,e,o=L)=>{let n=o[t.levelIndex],r=xo(t,e),s=gt(r.fov,e,.3,220),i=Et(r.eye,r.target),a=Ao(t.tilt,t.camera.focus),c=D(s,a?D(i,a):i),u=t.phase==="goal"||t.phase==="cleared",l=[...n.platforms.map(m=>Mo(m,t.clock)),...bo(n.goal,u),...n.gems.flatMap((m,h)=>t.collected[h]?[]:[Lo(m,h,t.clock)]),{mesh:"sphere",model:F(t.ball.position,dt(t.ball.orientation)),scale:[b,b,b],pattern:B.ball,..._.ball,outline:O}];return{viewProjection:c,eye:r.eye,light:yo,sky:n.sky,ball:{position:t.ball.position,radius:b},items:l}};var C=(t,{from:e,to:o=e,at:n=0,length:r=.12,volume:s=.12,shape:i="sine"})=>{let a=t.currentTime+n,c=t.createOscillator(),u=t.createGain();c.type=i,c.frequency.setValueAtTime(e,a),c.frequency.exponentialRampToValueAtTime(o,a+r),u.gain.setValueAtTime(s,a),u.gain.exponentialRampToValueAtTime(1e-4,a+r),c.connect(u).connect(t.destination),c.start(a),c.stop(a+r+.02)},Ct={go:t=>C(t,{from:660,to:990,length:.18,shape:"triangle"}),gem:t=>{C(t,{from:1175,length:.07,shape:"triangle"}),C(t,{from:1568,at:.06,length:.12,shape:"triangle"})},goal:t=>[523,659,784,1047].forEach((e,o)=>C(t,{from:e,at:o*.09,length:.22,shape:"triangle"})),fallout:t=>C(t,{from:520,to:70,length:.7,shape:"sawtooth",volume:.07}),timeup:t=>[330,262].forEach((e,o)=>C(t,{from:e,at:o*.22,length:.3,shape:"square",volume:.06})),bounce:(t,e)=>C(t,{from:150,to:55,length:.09,volume:.05+.15*e.strength})},Ft=()=>{let t=null,e=!1;return{unlock(){let o=window.AudioContext||window.webkitAudioContext;!t&&o&&(t=new o),t?.state==="suspended"&&t.resume()},play(o){!e&&t&&Ct[o.type]&&Ct[o.type](t,o)},toggle(){return e=!e,e},destroy(){t?.close(),t=null}}};var kt=(t,e)=>{let o=e.firstElementChild,n=new Set,r=null,s={x:0,y:0},i=()=>{e.style.transform=`translate(${r.originX}px, ${r.originY}px)`,o.style.transform=`translate(${s.x*64}px, ${-s.y*64}px)`,e.dataset.active="true"},a=p=>{r||p.target.closest("button, a")||(r={id:p.pointerId,originX:p.clientX,originY:p.clientY},s={x:0,y:0},t.setPointerCapture?.(p.pointerId),i(),p.preventDefault())},c=p=>{if(!r||p.pointerId!==r.id)return;let f=p.clientX-r.originX,v=p.clientY-r.originY,I=Math.hypot(f,v);I>64&&(r.originX+=f/I*(I-64),r.originY+=v/I*(I-64),f=f/I*64,v=v/I*64),s={x:f/64,y:-v/64},i(),p.preventDefault()},u=p=>{!r||p.pointerId!==r.id||(r=null,s={x:0,y:0},delete e.dataset.active)},l={ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0],ArrowUp:[0,1],w:[0,1],ArrowDown:[0,-1],s:[0,-1]},m=p=>{l[p.key]&&(n.add(p.key),p.preventDefault())},h=p=>n.delete(p.key),d=()=>n.clear();return t.addEventListener("pointerdown",a),t.addEventListener("pointermove",c),t.addEventListener("pointerup",u),t.addEventListener("pointercancel",u),window.addEventListener("keydown",m),window.addEventListener("keyup",h),window.addEventListener("blur",d),{read(){if(r)return s;let p=0,f=0;return n.forEach(v=>{p+=l[v][0],f+=l[v][1]}),{x:Math.sign(p),y:Math.sign(f)}},destroy(){t.removeEventListener("pointerdown",a),t.removeEventListener("pointermove",c),t.removeEventListener("pointerup",u),t.removeEventListener("pointercancel",u),window.removeEventListener("keydown",m),window.removeEventListener("keyup",h),window.removeEventListener("blur",d)}}};var To=`
+attribute vec3 aPosition;
+attribute vec3 aNormal;
+attribute vec3 aSmooth;
+
+uniform mat4 uViewProjection;
+uniform mat4 uModel;
+uniform vec3 uScale;
+// shared with the fragment shader, so the two must agree on its precision
+uniform mediump float uOutline;
+
+varying vec3 vWorld;
+varying vec3 vNormal;
+varying vec3 vLocal;
+
+void main() {
+  mat3 rotation = mat3(uModel);
+  vec4 world = uModel * vec4(aPosition * uScale, 1.0);
+
+  if (uOutline > 0.0) {
+    float depth = (uViewProjection * world).w;
+    world.xyz += normalize(rotation * aSmooth) * uOutline * depth;
+  }
+
+  vWorld = world.xyz;
+  vNormal = rotation * (aNormal / uScale);
+  vLocal = aPosition;
+  gl_Position = uViewProjection * world;
+}
+`,Io=`
+precision mediump float;
+
+uniform vec3 uColor;
+uniform vec3 uColor2;
+uniform vec3 uColor3;
+uniform float uPattern;
+uniform float uOutline;
+uniform vec3 uLight;
+uniform vec3 uEye;
+uniform vec4 uBall;
+
+varying vec3 vWorld;
+varying vec3 vNormal;
+varying vec3 vLocal;
+
+const vec3 INK = vec3(0.11, 0.09, 0.13);
+
+float gridLine(float coordinate, float spacing, float width) {
+  float d = abs(fract(coordinate / spacing + 0.5) - 0.5) * spacing;
+  return 1.0 - smoothstep(width, width * 2.2, d);
+}
+
+void main() {
+  if (uOutline > 0.0) {
+    gl_FragColor = vec4(INK, 1.0);
+    return;
+  }
+
+  vec3 n = normalize(vNormal);
+  vec3 base = uColor;
+  float gloss = 0.0;
+
+  if (uPattern > 1.5) {
+    // the ball: two halves and a pale belt, so its spin can be read
+    base = vLocal.y > 0.0 ? uColor : uColor3;
+    base = mix(base, uColor2, step(abs(vLocal.y), 0.2));
+    gloss = 1.0;
+  } else if (uPattern > 0.5) {
+    // a sheet of squared paper on top, cut edges round the sides
+    if (n.y > 0.5) {
+      float fade = 1.0 - smoothstep(18.0, 60.0, distance(vWorld, uEye));
+      float fine = max(gridLine(vWorld.x, 1.0, 0.018), gridLine(vWorld.z, 1.0, 0.018));
+      float bold = max(gridLine(vWorld.x, 4.0, 0.035), gridLine(vWorld.z, 4.0, 0.035));
+      base = mix(base, uColor2, max(fine * 0.45, bold) * fade);
+    } else {
+      base = uColor3;
+    }
+  }
+
+  // three flat steps of light
+  float lit = dot(n, uLight);
+  float shade = lit > 0.45 ? 1.0 : (lit > -0.05 ? 0.8 : 0.58);
+
+  // the ball's shadow, straight down onto whatever is below it
+  vec3 below = vWorld - uBall.xyz;
+  if (uPattern < 1.5 && n.y > 0.3 && below.y < -0.2 && below.y > -14.0) {
+    float radius = uBall.w * (1.0 + below.y * 0.035);
+    if (length(below.xz) < radius) shade = min(shade, 0.58);
+  }
+
+  vec3 color = base * shade;
+
+  if (gloss > 0.0) {
+    vec3 toEye = normalize(uEye - vWorld);
+    float highlight = dot(n, normalize(uLight + toEye));
+    color = mix(color, vec3(1.0), step(0.965, highlight) * 0.85);
+  }
+
+  gl_FragColor = vec4(color, 1.0);
+}
+`,Ro=`
+attribute vec2 aCorner;
+varying vec2 vUv;
+void main() {
+  vUv = aCorner * 0.5 + 0.5;
+  gl_Position = vec4(aCorner, 0.0, 1.0);
+}
+`,So=`
+precision mediump float;
+uniform vec3 uTop;
+uniform vec3 uBottom;
+varying vec2 vUv;
+void main() {
+  float bands = 7.0;
+  float t = floor(vUv.y * bands) / (bands - 1.0);
+  gl_FragColor = vec4(mix(uBottom, uTop, clamp(t, 0.0, 1.0)), 1.0);
+}
+`,Bt=(t,e,o)=>{let n=t.createShader(e);if(t.shaderSource(n,o),t.compileShader(n),!t.getShaderParameter(n,t.COMPILE_STATUS))throw new Error(`shader: ${t.getShaderInfoLog(n)}`);return n},Nt=(t,e,o,n,r)=>{let s=t.createProgram();if(t.attachShader(s,Bt(t,t.VERTEX_SHADER,e)),t.attachShader(s,Bt(t,t.FRAGMENT_SHADER,o)),n.forEach((a,c)=>t.bindAttribLocation(s,c,a)),t.linkProgram(s),!t.getProgramParameter(s,t.LINK_STATUS))throw new Error(`program: ${t.getProgramInfoLog(s)}`);let i={};return r.forEach(a=>i[a]=t.getUniformLocation(s,a)),{program:s,uniforms:i}},Po=(t,e)=>{let o=(n,r)=>{let s=t.createBuffer();return t.bindBuffer(n,s),t.bufferData(n,r,t.STATIC_DRAW),s};return{positions:o(t.ARRAY_BUFFER,e.positions),normals:o(t.ARRAY_BUFFER,e.normals),smooth:o(t.ARRAY_BUFFER,e.smooth),indices:o(t.ELEMENT_ARRAY_BUFFER,e.indices),count:e.indices.length}},Ut=(t,e)=>{try{return _o(t,e)}catch(o){return console.error(o),null}},_o=(t,e)=>{let o=t.getContext("webgl",{antialias:!0,alpha:!1,powerPreference:"high-performance"});if(!o)return null;let n=Nt(o,To,Io,["aPosition","aNormal","aSmooth"],["uViewProjection","uModel","uScale","uOutline","uColor","uColor2","uColor3","uPattern","uLight","uEye","uBall"]),r=Nt(o,Ro,So,["aCorner"],["uTop","uBottom"]),s={};for(let[l,m]of Object.entries(e))s[l]=Po(o,m);let i=o.createBuffer();o.bindBuffer(o.ARRAY_BUFFER,i),o.bufferData(o.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),o.STATIC_DRAW);let a=l=>{let m=(h,d)=>{o.bindBuffer(o.ARRAY_BUFFER,d),o.enableVertexAttribArray(h),o.vertexAttribPointer(h,3,o.FLOAT,!1,0,0)};m(0,l.positions),m(1,l.normals),m(2,l.smooth),o.bindBuffer(o.ELEMENT_ARRAY_BUFFER,l.indices)},c=l=>{o.useProgram(r.program),o.disable(o.DEPTH_TEST),o.disable(o.CULL_FACE),o.disableVertexAttribArray(1),o.disableVertexAttribArray(2),o.bindBuffer(o.ARRAY_BUFFER,i),o.enableVertexAttribArray(0),o.vertexAttribPointer(0,2,o.FLOAT,!1,0,0),o.uniform3fv(r.uniforms.uTop,l.top),o.uniform3fv(r.uniforms.uBottom,l.bottom),o.drawArrays(o.TRIANGLES,0,3)},u=(l,m)=>{let h=n.uniforms;o.cullFace(m?o.FRONT:o.BACK);for(let d of l){if(m&&!d.outline)continue;let p=s[d.mesh];a(p),o.uniformMatrix4fv(h.uModel,!1,d.model),o.uniform3fv(h.uScale,d.scale),o.uniform1f(h.uOutline,m?d.outline:0),m||(o.uniform3fv(h.uColor,d.color),o.uniform3fv(h.uColor2,d.color2||d.color),o.uniform3fv(h.uColor3,d.color3||d.color),o.uniform1f(h.uPattern,d.pattern)),o.drawElements(o.TRIANGLES,p.count,o.UNSIGNED_SHORT,0)}};return{resize(l,m){(t.width!==l||t.height!==m)&&(t.width=l,t.height=m),o.viewport(0,0,l,m)},draw(l){o.clear(o.DEPTH_BUFFER_BIT),c(l.sky),o.useProgram(n.program),o.enable(o.DEPTH_TEST),o.enable(o.CULL_FACE);let m=n.uniforms;o.uniformMatrix4fv(m.uViewProjection,!1,l.viewProjection),o.uniform3fv(m.uLight,l.light),o.uniform3fv(m.uEye,l.eye),o.uniform4f(m.uBall,...l.ball.position,l.ball.radius),u(l.items,!1),u(l.items,!0)}}};var it=1/60,Co=2,Fo={ready:"Ready",fallout:"Off the page",timeup:"Out of time",goal:"Cleared!"},Dt={gem:8,goal:[20,40,60],fallout:80,timeup:80},ko={mounted(){let t=e=>this.el.querySelector(`[data-ll="${e}"]`);if(this.parts={canvas:t("canvas"),level:t("level"),time:t("time"),gems:t("gems"),banner:t("banner"),cardTitle:t("card-title"),cardBody:t("card-body"),action:t("action"),mute:t("mute")},this.renderer=Ut(this.parts.canvas,Pt()),!this.renderer){this.el.dataset.phase="unsupported";return}this.state=rt(),this.started=!1,this.shown={},this.audio=Ft(),this.input=kt(this.el,t("stick")),this.onAction=()=>{this.audio.unlock(),this.started?this.state=It(this.state):this.started=!0,this.last=null},this.onMute=()=>{let e=this.audio.toggle();this.parts.mute.setAttribute("aria-pressed",String(e))},this.onResize=()=>this.fit(),this.onVisibility=()=>this.last=null,this.parts.action.addEventListener("click",this.onAction),this.parts.mute.addEventListener("click",this.onMute),window.addEventListener("resize",this.onResize),document.addEventListener("visibilitychange",this.onVisibility),this.fit(),this.frame=requestAnimationFrame(e=>this.tick(e))},fit(){let t=Math.min(window.devicePixelRatio||1,Co),{clientWidth:e,clientHeight:o}=this.parts.canvas;this.renderer.resize(Math.round(e*t),Math.round(o*t)),this.aspect=e/Math.max(1,o)},tick(t){this.frame=requestAnimationFrame(o=>this.tick(o));let e=this.last==null?0:Math.min(.1,(t-this.last)/1e3);if(this.last=t,this.started){this.owed=(this.owed||0)+e;let o=this.input.read();for(;this.owed>=it;)this.state=Rt(this.state,o,it),this.state.events.forEach(n=>this.react(n)),this.owed-=it}this.renderer.draw(_t(this.state,this.aspect)),this.updateHud()},react(t){this.audio.play(t),Dt[t.type]&&navigator.vibrate&&navigator.vibrate(Dt[t.type])},updateHud(){let t=this.state,e=L[t.levelIndex],o=this.started?t.phase:"title",n=(r,s)=>{this.shown[r]!==s&&(this.shown[r]=s,this.parts[r].textContent=s)};if(this.shown.phase!==o&&(this.shown.phase=o,this.el.dataset.phase=o),n("level",`${t.levelIndex+1} \xB7 ${e.name}`),n("time",t.timeLeft.toFixed(1)),n("gems",`${t.gems}/${e.gems.length}`),n("banner",o==="ready"&&t.attempts===1?e.hint:Fo[o]||""),o==="title")n("cardTitle","Loose Leaf"),n("cardBody","Roll the marble to the ring before the clock runs out. Drag anywhere to tilt the page."),n("action","Play");else if(o==="cleared"){let r=st(t),s=t.banked+t.gems;n("cardTitle",r?"All pages cleared":`${e.name} cleared`),n("cardBody",`${St(t).toFixed(1)}s \xB7 ${t.gems} of ${e.gems.length} gems`+(r?` \xB7 ${s} in all`:"")),n("action",r?"Play again":"Next page")}},destroyed(){cancelAnimationFrame(this.frame),this.renderer&&(this.input.destroy(),this.audio.destroy(),this.parts.action.removeEventListener("click",this.onAction),this.parts.mute.removeEventListener("click",this.onMute),window.removeEventListener("resize",this.onResize),document.removeEventListener("visibilitychange",this.onVisibility))}},Yt=Object.create(ko);Yt.el=document.getElementById("loose-leaf");Yt.mounted();})();
+</script>

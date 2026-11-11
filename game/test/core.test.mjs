@@ -1,4 +1,4 @@
-// Run with: node --test assets/test/game
+// Run with: npm test
 //
 // The core has no canvas and no clock of its own, so whole runs can be played
 // here: every stage is finished by a scripted player below, which is the
@@ -22,9 +22,9 @@ import {
   rightFromYaw,
   scale,
   sub,
-} from "../../js/game/core/math.js"
-import {BALL_RADIUS, colliderAt, sphereBoxContact, stepBall} from "../../js/game/core/physics.js"
-import {LEVELS, killHeight, mover, pad, slab} from "../../js/game/core/levels.js"
+} from "../src/core/math.js"
+import {BALL_RADIUS, colliderAt, sphereBoxContact, stepBall} from "../src/core/physics.js"
+import {LEVELS, killHeight, mover, pad, slab} from "../src/core/levels.js"
 import {
   GRAVITY,
   MAX_TILT,
@@ -34,9 +34,9 @@ import {
   newGame,
   startLevel,
   step,
-} from "../../js/game/core/game.js"
-import {buildMeshes} from "../../js/game/core/meshes.js"
-import {buildScene} from "../../js/game/core/scene.js"
+} from "../src/core/game.js"
+import {buildMeshes} from "../src/core/meshes.js"
+import {buildScene} from "../src/core/scene.js"
 
 const DT = 1 / 60
 const near = (a, b, eps = 1e-6) => Math.abs(a - b) < eps
