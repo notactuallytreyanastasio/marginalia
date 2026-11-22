@@ -40,6 +40,9 @@ defmodule Marginalia.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      # What this app reports about its own inside to the factory (obs_factor).
+      # Vendored by obs_factor/packages/factory_report/install.sh.
+      {:factory_report, path: "vendor/factory_report"},
       {:bcrypt_elixir, "~> 3.0"},
       {:phoenix, "~> 1.8.9"},
       {:swoosh, "~> 1.16"},

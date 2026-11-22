@@ -1,6 +1,11 @@
 defmodule MarginaliaWeb.ReadingLive.Story do
   @moduledoc """
-  A published stack's telling, read by anybody.
+  A published stack, read by anybody: its drafts, and the telling on top of
+  them when one has been composed.
+
+  A reading is its drafts. Each one opens as a public draft, with the notes
+  from its read in the margin and the chat beside it, so the list comes
+  first; the telling is an argument made out of them and it follows.
 
   The same story `StackLive.Story` shows its owner, addressed by slug rather
   than folder id and with nothing on it that writes. It is a separate module
@@ -14,16 +19,17 @@ defmodule MarginaliaWeb.ReadingLive.Story do
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) do
-    with %{} = folder <- Folders.get_published(slug),
-         %{} = story <- Stacks.get_story(folder.id) do
+    with %{} = folder <- Folders.get_published(slug) do
       steps = Stacks.list_steps(folder.id)
+      story = Stacks.get_story(folder.id)
 
       {:ok,
        assign(socket,
-         page_title: story.title || folder.name,
-         page_description: String.slice(story.opening || "", 0, 300),
+         page_title: (story && story.title) || folder.name,
+         page_description: String.slice((story && story.opening) || folder.name, 0, 300),
          folder: folder,
          story: story,
+         documents: Stacks.documents(folder.user_id, folder.id),
          steps: Map.new(steps, &{&1.ordinal, &1}),
          count: length(steps),
          # A published reading is a page anybody can open, and the documents
@@ -47,10 +53,10 @@ defmodule MarginaliaWeb.ReadingLive.Story do
           <.link navigate={~p"/reading"}>← Readings</.link>
         </div>
 
-        <h1>{@story.title}</h1>
+        <h1>{(@story && @story.title) || @folder.name}</h1>
 
         <p class="mg-meta">
-          {@count} documents, read forwards. {@folder.name}
+          {length(@documents)} documents<span :if={@story}>, read forwards. {@folder.name}</span>
         </p>
 
         <p :if={@mine?} class="mg-meta st-yours">
@@ -58,30 +64,47 @@ defmodule MarginaliaWeb.ReadingLive.Story do
           to read it forwards again, compose it again, or get at any of the {@count} drafts.
         </p>
 
-        <div class="lede md st-md">{Markdown.to_html(@story.opening)}</div>
+        <%!-- Each opens as a public draft: the text, the notes from its read
+              in the margin, and the chat. --%>
+        <ol class="mg-rows st-docs">
+          <li :for={d <- @documents}>
+            <.link navigate={~p"/drafts/#{d.slug}"} class="t">{d.title}</.link>
+            <p class="mg-meta">
+              {d.word_count} words
+              <span :if={d.first_impression not in [nil, ""]}>
+                · {String.slice(d.first_impression, 0, 220)}{if String.length(d.first_impression) >
+                                                                  220, do: "…"}
+              </span>
+            </p>
+          </li>
+        </ol>
 
-        <section :for={{m, i} <- Enum.with_index(@story.movements, 1)} class="st-move">
-          <h2><span class="n">{i}</span>{m["heading"]}</h2>
-          <%!-- The model writes markdown whether or not anyone asked it to, and
+        <%= if @story do %>
+          <div class="lede md st-md">{Markdown.to_html(@story.opening)}</div>
+
+          <section :for={{m, i} <- Enum.with_index(@story.movements, 1)} class="st-move">
+            <h2><span class="n">{i}</span>{m["heading"]}</h2>
+            <%!-- The model writes markdown whether or not anyone asked it to, and
                 this prose is thick with identifiers in backticks. Rendered as
                 plain text they show up as literal backticks. --%>
-          <div class="md st-md">{Markdown.to_html(m["prose"])}</div>
+            <div class="md st-md">{Markdown.to_html(m["prose"])}</div>
 
-          <aside :if={m["turn"] not in [nil, ""]} class="st-turn md st-md">
-            {Markdown.to_html(m["turn"])}
-          </aside>
+            <aside :if={m["turn"] not in [nil, ""]} class="st-turn md st-md">
+              {Markdown.to_html(m["turn"])}
+            </aside>
 
-          <nav :if={m["steps"] != []} class="st-move-steps">
-            <span class="mg-label">from</span>
-            <.link
-              :for={n <- m["steps"]}
-              navigate={~p"/reading/#{@folder.slug}/#{n}"}
-              title={cap(@steps, n)}
-            >{n}</.link>
-          </nav>
-        </section>
+            <nav :if={m["steps"] != []} class="st-move-steps">
+              <span class="mg-label">from</span>
+              <.link
+                :for={n <- m["steps"]}
+                navigate={~p"/reading/#{@folder.slug}/#{n}"}
+                title={cap(@steps, n)}
+              >{n}</.link>
+            </nav>
+          </section>
 
-        <div class="st-closing md st-md">{Markdown.to_html(@story.closing)}</div>
+          <div class="st-closing md st-md">{Markdown.to_html(@story.closing)}</div>
+        <% end %>
       </article>
     </Layouts.app>
     """

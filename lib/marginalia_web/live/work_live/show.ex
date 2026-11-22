@@ -67,6 +67,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
            open_thread: nil,
            rewrite: nil,
            rewriting: false,
+           mutter: [],
            revision_count: Works.revision_count(work.id),
            diff_rows: [],
            summarising: MapSet.new(),
@@ -468,6 +469,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
         {:noreply,
          assign(socket,
            rewriting: true,
+           mutter: Marginalia.Mutterings.some(8),
            rewrite: nil,
            preview: nil,
            steer: nil,
@@ -489,6 +491,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
          socket
          |> assign(
            rewriting: true,
+           mutter: Marginalia.Mutterings.some(8),
            rewrite: nil,
            preview: nil,
            steer: nil,
@@ -517,7 +520,14 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
       a.demo ->
         Process.send_after(self(), :demo_rewrite, 1_200)
-        {:noreply, assign(socket, rewriting: true, rewrite: nil, preview: nil)}
+
+        {:noreply,
+         assign(socket,
+           rewriting: true,
+           mutter: Marginalia.Mutterings.some(8),
+           rewrite: nil,
+           preview: nil
+         )}
 
       not Chat.allowed?(a.current_scope.user) ->
         {:noreply, assign(socket, quota: 0)}
@@ -529,7 +539,13 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
         {:noreply,
          socket
-         |> assign(rewriting: true, rewrite: nil, preview: nil, steer: steer)
+         |> assign(
+           rewriting: true,
+           mutter: Marginalia.Mutterings.some(8),
+           rewrite: nil,
+           preview: nil,
+           steer: steer
+         )
          |> start_async(:rewrite, fn ->
            Marginalia.Rewrite.propose(work, span, provider: provider, steer: steer)
          end)}
@@ -574,6 +590,10 @@ defmodule MarginaliaWeb.WorkLive.Show do
         {:error, {:already_running, kind}} ->
           {:noreply,
            put_flash(socket, :error, "A #{kind} pass is already running on this draft.")}
+
+        {:error, :starting} ->
+          {:noreply,
+           put_flash(socket, :error, "Marginalia is still starting up. Try again in a few seconds.")}
       end
     end
   end
@@ -825,7 +845,8 @@ defmodule MarginaliaWeb.WorkLive.Show do
         {:noreply,
          assign(socket,
            thread_history: a.thread_history ++ [%{"role" => "user", "content" => text}],
-           thread_loading: true
+           thread_loading: true,
+           mutter: Marginalia.Mutterings.some(8)
          )}
 
       not Chat.allowed?(a.current_scope.user) ->
@@ -848,6 +869,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
          |> assign(
            thread_history: history,
            thread_loading: true,
+           mutter: Marginalia.Mutterings.some(8),
            quota: Chat.remaining(a.current_scope.user),
            block_threads: Chat.threads_by_block(work.id)
          )
@@ -994,7 +1016,13 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
         {:noreply,
          socket
-         |> assign(history: history, draft: "", loading: true, chat_open: true)
+         |> assign(
+           history: history,
+           draft: "",
+           loading: true,
+           mutter: Marginalia.Mutterings.some(8),
+           chat_open: true
+         )
          |> push_event("chat:clear", %{})
          |> assign(
            quota: Chat.remaining(a.current_scope.user),
@@ -1522,6 +1550,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   edit_text={@edit_text}
                   thread_history={@thread_history}
                   thread_loading={@thread_loading}
+                  mutter={@mutter}
                   sections={@sections}
                   beats={@beats}
                   spine={@spine}
@@ -1537,6 +1566,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
             <.chat_panel
               history={@history}
               loading={@loading}
+              mutter={@mutter}
               status={@work.status}
               llm_ready={@llm_ready}
               provider={@provider}
@@ -1857,6 +1887,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :open_thread, :map, default: nil
   attr :thread_history, :list, default: []
   attr :thread_loading, :boolean, default: false
+  attr :mutter, :list, default: []
   attr :rewrite, :map, default: nil
   attr :rewriting, :boolean, default: false
   attr :rewrite_ref, :string, default: nil
@@ -1963,6 +1994,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
             open_thread={@open_thread}
             thread_history={@thread_history}
             thread_loading={@thread_loading}
+            mutter={@mutter}
             mine?={@mine?}
             modes={@modes}
             rewrite={@rewrite}
@@ -2362,6 +2394,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
   attr :rewrite, :map, default: nil
   attr :working, :boolean, default: false
+  attr :mutter, :list, default: []
   attr :block_ref, :string, default: nil
   attr :steer, :string, default: nil
   attr :span, :string, default: nil
@@ -2539,11 +2572,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
       <%!-- an empty box that fills in, rather than a spinner standing where
             the answer will be: the shape of the thing arrives first --%>
       <div :if={@working} class="mg-rewrite-body">
-        <div class="mg-dots" aria-label="reading it">
-          <span class="mg-dot"></span>
-          <span class="mg-dot" style="animation-delay:.18s"></span>
-          <span class="mg-dot" style="animation-delay:.36s"></span>
-        </div>
+        <.mutter lines={@mutter} label="reading it" />
       </div>
 
       <div :if={@rewrite} class="mg-rewrite-body">
@@ -2630,6 +2659,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :thread, :map, required: true
   attr :history, :list, default: []
   attr :loading, :boolean, default: false
+  attr :mutter, :list, default: []
   attr :mine?, :boolean, default: true
   attr :modes, :list, default: []
 
@@ -2678,11 +2708,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
           <% end %>
         <% end %>
 
-        <div :if={@loading} class="flex gap-1 items-center py-0.5">
-          <span class="mg-dot"></span>
-          <span class="mg-dot" style="animation-delay:.18s"></span>
-          <span class="mg-dot" style="animation-delay:.36s"></span>
-        </div>
+        <.mutter :if={@loading} lines={@mutter} class="py-0.5" />
       </div>
 
       <div :if={@mine?} class="mg-thread-foot">
@@ -2883,6 +2909,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
   attr :open_thread, :map, default: nil
   attr :thread_history, :list, default: []
   attr :thread_loading, :boolean, default: false
+  attr :mutter, :list, default: []
   attr :mine?, :boolean, default: true
   attr :modes, :list, default: []
   attr :rewrite, :map, default: nil
@@ -3227,6 +3254,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   :if={(@rewriting or @rewrite) && @rewrite_ref == b.ref}
                   rewrite={@rewrite}
                   working={@rewriting}
+                  mutter={@mutter}
                   block_ref={b.ref}
                   steer={@steer}
                   span={@rewrite_span}
@@ -3237,6 +3265,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
                   thread={@open_thread}
                   history={@thread_history}
                   loading={@thread_loading}
+                  mutter={@mutter}
                   mine?={@mine?}
                   modes={@modes}
                 />
@@ -4248,6 +4277,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
 
   attr :history, :list, required: true
   attr :loading, :boolean, required: true
+  attr :mutter, :list, default: []
   attr :status, :string, required: true
   attr :llm_ready, :boolean, required: true
   attr :mode, :string, required: true
@@ -4336,13 +4366,7 @@ defmodule MarginaliaWeb.WorkLive.Show do
             <% end %>
         <% end %>
 
-        <%= if @loading do %>
-          <div class="flex gap-1 items-center py-1" aria-label="thinking">
-            <span class="mg-dot"></span>
-            <span class="mg-dot" style="animation-delay:.18s"></span>
-            <span class="mg-dot" style="animation-delay:.36s"></span>
-          </div>
-        <% end %>
+        <.mutter :if={@loading} lines={@mutter} class="py-1" />
       </div>
 
       <%= if not @mine? do %>

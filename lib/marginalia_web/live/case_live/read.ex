@@ -46,6 +46,7 @@ defmodule MarginaliaWeb.CaseLive.Read do
            walk: [],
            chat_open: false,
            chat_thinking: false,
+           chat_mutter: [],
            chat_history: [],
            chat_cited: []
          )
@@ -124,7 +125,12 @@ defmodule MarginaliaWeb.CaseLive.Read do
 
       {:noreply,
        socket
-       |> assign(chat_history: history, chat_thinking: true, chat_cited: [])
+       |> assign(
+         chat_history: history,
+         chat_thinking: true,
+         chat_mutter: Marginalia.Mutterings.some(8),
+         chat_cited: []
+       )
        |> start_async(:chat, fn -> CaseChat.ask(reading, history, cited: cited) end)}
     end
   end
@@ -189,6 +195,7 @@ defmodule MarginaliaWeb.CaseLive.Read do
         open={@chat_open}
         history={@chat_history}
         thinking={@chat_thinking}
+        mutter={@chat_mutter}
         count={length(@chat_history)}
         cited={cited_edges(@reading, @chat_cited)}
         title="About this case"

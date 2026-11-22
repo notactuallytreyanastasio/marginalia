@@ -276,6 +276,9 @@ defmodule MarginaliaWeb.StackLive.Show do
          socket
          |> from_run(Runs.get(key(id)))
          |> put_flash(:error, "A #{other} pass is already running on this folder.")}
+
+      {:error, :starting} ->
+        {:noreply, put_flash(socket, :error, "Marginalia is still starting up. Try again in a few seconds.")}
     end
   end
 

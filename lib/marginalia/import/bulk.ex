@@ -166,6 +166,70 @@ defmodule Marginalia.Import.Bulk do
     end
   end
 
+  # --- files dropped on the page --------------------------------------------
+
+  @doc """
+  A folder name for a pile of files that were not given one.
+
+  Seven files called chapter-01 to chapter-07 belong together, and the
+  thing they have in common is the part of the name before the number.
+  That stem is the folder. When the names share nothing worth saying, the
+  folder is named for the moment, because loose was the wrong answer: a
+  pile dropped in one go is one thing, and the folder page is where the
+  passes that read it as one thing live.
+  """
+  def folder_name_for(titles, now \\ DateTime.utc_now())
+
+  def folder_name_for(titles, now) when is_list(titles) do
+    stem =
+      titles
+      |> Enum.map(&to_string/1)
+      |> common_prefix()
+      |> String.replace(~r/[\s\d._-]+$/u, "")
+      |> String.trim()
+
+    if String.length(stem) >= 3,
+      do: stem,
+      else: "Imported " <> Calendar.strftime(now, "%Y-%m-%d %H:%M")
+  end
+
+  defp common_prefix([]), do: ""
+  defp common_prefix([one]), do: one
+
+  defp common_prefix([first | rest]) do
+    Enum.reduce(rest, first, fn title, prefix ->
+      prefix
+      |> String.graphemes()
+      |> Enum.zip(String.graphemes(title))
+      |> Enum.take_while(fn {a, b} -> a == b end)
+      |> Enum.map_join(&elem(&1, 0))
+    end)
+  end
+
+  @doc """
+  Documents in the order their names say, not the order a browser handed
+  them over.
+
+  A drop of seven files arrives in whatever order the file dialog listed
+  them, which once was backwards, and numbering follows the order given,
+  so chapter-01 became "7." and the folder read the book from the end.
+  Natural order: digits compare as numbers, so 2 sorts before 10.
+  """
+  def in_name_order(docs) do
+    Enum.sort_by(docs, fn doc ->
+      doc[:title]
+      |> to_string()
+      |> String.downcase()
+      |> String.split(~r/(\d+)/, include_captures: true)
+      |> Enum.map(fn part ->
+        case Integer.parse(part) do
+          {n, ""} -> {0, n, ""}
+          _ -> {1, 0, part}
+        end
+      end)
+    end)
+  end
+
   # --- what the page says about it ------------------------------------------
 
   @doc """

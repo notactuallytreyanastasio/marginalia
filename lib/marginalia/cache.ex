@@ -22,6 +22,13 @@ defmodule Marginalia.Cache do
   that is one forgotten call away from serving last week's list forever. A
   missed invalidation costs staleness until the entry expires rather than
   until somebody restarts the release.
+
+  ## On a cluster
+
+  Each node has its own table, so an invalidation is local and is also
+  broadcast: every node's server hears it on the `"cache"` topic and drops
+  the same entry. Without that, the node that took the write would show
+  the new link and the other two would serve the old list until the TTL.
   """
   use GenServer
 
@@ -29,13 +36,31 @@ defmodule Marginalia.Cache do
 
   @table :marginalia_cache
   @ttl_ms :timer.minutes(5)
+  @topic "cache"
 
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
 
   @impl true
   def init(_opts) do
     :ets.new(@table, [:named_table, :set, :public, read_concurrency: true])
+    Phoenix.PubSub.subscribe(Marginalia.PubSub, @topic)
     {:ok, %{}}
+  end
+
+  @impl true
+  # Only another node's: this node's invalidation already happened, in the
+  # caller, and hearing it again later would throw away an entry computed
+  # since (seen as a flaky CacheTest once the broadcast existed).
+  def handle_info({:invalidate, _what, from}, state) when from == node(), do: {:noreply, state}
+
+  def handle_info({:invalidate, :all, _from}, state) do
+    :ets.delete_all_objects(@table)
+    {:noreply, state}
+  end
+
+  def handle_info({:invalidate, key, _from}, state) do
+    :ets.delete(@table, key)
+    {:noreply, state}
   end
 
   @doc """
@@ -70,13 +95,22 @@ defmodule Marginalia.Cache do
   @doc "Throw it away. Called from every path that can change the answer."
   def invalidate(key) do
     if :ets.whereis(@table) != :undefined, do: :ets.delete(@table, key)
-    :ok
+    tell_others({:invalidate, key, node()})
   end
 
   @doc "Throw all of it away."
   def invalidate_all do
     if :ets.whereis(@table) != :undefined, do: :ets.delete_all_objects(@table)
+    tell_others({:invalidate, :all, node()})
+  end
+
+  # Here it is already gone; this is for the other nodes (this node's server
+  # hears it too and ignores it: see handle_info).
+  defp tell_others(msg) do
+    Phoenix.PubSub.broadcast(Marginalia.PubSub, @topic, msg)
     :ok
+  rescue
+    ArgumentError -> :ok
   end
 
   defp lookup(key, now, ttl) do

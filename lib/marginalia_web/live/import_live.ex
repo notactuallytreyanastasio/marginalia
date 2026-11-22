@@ -296,10 +296,11 @@ defmodule MarginaliaWeb.ImportLive do
   end
 
   def handle_event("import_files", params, socket) do
-    folder = String.trim(params["folder"] || "")
     number = params["number"] == "true"
     user_id = socket.assigns.current_scope.user.id
 
+    # In the order their names say. The browser hands entries over in the
+    # order the file dialog listed them, and numbering follows that order.
     docs =
       consume_uploaded_entries(socket, :docs, fn %{path: path}, entry ->
         {:ok,
@@ -309,6 +310,15 @@ defmodule MarginaliaWeb.ImportLive do
            source_url: nil
          }}
       end)
+      |> Bulk.in_name_order()
+
+    # Never loose. A pile dropped in one go is one thing, and the folder is
+    # where the passes that read it as one thing are.
+    folder =
+      case String.trim(params["folder"] || "") do
+        "" -> Bulk.folder_name_for(Enum.map(docs, & &1.title))
+        name -> name
+      end
 
     if docs == [] do
       {:noreply, assign(socket, error: "No files yet — drop some in.")}
@@ -378,6 +388,20 @@ defmodule MarginaliaWeb.ImportLive do
   def handle_async(:find, {:exit, reason}, socket) do
     {:noreply,
      assign(socket, working: false, phase: nil, error: "The search crashed: #{inspect(reason)}")}
+  end
+
+  # A clean import ends on the folder, where the reading and the relating
+  # are. The results page stays for the case where something could not be
+  # imported or fetched, because the names and reasons are the point then.
+  def handle_async(:import, {:ok, {%{folder: %{id: id}, failed: []} = landed, []}}, socket) do
+    made = length(landed.created)
+    skipped = length(landed.skipped)
+
+    note =
+      "#{count(made, "draft", "drafts")} imported" <>
+        if(skipped > 0, do: ", #{skipped} already there and left alone.", else: ".")
+
+    {:noreply, socket |> put_flash(:info, note) |> push_navigate(to: ~p"/stacks/#{id}")}
   end
 
   def handle_async(:import, {:ok, {landed, missed}}, socket) do
@@ -711,7 +735,7 @@ defmodule MarginaliaWeb.ImportLive do
                   type="text"
                   name="folder"
                   value={@folder}
-                  placeholder="left empty, they go in loose"
+                  placeholder="left empty, named for what the files have in common"
                   autocomplete="off"
                   class="mg-input"
                 />
@@ -791,7 +815,7 @@ defmodule MarginaliaWeb.ImportLive do
                   type="text"
                   name="folder"
                   value={@folder}
-                  placeholder="left empty, they go in loose"
+                  placeholder="left empty, named for what the files have in common"
                   autocomplete="off"
                   class="mg-input"
                 />

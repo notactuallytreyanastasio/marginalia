@@ -17,6 +17,7 @@ defmodule MarginaliaWeb.LinkChat do
   attr :open, :boolean, default: false
   attr :history, :list, default: []
   attr :thinking, :boolean, default: false
+  attr :mutter, :list, default: []
   attr :count, :integer, default: 0
   attr :cited, :list, default: []
   attr :title, :string, default: "About this pair"
@@ -29,6 +30,13 @@ defmodule MarginaliaWeb.LinkChat do
         "the most work. It will not write for either of them."
 
   attr :placeholder, :string, default: "How do these two sit together?"
+
+  # A public draft's chat is the writer's own chat pointed at a reader, so it
+  # carries the writer's modes and can be opened on a note. Both are off
+  # unless passed, and the link views pass neither.
+  attr :modes, :list, default: []
+  attr :mode, :string, default: nil
+  attr :pointing, :map, default: nil
 
   # Somewhere to start. An empty chat asks you to compose a question
   # about a relationship you have not read yet, which is hard on a
@@ -60,6 +68,19 @@ defmodule MarginaliaWeb.LinkChat do
           <button class="lc-x" phx-click="toggle_chat" aria-label="Close">×</button>
         </div>
 
+        <div :if={@modes != []} class="lc-modes" role="group" aria-label="How it reads">
+          <button
+            :for={m <- @modes}
+            type="button"
+            class={["lc-mode", m.id == @mode && "on"]}
+            phx-click="set_mode"
+            phx-value-mode={m.id}
+            title={m.blurb}
+          >
+            {m.label}
+          </button>
+        </div>
+
         <div class="lc-body" id="lc-body" phx-hook=".StickDown">
           <p :if={@history == []} class="lc-hint">
             {@hint}
@@ -80,11 +101,7 @@ defmodule MarginaliaWeb.LinkChat do
             </div>
           </div>
 
-          <div :if={@thinking} class="mg-dots" aria-label="reading">
-            <span class="mg-dot"></span>
-            <span class="mg-dot" style="animation-delay:.18s"></span>
-            <span class="mg-dot" style="animation-delay:.36s"></span>
-          </div>
+          <.mutter :if={@thinking} lines={@mutter} label="reading" />
         </div>
 
         <%!-- what the reader pointed at. Both passages go to the model in
@@ -96,6 +113,15 @@ defmodule MarginaliaWeb.LinkChat do
             <span class="rel">{String.replace(e.edge_type, "_", " ")}</span>
             <span class="t">{e.from.title} ↔ {e.to.title}</span>
             <button phx-click="uncite" phx-value-edge={e.id} aria-label="Remove">×</button>
+          </div>
+        </div>
+
+        <div :if={@pointing} class="lc-cited">
+          <span class="mg-label">pointing at</span>
+          <div class={["chip", @pointing.kind]}>
+            <span class="rel">{String.replace(@pointing.kind, "_", " ")}</span>
+            <span class="t">{@pointing.title}</span>
+            <button phx-click="clear_focus" aria-label="Remove">×</button>
           </div>
         </div>
 
@@ -168,8 +194,18 @@ defmodule MarginaliaWeb.LinkChat do
               this.box.style.height = Math.min(this.box.scrollHeight, 160) + "px";
             };
 
+            // Nothing on the server clears the box — the textarea has no
+            // value binding, so LiveView leaves what was typed in it after
+            // the question has gone. Clear it once LiveView has read the
+            // form, which is after this listener: it listens further up.
+            this.onSubmit = () => setTimeout(() => {
+              this.box.value = "";
+              this.grow();
+            }, 0);
+
             this.box.addEventListener("keydown", this.onKey);
             this.box.addEventListener("input", this.grow);
+            this.el.addEventListener("submit", this.onSubmit);
             this.box.focus();
           },
 
@@ -185,6 +221,7 @@ defmodule MarginaliaWeb.LinkChat do
             if (!this.box) return;
             this.box.removeEventListener("keydown", this.onKey);
             this.box.removeEventListener("input", this.grow);
+            this.el.removeEventListener("submit", this.onSubmit);
           },
         };
       </script>

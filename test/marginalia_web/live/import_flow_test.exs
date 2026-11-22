@@ -150,7 +150,10 @@ defmodule MarginaliaWeb.ImportFlowTest do
     render_click(view, "toggle", %{"key" => "temper/blimp#6"})
     render_change(view, "settings", %{"folder" => "Picked", "commits" => "false"})
     render_submit(view, "import", %{})
-    render_async(view)
+
+    # nothing failed, so the import ends on the folder
+    {path, _flash} = assert_redirect(view)
+    assert path =~ "/stacks/"
 
     titles = user.id |> Works.list_works() |> Enum.map(& &1.title) |> Enum.sort()
     assert titles == ["Fix the parser", "Nothing to do with it", "Revert the fix"]
@@ -200,8 +203,42 @@ defmodule MarginaliaWeb.ImportFlowTest do
     run.()
     html = run.()
 
+    # #7 cannot be fetched, so the run ends on the results page both times
     assert html =~ "0 drafts imported" or html =~ "already in the folder"
     assert length(Works.list_works(user.id)) == 3
+  end
+
+  test "files dropped with no folder land together, in name order, and the import ends on the folder",
+       %{conn: conn, user: user} do
+    {:ok, view, _} = live(conn, ~p"/import")
+    render_click(view, "source", %{"to" => "files"})
+
+    body = fn t -> "# #{t}\n\n" <> String.duplicate("word ", 80) end
+
+    upload =
+      file_input(view, "#im-files", :docs, [
+        %{name: "chapter-02.md", content: body.("two"), type: "text/markdown"},
+        %{name: "chapter-01.md", content: body.("one"), type: "text/markdown"}
+      ])
+
+    render_upload(upload, "chapter-02.md")
+    render_upload(upload, "chapter-01.md")
+
+    render_submit(view, "import_files", %{"folder" => "", "number" => "true"})
+
+    {path, _flash} = assert_redirect(view)
+    folder = user.id |> Marginalia.Folders.list_folders() |> Enum.find(&(&1.name == "chapter"))
+    assert folder
+    assert path == ~p"/stacks/#{folder.id}"
+
+    titles =
+      user.id
+      |> Works.list_works()
+      |> Enum.filter(&(&1.folder_id == folder.id))
+      |> Enum.map(& &1.title)
+      |> Enum.sort()
+
+    assert titles == ["1. chapter-01", "2. chapter-02"]
   end
 
   test "a search that GitHub refuses is reported in words", %{conn: conn} do

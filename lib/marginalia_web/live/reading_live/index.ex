@@ -16,9 +16,12 @@ defmodule MarginaliaWeb.ReadingLive.Index do
     readings =
       Folders.published()
       |> Enum.map(fn f ->
-        %{folder: f, story: Stacks.get_story(f.id), steps: Stacks.list_steps(f.id)}
+        # A reading is its drafts; the telling, when one has been composed, is
+        # on top of them. A published folder with no telling is still a
+        # reading, and leaving it off this list hid the only way to it.
+        %{folder: f, story: Stacks.get_story(f.id), documents: Stacks.documents(f.user_id, f.id)}
       end)
-      |> Enum.filter(& &1.story)
+      |> Enum.filter(&(&1.documents != []))
 
     {:ok,
      assign(socket,
@@ -45,9 +48,11 @@ defmodule MarginaliaWeb.ReadingLive.Index do
 
         <ul class="mg-rows">
           <li :for={r <- @readings}>
-            <.link navigate={~p"/reading/#{r.folder.slug}"} class="t">{r.story.title}</.link>
+            <.link navigate={~p"/reading/#{r.folder.slug}"} class="t">
+              {(r.story && r.story.title) || r.folder.name}
+            </.link>
             <p class="mg-meta">
-              {length(r.steps)} documents · {length(r.story.movements)} parts · {r.folder.name}
+              {length(r.documents)} documents<span :if={r.story}> · {length(r.story.movements)} parts · {r.folder.name}</span>
             </p>
           </li>
         </ul>

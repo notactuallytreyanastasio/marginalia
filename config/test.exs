@@ -53,3 +53,6 @@ config :marginalia, :llm_endpoints, %{
 # No backing off from a port that is closed on purpose: the retries took
 # seconds each and outlived the test that started them.
 config :marginalia, :llm_backoff_ms, 0
+
+# The sandwich counter stays quiet in test: no timer, no model call.
+config :marginalia, Marginalia.Mutterings.Clock, enabled: false

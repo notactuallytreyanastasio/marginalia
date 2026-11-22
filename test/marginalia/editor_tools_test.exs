@@ -120,4 +120,31 @@ defmodule Marginalia.Chat.EditorToolsTest do
              }
     end
   end
+
+  describe "on a public draft" do
+    test "the tools that are the writer's rather than the book's are not offered" do
+      public = Enum.map(Editor.public_tools(), & &1["function"]["name"])
+
+      refute "record_correction" in public
+      refute "recall_sessions" in public
+      assert "search_manuscript" in public
+      assert "read_passage" in public
+      assert length(public) == length(Editor.tools()) - 2
+    end
+
+    test "and a call to one anyway is refused rather than run", %{work: work} do
+      fun = %{
+        "id" => "x",
+        "function" => %{
+          "name" => "record_correction",
+          "arguments" => Jason.encode!(%{"kind" => "ruling", "about" => "a stranger's ruling"})
+        }
+      }
+
+      out = Editor.run_call(work, fun, Editor.public_tools())["content"] |> Jason.decode!()
+
+      assert out["error"] =~ "not available"
+      assert Works.list_corrections(work.id) == []
+    end
+  end
 end

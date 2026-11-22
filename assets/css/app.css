@@ -773,6 +773,12 @@ body {
 }
 .mg-read-body mark.lit { background: #f7d774; }
 
+/* A selection in the prose is the start of a question, and the browser's
+   default paints it in a blue that the ink disappears into. The mark colour,
+   which the page already uses for a highlighted line, keeps the words legible. */
+.mg-read-body ::selection { background: #f7d774; color: var(--mg-ink); }
+.mg-read-body ::-moz-selection { background: #f7d774; color: var(--mg-ink); }
+
 /* the note, as a bubble with a tail pointing back at the line */
 .mg-note {
   display: block;
@@ -1435,6 +1441,15 @@ body {
 @keyframes mg-fade { from { opacity: 0; } to { opacity: 1; } }
 
 .mg-dots { display: flex; gap: 0.3rem; align-items: center; padding: 0.7rem 0; }
+/* the line in front of the dots: a model's, in character, held for the wait */
+.mg-mutter {
+  font-family: var(--mg-serif); font-style: italic; font-size: 0.84rem; line-height: 1.4;
+  color: var(--mg-dim); margin-right: 0.35rem;
+  animation: mg-mutter-in 0.32s ease-out;
+  transition: opacity 0.32s ease-in-out;
+}
+.mg-mutter.out { opacity: 0; }
+@keyframes mg-mutter-in { from { opacity: 0; } to { opacity: 1; } }
 
 .mg-rw-list { display: flex; flex-direction: column; gap: 0.3rem; }
 .mg-rw {
@@ -2666,6 +2681,26 @@ body {
   padding: 0 0.2rem;
 }
 .lc-x:hover { color: var(--mg-accent); }
+
+/* the writer's modes, offered to a reader on a public draft */
+.lc-modes {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.4rem 0.8rem;
+  border-bottom: 1px solid var(--mg-rule);
+}
+.lc-mode {
+  border: 1px solid var(--mg-rule);
+  border-radius: 3px;
+  background: var(--mg-paper);
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+  font-family: var(--mg-sans);
+  font-size: 0.68rem;
+  color: var(--mg-dim);
+}
+.lc-mode:hover { color: var(--mg-ink); }
+.lc-mode.on { background: var(--mg-ink); border-color: var(--mg-ink); color: var(--mg-paper); }
 
 .lc-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.95rem 1.05rem; scroll-behavior: smooth; }
 .lc-hint {
