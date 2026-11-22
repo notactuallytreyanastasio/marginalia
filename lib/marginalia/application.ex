@@ -14,9 +14,13 @@ defmodule Marginalia.Application do
       {Phoenix.PubSub, name: Marginalia.PubSub},
       {Task.Supervisor, name: Marginalia.TaskSupervisor},
       Marginalia.Cache,
-      # work that has to outlive the page that started it
-      Marginalia.Runs,
-      Marginalia.Mutterings.Clock,
+      # work that has to outlive the page that started it: one Runs server
+      # for the cluster (Marginalia.Singleton), a copy of its table per node
+      Marginalia.Runs.Mirror,
+      {Marginalia.Singleton, name: Marginalia.Runs, start: &Marginalia.Runs.start_link(name: &1)},
+      # one clock for the cluster, or every node asks the model for lines
+      {Marginalia.Singleton,
+       name: Marginalia.Mutterings.Clock, start: &Marginalia.Mutterings.Clock.start_link(name: &1)},
       # Start a worker by calling: Marginalia.Worker.start_link(arg)
       # {Marginalia.Worker, arg},
       # Start to serve requests, typically the last entry
@@ -26,13 +30,9 @@ defmodule Marginalia.Application do
     # See https://elixir.hexdocs.pm/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Marginalia.Supervisor]
-    started = Supervisor.start_link(children ++ factory_report(), opts)
-
-    # anything that was mid-read or mid-link when this release last stopped
-    # has no process behind it any more — see Marginalia.Recovery
-    if started != :ignore, do: Marginalia.Recovery.sweep()
-
-    started
+    # Anything left mid-read by the last release is swept by whichever node
+    # becomes the Runs server (Marginalia.Runs.init/1), before this returns.
+    Supervisor.start_link(children ++ factory_report(), opts)
   end
 
   # Tell Phoenix to update the endpoint configuration

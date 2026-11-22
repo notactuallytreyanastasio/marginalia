@@ -107,6 +107,13 @@ if config_env() == :prod do
 
   config :marginalia, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
+  # A node meant to be in a cluster joins it before competing to lead
+  # anything (Marginalia.Singleton): DNSCluster's first lookup is immediate,
+  # so 8 s alone means it really is the first node.
+  if System.get_env("DNS_CLUSTER_QUERY") not in [nil, ""] do
+    config :marginalia, Marginalia.Singleton, settle_ms: 8_000
+  end
+
   config :marginalia, MarginaliaWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [

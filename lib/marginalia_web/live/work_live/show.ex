@@ -590,6 +590,10 @@ defmodule MarginaliaWeb.WorkLive.Show do
         {:error, {:already_running, kind}} ->
           {:noreply,
            put_flash(socket, :error, "A #{kind} pass is already running on this draft.")}
+
+        {:error, :starting} ->
+          {:noreply,
+           put_flash(socket, :error, "Marginalia is still starting up. Try again in a few seconds.")}
       end
     end
   end

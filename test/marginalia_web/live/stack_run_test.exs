@@ -75,7 +75,7 @@ defmodule MarginaliaWeb.StackRunTest do
   # view's mailbox — which puts it ahead of the `render` call that comes
   # next. No sleep can promise that, and a longer one only hides it better.
   defp settled do
-    _ = :sys.get_state(Runs)
+    _ = :sys.get_state(Runs.server())
     :ok
   end
 
