@@ -11,7 +11,13 @@ defmodule Marginalia.ChatModesTest do
 
   setup do
     user = user_fixture()
-    {:ok, work} = Marginalia.Works.create_work(user.id, %{"title" => "W", "body" => String.duplicate("word ", 400)})
+
+    {:ok, work} =
+      Marginalia.Works.create_work(user.id, %{
+        "title" => "W",
+        "body" => String.duplicate("word ", 400)
+      })
+
     %{work: work}
   end
 

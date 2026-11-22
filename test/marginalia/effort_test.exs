@@ -31,8 +31,11 @@ defmodule Marginalia.EffortTest do
       window = String.slice(after_marker, 0, 600)
 
       case unquote(effort) do
-        :high -> assert window =~ "effort: :high" or preceding_effort(source, unquote(marker)) == "high"
-        :none -> assert preceding_effort(source, unquote(marker)) == "none"
+        :high ->
+          assert window =~ "effort: :high" or preceding_effort(source, unquote(marker)) == "high"
+
+        :none ->
+          assert preceding_effort(source, unquote(marker)) == "none"
       end
     end
   end

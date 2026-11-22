@@ -312,8 +312,6 @@ defmodule Marginalia.AccountsTest do
     end
   end
 
-
-
   describe "delete_user_session_token/1" do
     test "deletes the token" do
       user = user_fixture()
@@ -322,7 +320,6 @@ defmodule Marginalia.AccountsTest do
       refute Accounts.get_user_by_session_token(token)
     end
   end
-
 
   describe "inspect/2 for the User module" do
     test "does not include password" do

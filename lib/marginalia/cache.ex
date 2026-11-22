@@ -48,12 +48,17 @@ defmodule Marginalia.Cache do
   end
 
   @impl true
-  def handle_info({:invalidate, :all}, state) do
+  # Only another node's: this node's invalidation already happened, in the
+  # caller, and hearing it again later would throw away an entry computed
+  # since (seen as a flaky CacheTest once the broadcast existed).
+  def handle_info({:invalidate, _what, from}, state) when from == node(), do: {:noreply, state}
+
+  def handle_info({:invalidate, :all, _from}, state) do
     :ets.delete_all_objects(@table)
     {:noreply, state}
   end
 
-  def handle_info({:invalidate, key}, state) do
+  def handle_info({:invalidate, key, _from}, state) do
     :ets.delete(@table, key)
     {:noreply, state}
   end
@@ -90,17 +95,17 @@ defmodule Marginalia.Cache do
   @doc "Throw it away. Called from every path that can change the answer."
   def invalidate(key) do
     if :ets.whereis(@table) != :undefined, do: :ets.delete(@table, key)
-    tell_others({:invalidate, key})
+    tell_others({:invalidate, key, node()})
   end
 
   @doc "Throw all of it away."
   def invalidate_all do
     if :ets.whereis(@table) != :undefined, do: :ets.delete_all_objects(@table)
-    tell_others({:invalidate, :all})
+    tell_others({:invalidate, :all, node()})
   end
 
   # Here it is already gone; this is for the other nodes (this node's server
-  # hears it too, and deleting twice is harmless).
+  # hears it too and ignores it: see handle_info).
   defp tell_others(msg) do
     Phoenix.PubSub.broadcast(Marginalia.PubSub, @topic, msg)
     :ok

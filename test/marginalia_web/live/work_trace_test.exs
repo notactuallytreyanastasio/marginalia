@@ -92,7 +92,12 @@ defmodule MarginaliaWeb.WorkTraceTest do
 
       # leftovers from the failed run must not survive into the retry
       {:ok, _} =
-        Works.insert_node(%{work_id: work.id, node_type: "beat", title: "half-written", narrative: "n"})
+        Works.insert_node(%{
+          work_id: work.id,
+          node_type: "beat",
+          title: "half-written",
+          narrative: "n"
+        })
 
       Works.record_event(%{work_id: work.id, tool: "add_node", ok: true})
 
@@ -106,7 +111,12 @@ defmodule MarginaliaWeb.WorkTraceTest do
       {:ok, work} = Works.set_status(work, "read")
 
       {:ok, _} =
-        Works.insert_node(%{work_id: work.id, node_type: "beat", title: "a real beat", narrative: "n"})
+        Works.insert_node(%{
+          work_id: work.id,
+          node_type: "beat",
+          title: "a real beat",
+          narrative: "n"
+        })
 
       {:ok, _view, html} = live(conn, ~p"/works/#{work.slug}")
       refute html =~ "Read again"

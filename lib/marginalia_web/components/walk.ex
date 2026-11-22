@@ -358,5 +358,4 @@ defmodule MarginaliaWeb.Walk do
     </div>
     """
   end
-
 end

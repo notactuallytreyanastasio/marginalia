@@ -248,6 +248,7 @@ defmodule Marginalia.LLM do
   # earn it, and the per-section pass — which runs once per section and is
   # therefore most of the calls — does not.
   defp put_effort(body, nil), do: body
+
   defp put_effort(body, effort) when effort in [:low, :high, :none, "low", "high", "none"],
     do: Map.put(body, "reasoning_effort", to_string(effort))
 

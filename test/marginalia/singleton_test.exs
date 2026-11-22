@@ -33,7 +33,7 @@ defmodule Marginalia.SingletonTest do
     ref = Process.monitor(a)
     Process.exit(leader, :kill)
     # the leader's Singleton stops with it (the test supervisor restarts it)
-    assert_receive {:DOWN, ^ref, :process, ^a, :killed}
+    assert_receive {:DOWN, ^ref, :process, ^a, :killed}, 2_000
 
     # within the follower's random wait, someone leads again under the name
     new = wait_for(fn -> Singleton.whereis(name) end)

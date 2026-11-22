@@ -31,7 +31,12 @@ defmodule Marginalia.Application do
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Marginalia.Supervisor]
     # Anything left mid-read by the last release is swept by whichever node
-    # becomes the Runs server (Marginalia.Runs.init/1), before this returns.
+    # becomes the Runs server (Marginalia.Runs.init/1), not by every node at
+    # boot: a node restarting next to a live server would mark that server's
+    # runs failed. Marginalia.Recovery as a child of its own (origin/main,
+    # 81161a8) did exactly that on a cluster, so it is not started here. On
+    # a cluster's first boot the leader is decided after up to 8 s alone
+    # (Marginalia.Singleton), so for that long a stale row can be served.
     Supervisor.start_link(children ++ factory_report(), opts)
   end
 

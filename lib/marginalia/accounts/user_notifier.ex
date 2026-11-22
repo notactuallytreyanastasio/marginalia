@@ -16,6 +16,7 @@ defmodule Marginalia.Accounts.UserNotifier do
       {:ok, email}
     end
   end
+
   @doc """
   Deliver instructions to update a user email.
 

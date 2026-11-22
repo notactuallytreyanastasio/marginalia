@@ -154,8 +154,11 @@ defmodule Marginalia.Analysis.Weave do
 
     loose = fn type, label ->
       case Enum.filter(nodes, &(&1.node_type == type)) do
-        [] -> ""
-        list -> "\n\n## #{label}\n" <> Enum.map_join(list, "\n", &"  [#{&1.id}] #{&1.title}#{note(&1)}")
+        [] ->
+          ""
+
+        list ->
+          "\n\n## #{label}\n" <> Enum.map_join(list, "\n", &"  [#{&1.id}] #{&1.title}#{note(&1)}")
       end
     end
 

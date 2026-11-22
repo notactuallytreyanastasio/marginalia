@@ -87,7 +87,11 @@ defmodule MarginaliaWeb.StackLive.New do
 
   def handle_async(:import, {:exit, reason}, socket) do
     {:noreply,
-     assign(socket, working: false, progress: nil, error: "The import crashed: #{inspect(reason)}")}
+     assign(socket,
+       working: false,
+       progress: nil,
+       error: "The import crashed: #{inspect(reason)}"
+     )}
   end
 
   # ==========================================================================
@@ -108,7 +112,7 @@ defmodule MarginaliaWeb.StackLive.New do
           importing them in a guessed order.
         </p>
 
-        <form phx-submit="import" phx-change="form" class="mt-6 space-y-4">
+        <form id="stack-import-form" phx-submit="import" phx-change="form" class="mt-6 space-y-4">
           <label class="mg-field">
             <span class="mg-label">Repository</span>
             <input

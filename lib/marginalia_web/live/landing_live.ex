@@ -1220,8 +1220,10 @@ defmodule MarginaliaWeb.LandingLive do
             <div class="d-stage" data-step="2">
               <span class="d-what"><b>2</b> narrow</span>
               <span class="d-detail">
-                <code phx-no-curly-interpolation>state:closed -Bump</code> keeps the regex engine and drops the dependency
-                bumps. A typo is refused by name: <code phx-no-curly-interpolation>stat:closed</code> says which word it was,
+                <code phx-no-curly-interpolation>state:closed -Bump</code>
+                keeps the regex engine and drops the dependency
+                bumps. A typo is refused by name: <code phx-no-curly-interpolation>stat:closed</code>
+                says which word it was,
                 rather than silently matching everything.
               </span>
             </div>
@@ -1243,8 +1245,8 @@ defmodule MarginaliaWeb.LandingLive do
             <div class="d-stage" data-step="5">
               <span class="d-what"><b>5</b> compose</span>
               <span class="d-detail">
-                An opening, the movements, a closing — and the list of steps that found
-                <em>no</em> place in the telling, which is the part worth reading.
+                An opening, the movements, a closing — and the list of steps that found <em>no</em>
+                place in the telling, which is the part worth reading.
               </span>
             </div>
             <div class="d-stage" data-step="6">

@@ -36,10 +36,17 @@ defmodule Marginalia.Works.Attachment do
         name = get_field(changeset, :name) || ""
 
         cond do
-          k != "text" -> changeset
-          String.starts_with?(String.trim_leading(content), "diff --git") -> put_change(changeset, :kind, "diff")
-          String.ends_with?(name, ".patch") or String.ends_with?(name, ".diff") -> put_change(changeset, :kind, "diff")
-          true -> changeset
+          k != "text" ->
+            changeset
+
+          String.starts_with?(String.trim_leading(content), "diff --git") ->
+            put_change(changeset, :kind, "diff")
+
+          String.ends_with?(name, ".patch") or String.ends_with?(name, ".diff") ->
+            put_change(changeset, :kind, "diff")
+
+          true ->
+            changeset
         end
 
       _ ->

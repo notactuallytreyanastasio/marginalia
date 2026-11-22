@@ -69,6 +69,7 @@ if config_env() != :test do
   config :marginalia, :deepseek_api_key, System.get_env("DEEPSEEK_API_KEY")
   config :marginalia, :openai_api_key, System.get_env("OPENAI_API_KEY")
 end
+
 # Optional overrides; each provider has a sensible default model.
 config :marginalia, :llm_model, System.get_env("LLM_MODEL")
 config :marginalia, :llm_fast_model, System.get_env("LLM_FAST_MODEL")

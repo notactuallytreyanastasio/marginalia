@@ -59,7 +59,11 @@ defmodule MarginaliaWeb.GuestUploadTest do
       assert text_response(get(conn, ~p"/works/1/graph.json"), 404)
     end
 
-    test "the owner sees it as theirs, with a link to hand out", %{conn: conn, guest: guest, work: work} do
+    test "the owner sees it as theirs, with a link to hand out", %{
+      conn: conn,
+      guest: guest,
+      work: work
+    } do
       conn = log_in_user(conn, guest)
       {:ok, _view, html} = live(conn, ~p"/works/#{work.slug}")
 
@@ -115,7 +119,9 @@ defmodule MarginaliaWeb.GuestUploadTest do
   describe "claiming the account keeps the work" do
     test "a guest becomes a real user and keeps everything they uploaded" do
       {:ok, guest} = Accounts.create_guest_user()
-      {:ok, work} = Works.create_work(guest.id, %{"title" => "Kept", "body" => String.duplicate("w ", 300)})
+
+      {:ok, work} =
+        Works.create_work(guest.id, %{"title" => "Kept", "body" => String.duplicate("w ", 300)})
 
       {:ok, claimed} =
         Accounts.claim_guest_account(guest, %{
@@ -134,7 +140,9 @@ defmodule MarginaliaWeb.GuestUploadTest do
 
     test "claiming a real account is refused" do
       user = user_fixture()
-      assert {:error, _} = Accounts.claim_guest_account(user, %{email: "x@y.com", password: "whatever-long"})
+
+      assert {:error, _} =
+               Accounts.claim_guest_account(user, %{email: "x@y.com", password: "whatever-long"})
     end
   end
 end

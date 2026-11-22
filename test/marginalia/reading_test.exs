@@ -160,8 +160,8 @@ defmodule Marginalia.ReadingTest do
       assert kinds(work, nil) == ["beat", "beat", "tension"]
     end
 
-    test "beats alone", %{work: work}, do: assert(kinds(work, "beats") == ["beat", "beat"])
-    test "tensions alone", %{work: work}, do: assert(kinds(work, "tensions") == ["tension"])
+    test("beats alone", %{work: work}, do: assert(kinds(work, "beats") == ["beat", "beat"]))
+    test("tensions alone", %{work: work}, do: assert(kinds(work, "tensions") == ["tension"]))
   end
 
   describe "focus/2" do
@@ -189,8 +189,13 @@ defmodule Marginalia.ReadingTest do
 
       {:ok, work2} = Works.create_work(work.user_id, %{"title" => "Two", "body" => two})
       [s1, s2] = Works.list_sections(work2.id) |> Enum.take(2)
-      {:ok, a} = Works.insert_node(%{work_id: work2.id, section_id: s1.id, node_type: "beat", title: "A"})
-      {:ok, b} = Works.insert_node(%{work_id: work2.id, section_id: s2.id, node_type: "beat", title: "B"})
+
+      {:ok, a} =
+        Works.insert_node(%{work_id: work2.id, section_id: s1.id, node_type: "beat", title: "A"})
+
+      {:ok, b} =
+        Works.insert_node(%{work_id: work2.id, section_id: s2.id, node_type: "beat", title: "B"})
+
       Works.link(work2.id, a.id, b.id, "pays_off", 0, "A promises what B delivers")
 
       focus = Reading.focus(work2, "conn:#{a.id}:#{b.id}:pays_off")
@@ -226,7 +231,9 @@ defmodule Marginalia.ReadingTest do
     test "italics and code fences at the edges are trimmed out of the mark too" do
       for {open, close, tag} <- [{"*", "*", "em"}, {"`", "`", "code"}] do
         text = "Before #{open}the marked words#{close} after."
-        {:safe, html} = Marginalia.Reading.render_block(text, "#{open}the marked words#{close}", "r2")
+
+        {:safe, html} =
+          Marginalia.Reading.render_block(text, "#{open}the marked words#{close}", "r2")
 
         assert html =~ "<#{tag}>"
         assert html =~ "<mark"

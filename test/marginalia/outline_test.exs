@@ -27,6 +27,7 @@ defmodule Marginalia.OutlineTest do
     assert "What are we talking about?" in titles
     assert "A sub heading" in titles
     assert "Deeper still" in titles
+
     assert Enum.find_index(titles, &(&1 == "A sub heading")) <
              Enum.find_index(titles, &(&1 == "Deeper still"))
   end

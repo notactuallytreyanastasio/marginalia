@@ -10,7 +10,10 @@ defmodule Marginalia.QuotaTest do
 
   setup do
     user = user_fixture()
-    {:ok, work} = Works.create_work(user.id, %{"title" => "W", "body" => String.duplicate("w ", 300)})
+
+    {:ok, work} =
+      Works.create_work(user.id, %{"title" => "W", "body" => String.duplicate("w ", 300)})
+
     {:ok, convo} = Chat.get_or_create_conversation(work.id)
     %{user: user, work: work, convo: convo}
   end
@@ -40,7 +43,9 @@ defmodule Marginalia.QuotaTest do
   end
 
   test "questions across every draft count together", %{user: user, convo: convo} do
-    {:ok, other} = Works.create_work(user.id, %{"title" => "Other", "body" => String.duplicate("w ", 300)})
+    {:ok, other} =
+      Works.create_work(user.id, %{"title" => "Other", "body" => String.duplicate("w ", 300)})
+
     {:ok, other_convo} = Chat.get_or_create_conversation(other.id)
 
     ask(convo, 4)
@@ -68,7 +73,9 @@ defmodule Marginalia.QuotaTest do
       |> Ecto.Changeset.change(email: Application.get_env(:marginalia, :owner_email))
       |> Marginalia.Repo.update!()
 
-    {:ok, w} = Works.create_work(owner.id, %{"title" => "O", "body" => String.duplicate("w ", 300)})
+    {:ok, w} =
+      Works.create_work(owner.id, %{"title" => "O", "body" => String.duplicate("w ", 300)})
+
     {:ok, c} = Chat.get_or_create_conversation(w.id)
     ask(c, Chat.message_limit() + 1)
     ask(convo, 1)

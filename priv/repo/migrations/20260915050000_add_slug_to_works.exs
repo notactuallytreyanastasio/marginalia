@@ -12,7 +12,7 @@ defmodule Marginalia.Repo.Migrations.AddSlugToWorks do
 
     flush()
 
-    for {id} <- Marginalia.Repo.all(from w in "works", select: {w.id}) do
+    for {id} <- Marginalia.Repo.all(from(w in "works", select: {w.id})) do
       slug = :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
 
       Marginalia.Repo.update_all(

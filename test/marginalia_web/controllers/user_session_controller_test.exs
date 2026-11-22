@@ -2,7 +2,6 @@ defmodule MarginaliaWeb.UserSessionControllerTest do
   use MarginaliaWeb.ConnCase, async: true
 
   import Marginalia.AccountsFixtures
-  alias Marginalia.Accounts
 
   setup do
     %{unconfirmed_user: unconfirmed_user_fixture(), user: user_fixture()}
@@ -72,7 +71,6 @@ defmodule MarginaliaWeb.UserSessionControllerTest do
       assert redirected_to(conn) == ~p"/users/log-in"
     end
   end
-
 
   describe "DELETE /users/log-out" do
     test "logs the user out", %{conn: conn, user: user} do
