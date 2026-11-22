@@ -26,7 +26,7 @@ defmodule Marginalia.Application do
     # See https://elixir.hexdocs.pm/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Marginalia.Supervisor]
-    started = Supervisor.start_link(children, opts)
+    started = Supervisor.start_link(children ++ factory_report(), opts)
 
     # anything that was mid-read or mid-link when this release last stopped
     # has no process behind it any more — see Marginalia.Recovery
@@ -37,6 +37,17 @@ defmodule Marginalia.Application do
 
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
+  # The report the factory (obs_factor) reads: the BEAM, every connected
+  # LiveView, and counted streams, on an internal port. On in production only
+  # (config/prod.exs), so dev and test never bind the port.
+  defp factory_report do
+    if Application.get_env(:marginalia, :factory_report, false) do
+      [{FactoryReport, app: :marginalia, repos: [Marginalia.Repo]}]
+    else
+      []
+    end
+  end
+
   @impl true
   def config_change(changed, _new, removed) do
     MarginaliaWeb.Endpoint.config_change(changed, removed)

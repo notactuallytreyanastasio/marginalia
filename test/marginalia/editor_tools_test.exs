@@ -57,7 +57,9 @@ defmodule Marginalia.Chat.EditorToolsTest do
 
   describe "record_correction" do
     test "a misread is stored and comes back from recall", %{work: work} do
-      out = call(work, "record_correction", %{"kind" => "misread", "about" => "Del leaves in ch 3"})
+      out =
+        call(work, "record_correction", %{"kind" => "misread", "about" => "Del leaves in ch 3"})
+
       assert out["recorded"] == "misread"
 
       recalled = call(work, "recall_sessions", %{})
@@ -116,6 +118,33 @@ defmodule Marginalia.Chat.EditorToolsTest do
       assert call(work, "connections", %{"type" => "tension"}) == %{
                "result" => "no cross-section connections were drawn for this draft yet"
              }
+    end
+  end
+
+  describe "on a public draft" do
+    test "the tools that are the writer's rather than the book's are not offered" do
+      public = Enum.map(Editor.public_tools(), & &1["function"]["name"])
+
+      refute "record_correction" in public
+      refute "recall_sessions" in public
+      assert "search_manuscript" in public
+      assert "read_passage" in public
+      assert length(public) == length(Editor.tools()) - 2
+    end
+
+    test "and a call to one anyway is refused rather than run", %{work: work} do
+      fun = %{
+        "id" => "x",
+        "function" => %{
+          "name" => "record_correction",
+          "arguments" => Jason.encode!(%{"kind" => "ruling", "about" => "a stranger's ruling"})
+        }
+      }
+
+      out = Editor.run_call(work, fun, Editor.public_tools())["content"] |> Jason.decode!()
+
+      assert out["error"] =~ "not available"
+      assert Works.list_corrections(work.id) == []
     end
   end
 end

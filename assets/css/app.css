@@ -2682,6 +2682,26 @@ body {
 }
 .lc-x:hover { color: var(--mg-accent); }
 
+/* the writer's modes, offered to a reader on a public draft */
+.lc-modes {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.4rem 0.8rem;
+  border-bottom: 1px solid var(--mg-rule);
+}
+.lc-mode {
+  border: 1px solid var(--mg-rule);
+  border-radius: 3px;
+  background: var(--mg-paper);
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+  font-family: var(--mg-sans);
+  font-size: 0.68rem;
+  color: var(--mg-dim);
+}
+.lc-mode:hover { color: var(--mg-ink); }
+.lc-mode.on { background: var(--mg-ink); border-color: var(--mg-ink); color: var(--mg-paper); }
+
 .lc-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0.95rem 1.05rem; scroll-behavior: smooth; }
 .lc-hint {
   font-family: var(--mg-sans);

@@ -247,7 +247,8 @@ defmodule Marginalia.Chat.Editor do
       "type" => "function",
       "function" => %{
         "name" => "list_sections",
-        "description" => "The sections in reading order, with word counts and how many beats each carries. Cheap; call it early to orient.",
+        "description" =>
+          "The sections in reading order, with word counts and how many beats each carries. Cheap; call it early to orient.",
         "parameters" => %{"type" => "object", "properties" => %{}}
       }
     },
@@ -255,7 +256,8 @@ defmodule Marginalia.Chat.Editor do
       "type" => "function",
       "function" => %{
         "name" => "section_beats",
-        "description" => "Every beat read out of one section, in order, each with its verbatim quote.",
+        "description" =>
+          "Every beat read out of one section, in order, each with its verbatim quote.",
         "parameters" => %{
           "type" => "object",
           "properties" => %{"ordinal" => %{"type" => "integer"}},
@@ -320,7 +322,10 @@ defmodule Marginalia.Chat.Editor do
               "type" => "string",
               "description" => "What they actually said, in their words where you have them."
             },
-            "section" => %{"type" => "integer", "description" => "Section number, if it was about one."}
+            "section" => %{
+              "type" => "integer",
+              "description" => "Section number, if it was about one."
+            }
           },
           "required" => ["kind", "about"]
         }
@@ -335,7 +340,10 @@ defmodule Marginalia.Chat.Editor do
         "parameters" => %{
           "type" => "object",
           "properties" => %{
-            "query" => %{"type" => "string", "description" => "A few words. Omit to get the corrections alone."}
+            "query" => %{
+              "type" => "string",
+              "description" => "A few words. Omit to get the corrections alone."
+            }
           }
         }
       }
@@ -354,6 +362,32 @@ defmodule Marginalia.Chat.Editor do
   @doc "The tool schemas handed to the model."
   def tools, do: @tools
 
+  # A stranger on a public draft gets every tool that reads it. The two that
+  # are left out are not reading tools: `record_correction` writes a ruling
+  # into this draft's memory, which would let anyone overrule the writer in
+  # the writer's own chat, and `recall_sessions` returns the writer's private
+  # conversations about the book.
+  @private_tools ~w(record_correction recall_sessions)
+
+  @doc "The tools offered to a reader of a public draft."
+  def public_tools, do: Enum.reject(@tools, &(&1["function"]["name"] in @private_tools))
+
+  @public_card """
+  THE PERSON TALKING TO YOU IS A READER, NOT THE WRITER.
+
+  This draft is published and they are reading it on the public page, with the notes from the
+  read in the margin beside it. Everything above about the writer still describes the book and
+  the rules, but they did not write it: do not address them as its author, do not ask what they
+  intended, and do not tell them to cut or change anything. Help them read it — what a passage
+  is doing, where a thread goes, what pays off later, what the notes mean.
+
+  record_correction and recall_sessions are not available here. The writer's rulings and their
+  earlier conversations are theirs. Every other tool is, so use them: you are still never
+  guessing about this book.
+
+  You still never write prose for this book, for the same reasons.
+  """
+
   @doc "The system prompt, verbatim. Exposed so tests can hold it to the tool list."
   def system_prompt, do: @system_prompt
 
@@ -364,6 +398,7 @@ defmodule Marginalia.Chat.Editor do
   def ask(work, history, opts \\ []) when is_list(history) do
     provider = opts[:provider]
     m = mode(opts[:mode])
+    public? = opts[:public] == true
 
     # Ordered by how often each part changes, because the provider caches on
     # an exact prefix and charges a fraction for the part it recognises. The
@@ -380,26 +415,28 @@ defmodule Marginalia.Chat.Editor do
         %{"role" => "system", "content" => manuscript_card(work)},
         %{"role" => "system", "content" => m.stance}
       ] ++
+        if(public?, do: [%{"role" => "system", "content" => @public_card}], else: []) ++
         history ++
         Enum.reject([focus_card(opts[:focus]), cited_card(opts[:cited])], &is_nil/1)
 
-    loop(work, messages, 0, provider)
+    tools = if public?, do: public_tools(), else: @tools
+    loop(work, messages, 0, provider, tools)
   end
 
-  defp loop(_work, _messages, n, _provider) when n >= @max_tool_iterations,
+  defp loop(_work, _messages, n, _provider, _tools) when n >= @max_tool_iterations,
     do: {:error, "gave up after too many tool calls"}
 
-  defp loop(work, messages, n, provider) do
+  defp loop(work, messages, n, provider, tools) do
     case LLM.chat(
            provider: provider,
            messages: messages,
-           tools: @tools,
+           tools: tools,
            temperature: 0.7,
            max_tokens: 2_000
          ) do
       {:ok, %{"tool_calls" => calls} = msg} when is_list(calls) and calls != [] ->
-        results = Enum.map(calls, &run_call(work, &1))
-        loop(work, messages ++ [msg] ++ results, n + 1, provider)
+        results = Enum.map(calls, &run_call(work, &1, tools))
+        loop(work, messages ++ [msg] ++ results, n + 1, provider, tools)
 
       {:ok, %{"content" => content}} ->
         {:ok, content || "(no response)"}
@@ -486,7 +523,17 @@ defmodule Marginalia.Chat.Editor do
 
   @doc false
   # public so the tool surface can be tested without a live model
-  def run_call(work, %{"id" => id, "function" => %{"name" => name, "arguments" => args_json}}) do
+  #
+  # `offered` is the tool list the model was given. A call to anything else
+  # is refused here rather than trusted to the provider: a public reader's
+  # model that names record_correction anyway must not reach it.
+  def run_call(work, call, offered \\ @tools)
+
+  def run_call(
+        work,
+        %{"id" => id, "function" => %{"name" => name, "arguments" => args_json}},
+        offered
+      ) do
     args =
       case Jason.decode(args_json || "{}") do
         {:ok, m} when is_map(m) -> m
@@ -496,9 +543,16 @@ defmodule Marginalia.Chat.Editor do
     %{
       "role" => "tool",
       "tool_call_id" => id,
-      "content" => work |> tool(name, args) |> Jason.encode!()
+      "content" =>
+        if offered?(offered, name) do
+          work |> tool(name, args) |> Jason.encode!()
+        else
+          Jason.encode!(%{error: "#{name} is not available here"})
+        end
     }
   end
+
+  defp offered?(offered, name), do: Enum.any?(offered, &(&1["function"]["name"] == name))
 
   # the same word-scoring `Works.search/3` uses, over the connection text, so
   # "connections about the prologue" behaves the way the writer expects
@@ -551,7 +605,12 @@ defmodule Marginalia.Chat.Editor do
     work.id
     |> Works.list_sections()
     |> Enum.map(
-      &%{ordinal: &1.ordinal, title: &1.title, words: &1.word_count, beats: Map.get(by_section, &1.id, 0)}
+      &%{
+        ordinal: &1.ordinal,
+        title: &1.title,
+        words: &1.word_count,
+        beats: Map.get(by_section, &1.id, 0)
+      }
     )
   end
 
@@ -613,7 +672,10 @@ defmodule Marginalia.Chat.Editor do
         %{recorded: c.kind, about: c.about, note: "this will be in front of you next time"}
 
       {:error, cs} ->
-        %{error: "not recorded: #{inspect(Ecto.Changeset.traverse_errors(cs, fn {m, _} -> m end))}"}
+        %{
+          error:
+            "not recorded: #{inspect(Ecto.Changeset.traverse_errors(cs, fn {m, _} -> m end))}"
+        }
     end
   end
 
@@ -621,7 +683,9 @@ defmodule Marginalia.Chat.Editor do
     corrections =
       work.id
       |> Works.list_corrections()
-      |> Enum.map(&%{kind: &1.kind, about: &1.about, they_said: &1.ruling, section: &1.section_ordinal})
+      |> Enum.map(
+        &%{kind: &1.kind, about: &1.about, they_said: &1.ruling, section: &1.section_ordinal}
+      )
 
     %{
       corrections: corrections,
@@ -676,8 +740,7 @@ defmodule Marginalia.Chat.Editor do
       id: "read",
       label: "Read",
       blurb: "What is actually on the page",
-      opener:
-        "I've read the whole draft. Ask me what's there — or what isn't.",
+      opener: "I've read the whole draft. Ask me what's there — or what isn't.",
       stance: """
       MODE: READ.
 
@@ -692,8 +755,7 @@ defmodule Marginalia.Chat.Editor do
       id: "provoke",
       label: "Provoke",
       blurb: "Questions that open the next draft",
-      opener:
-        "Ask me to push on something, or take one of these. I'll ask rather than answer.",
+      opener: "Ask me to push on something, or take one of these. I'll ask rather than answer.",
       stance: """
       MODE: PROVOKE.
 

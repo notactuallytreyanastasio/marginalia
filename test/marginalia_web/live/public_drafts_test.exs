@@ -79,4 +79,62 @@ defmodule MarginaliaWeb.PublicDraftsTest do
     assert {:error, {:live_redirect, %{to: "/drafts"}}} =
              live(build_conn(), ~p"/drafts/not-a-real-slug")
   end
+
+  describe "the chat" do
+    setup ctx do
+      {:ok, work} = Works.set_status(ctx.mine, "read")
+      s = hd(Works.list_sections(work.id))
+
+      {:ok, beat} =
+        Works.insert_node(%{
+          work_id: work.id,
+          section_id: s.id,
+          node_type: "beat",
+          title: "the word keeps coming back",
+          body: "Repetition is the whole engine here.",
+          quote: "word word word"
+        })
+
+      %{work: work, beat: beat}
+    end
+
+    test "a stranger can open it, with the writer's modes", ctx do
+      {:ok, view, html} = live(build_conn(), ~p"/drafts/#{ctx.work.slug}")
+      assert html =~ "lc-bubble"
+
+      html = view |> element("button.lc-bubble") |> render_click()
+      assert html =~ ~s(class="lc-panel")
+      assert html =~ ~s(phx-submit="chat_send")
+
+      for m <- Marginalia.Chat.Editor.modes(), do: assert(html =~ m.label)
+    end
+
+    test "clicking a note opens the chat pointing at it", ctx do
+      {:ok, view, _} = live(build_conn(), ~p"/drafts/#{ctx.work.slug}")
+
+      html = render_click(view, "discuss", %{"key" => "beat:#{ctx.beat.id}"})
+
+      assert html =~ ~s(class="lc-panel")
+      assert html =~ "pointing at"
+      assert html =~ "the word keeps coming back"
+    end
+
+    test "a question goes out and the turn is kept, with no account minted", ctx do
+      before = Marginalia.Repo.aggregate(Marginalia.Accounts.User, :count)
+      {:ok, view, _} = live(build_conn(), ~p"/drafts/#{ctx.work.slug}")
+      render_click(view, "toggle_chat", %{})
+
+      html = render_submit(view, "chat_send", %{"message" => "What is this doing?"})
+      assert html =~ "What is this doing?"
+
+      # the model is a closed port in test: the failure must be said, not swallowed
+      render_async(view)
+      assert render(view) =~ "That did not go through"
+
+      assert Marginalia.Repo.aggregate(Marginalia.Accounts.User, :count) == before
+
+      assert Marginalia.Chat.list_conversations(ctx.work.id)
+             |> Enum.all?(&(Marginalia.Chat.history(&1.id) == []))
+    end
+  end
 end

@@ -161,4 +161,42 @@ defmodule MarginaliaWeb.PublicReadingTest do
                live(build_conn(), ~p"/reading/#{folder.slug || "x"}/1")
     end
   end
+
+  describe "a reading is its drafts" do
+    setup %{owner: owner, folder: folder} do
+      {:ok, folder} = Folders.publish(owner.id, folder.id)
+      %{folder: folder}
+    end
+
+    test "the reading lists them, and each opens as a public draft", %{folder: folder} do
+      {:ok, _view, html} = live(build_conn(), ~p"/reading/#{folder.slug}")
+      [work] = Marginalia.Stacks.documents(folder.user_id, folder.id)
+
+      assert html =~ ~s(href="/drafts/#{work.slug}")
+
+      {:ok, _view, html} = live(build_conn(), ~p"/drafts/#{work.slug}")
+      assert html =~ ~s(href="/reading/#{folder.slug}")
+      assert html =~ "lc-bubble"
+    end
+
+    test "a published folder with no telling is still a reading", %{conn: conn, owner: owner} do
+      {:ok, bare} = Folders.create_folder(owner.id, %{"name" => "Just the chapters"})
+
+      {:ok, w} =
+        Works.create_work(owner.id, %{
+          "title" => "1. chapter-01",
+          "body" => "# One\n\n" <> String.duplicate("word ", 200)
+        })
+
+      {:ok, _} = Folders.move_work(owner.id, w.id, bare.id)
+      {:ok, bare} = Folders.publish(owner.id, bare.id)
+
+      {:ok, _view, html} = live(build_conn(), ~p"/reading/#{bare.slug}")
+      assert html =~ "Just the chapters"
+      assert html =~ ~s(href="/drafts/#{w.slug}")
+
+      {:ok, _view, html} = live(conn, ~p"/reading")
+      assert html =~ "Just the chapters"
+    end
+  end
 end
