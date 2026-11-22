@@ -36,7 +36,7 @@ defmodule FactoryReport do
 
   use Supervisor
 
-  alias FactoryReport.{LogHandler, Runtime, Streams, Tracker}
+  alias FactoryReport.{Cluster, LogHandler, Runtime, Streams, Tracker}
 
   @version 1
   @meta :factory_report_meta
@@ -140,6 +140,7 @@ defmodule FactoryReport do
       "app" => to_string(app),
       "at" => DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601(),
       "runtime" => Runtime.section(app),
+      "cluster" => Cluster.section(),
       "units" => units,
       "streams" => streams,
       "events" => LogHandler.events(),
