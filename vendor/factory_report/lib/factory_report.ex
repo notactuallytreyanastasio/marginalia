@@ -30,6 +30,20 @@ defmodule FactoryReport do
       `"events"` (log events are still counted per level). Default `true`.
     * `:log_level` - the lowest level whose messages go into `"events"`
       (default `:warning`).
+    * `:observer` - `false` turns `/observer/...` off (404). By default
+      it is on, but its reads answer 403 while there is no `:token`
+      (the listener binds every interface, and the reads list every
+      process, tree, table and port, and a procs read walks every process
+      twice). `true` serves them without a token too: say so only where
+      the port is reachable by the observer alone. See
+      `FactoryReport.Observer`.
+    * `:inspect_state` - `true` lets `GET /observer/proc/:pid?state=true`
+      read a process's state with `:sys.get_state/2`. Default `false`.
+    * `:actions_token` - a non-empty string turns the observer's actions
+      (kill, exit, gc, restart, logger level) on, behind
+      `authorization: Bearer <actions_token>`. Default: the
+      `FACTORY_REPORT_ACTIONS_TOKEN` environment variable; unset or empty
+      means actions are off (403).
 
   One instance per VM: the tables are named.
   """
@@ -55,6 +69,9 @@ defmodule FactoryReport do
           | {:max_stream_names, pos_integer}
           | {:log_events, boolean}
           | {:log_level, Logger.level()}
+          | {:observer, boolean}
+          | {:inspect_state, boolean}
+          | {:actions_token, String.t() | nil}
 
   @doc false
   def child_spec(opts) do
@@ -92,7 +109,8 @@ defmodule FactoryReport do
       {:app, Keyword.fetch!(opts, :app)},
       {:token, token},
       {:max_stream_names, Keyword.get(opts, :max_stream_names, 400)},
-      {:handler_errors, 0}
+      {:handler_errors, 0},
+      {:observer, observer_config(opts)}
     ])
 
     port = Keyword.get(opts, :port, @default_port)
@@ -117,6 +135,23 @@ defmodule FactoryReport do
 
     children = [{Tracker, Keyword.take(opts, [:repos, :log_events, :log_level])} | listener]
     Supervisor.init(children, strategy: :one_for_one)
+  end
+
+  # The observer's settings, kept in the meta table for the plug. The
+  # actions token falls back to FACTORY_REPORT_ACTIONS_TOKEN, read once here.
+  defp observer_config(opts) do
+    token =
+      case Keyword.get_lazy(opts, :actions_token, fn -> System.get_env("FACTORY_REPORT_ACTIONS_TOKEN") end) do
+        token when is_binary(token) and token != "" -> token
+        _ -> nil
+      end
+
+    %{
+      enabled: Keyword.get(opts, :observer, :default) != false,
+      open: Keyword.get(opts, :observer, :default) == true,
+      inspect_state: Keyword.get(opts, :inspect_state, false) == true,
+      actions_token: token
+    }
   end
 
   @doc """

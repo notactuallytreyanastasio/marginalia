@@ -47,7 +47,12 @@ defmodule Marginalia.Application do
   # (config/prod.exs), so dev and test never bind the port.
   defp factory_report do
     if Application.get_env(:marginalia, :factory_report, false) do
-      [{FactoryReport, app: :marginalia, repos: [Marginalia.Repo]}]
+      [
+        # observer: true: the observer reads /observer here without a report
+        # token (factory_report refuses tokenless reads otherwise); the port
+        # is reachable only on the cluster's own network
+        {FactoryReport, app: :marginalia, repos: [Marginalia.Repo], observer: true}
+      ]
     else
       []
     end

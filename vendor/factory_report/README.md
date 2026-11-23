@@ -8,6 +8,10 @@ it, and the app's most recent warnings and errors. It serves one JSON
 document, the format in `docs/contract.md`, "Reports: what is inside a
 building" and "Reports, second round".
 
+On the same port, on demand: an `:observer` for the VM, as JSON, with
+actions (kill, exit, gc, restart a child, the Logger level) that are off
+until you give them a token. See "Observer".
+
 **The report contains log messages.** The last 50 log events at `warning`
 and above are in it, in the app's own words. See "What is not reported, and
 what is" before you expose it; `log_events: false` leaves them out.
@@ -85,6 +89,9 @@ With the options most apps want:
 | `:max_stream_names` | `400` | Rows one stream kind may hold (totals and breakdowns together). Later names count under `"(other)"`. |
 | `:log_events` | `true` | `false` keeps log messages out of the report (`"events": []`). Log events are still counted per level. |
 | `:log_level` | `:warning` | The lowest level whose messages go into `"events"`. |
+| `:observer` | on, reads need `:token` | `false` turns `/observer/...` off (404). Left out, it is on but its reads answer 403 `observer reads need a token ...` while there is no `:token`: the port binds every interface, and a `procs` read walks every process twice. `true` serves reads without a token; say it only where nothing but the observer reaches the port. See "Observer". |
+| `:inspect_state` | `false` | `true` lets `GET /observer/proc/:pid?state=true` read a process's state (`:sys.get_state/2`, 500 ms). |
+| `:actions_token` | `FACTORY_REPORT_ACTIONS_TOKEN` | A non-empty string turns the observer's actions on, behind `authorization: Bearer <actions_token>`. Unset or empty: actions answer 403. |
 
 One reporter per VM (its tables are named).
 
@@ -330,6 +337,49 @@ tracked processes: `Process.info/2` is asked for exactly those pids, and
 nothing ever walks the process table. Memory is one ETS row per tracked
 process and one per stream name.
 
+## Observer
+
+`:observer`, as JSON, on the same port and the same plug: costs nothing
+until it is asked (no process, table or handler of its own). The full
+request and response shapes are in obs_factor's `docs/contract.md`,
+"Observer"; in short (`:pid` is written `0.123.0`, every response has
+`took_ms` and `node`):
+
+| Request | Answer |
+|---|---|
+| `GET /observer` | which reads and actions exist, `inspect_state` |
+| `GET /observer/system` | versions, system_info, schedulers, limits (process/port/atom/ets), `:erlang.memory`, statistics, allocator sizes, distribution (connected nodes), the primary Logger level |
+| `GET /observer/apps` | started applications, each with its top supervisor's pid |
+| `GET /observer/tree/:app?depth=8` | the supervision tree, each node a process summary |
+| `GET /observer/procs?sort=reductions\|memory\|message_queue_len&limit=50&interval_ms=0` | the top N processes; `interval_ms` > 0 takes two samples and ranks by reductions in between |
+| `GET /observer/proc/:pid?state=true` | one process: links, monitors, stack, heap, GC, dictionary keys, supervisor path, state if allowed |
+| `GET /observer/ets` | tables by memory |
+| `GET /observer/ports` | ports by traffic |
+| `POST /observer/proc/:pid/kill` | `exit(pid, :kill)` |
+| `POST /observer/proc/:pid/exit` `{"reason": "shutdown"\|"normal"\|"kill"}` | `exit(pid, reason)` |
+| `POST /observer/proc/:pid/gc` | `:erlang.garbage_collect(pid)` |
+| `POST /observer/tree/:app/restart` `{"supervisor": "0.1.0", "child_id": "MyApp.Worker"}` | `terminate_child` + `restart_child`, the child matched by `inspect(id)` |
+| `POST /observer/logger/level` `{"level": "debug"}` | the primary Logger level |
+
+Actions are off (403) unless `actions_token:` or
+`FACTORY_REPORT_ACTIONS_TOKEN` is set; then they need
+`authorization: Bearer <token>` (compared in constant time). Each action is
+logged by the app at `warning` with what was done and the `x-factory-by`
+request header (who asked). Killing or exiting `init` or a `kernel` process
+is refused (409): it would stop the VM.
+
+Bounds: 25 children per supervisor (the heaviest by memory; the rest as one
+`{"group": true, "count", "memory", "message_queue_len_max"}`), depth 8 (at
+most 12), 1,500 nodes and 2 s per tree, with a `cut` object counting what
+each limit left out; at most 200 processes from a walk of at most 100,000;
+`interval_ms` at most 2,000; 100 links/monitors/dictionary keys, 30 stack
+frames, 500 tables, 500 ports, 200 characters per string. `which_children`
+is sent only to processes that proc_lib started as supervisors, with a 1 s
+timeout. A pid of another node is refused (400): ask that node's observer.
+
+`FactoryReport.Observer.dispatch(method, path, params, opts)` is the same
+thing without HTTP, for an app that serves its own VM in-process.
+
 ## Structured stdout
 
 Separate from the report, and optional: one JSON object per log line, for
@@ -369,8 +419,17 @@ every level the app logs and the full message.
   `REPORT_TOKEN` in the observer). It is compared in constant time. It is
   not a substitute for the above: the listener speaks plain HTTP, so the
   token crosses the network in the clear.
-- The listener answers one thing, `GET /report`; everything else is 404.
-  It reads no request body and takes no parameters.
+- The listener answers `GET /report` and the observer's `/observer/...`
+  (below); everything else is 404. Observer reads take the same token as
+  the report. Observer actions (POST) take only the actions token, are off
+  without one, and read at most 8 kB of body.
+- The observer shows process, table, port and application names, initial
+  calls and stack traces: names the app chose, which can say a lot about
+  it. It never shows message contents, process dictionary values or (unless
+  `inspect_state: true`) process state. With `inspect_state: true` a state
+  is shown as `inspect/2` prints it, cut at 4096 bytes: whatever a
+  GenServer holds (a token, a user) is then visible to whoever can read
+  the observer.
 
 ## Tests
 
