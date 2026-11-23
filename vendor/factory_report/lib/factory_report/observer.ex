@@ -432,13 +432,13 @@ defmodule FactoryReport.Observer do
 
       true ->
         case which_children(pid) do
-          {:ok, list} -> walk_children(list, depth, ctx)
+          {:ok, list} -> walk_children(pid, list, depth, ctx)
           {:error, reason} -> {nil, reason, bump(ctx, "errors")}
         end
     end
   end
 
-  defp walk_children(list, depth, ctx) do
+  defp walk_children(sup, list, depth, ctx) do
     {listed, rest} =
       if length(list) > @tree_children do
         list
@@ -456,8 +456,21 @@ defmodule FactoryReport.Observer do
           walk(child, clip(inspect(id)), Atom.to_string(type), depth + 1, ctx)
 
         {id, child, type, _mods}, ctx ->
-          status = if child == :restarting, do: "restarting", else: "not running"
-          {%{"id" => clip(inspect(id)), "type" => Atom.to_string(type), "pid" => nil, "status" => status, "children" => nil, "not_walked" => nil}, %{ctx | nodes: ctx.nodes + 1}}
+          restart = restart_type(sup, id)
+
+          # A child with no process is only a problem if its supervisor meant
+          # to keep it running. :transient and :temporary children that ran
+          # and stopped (a boot-time Task such as marginalia's :warmup, or
+          # kernel's :on_load) are "finished"; they read as down otherwise.
+          status =
+            cond do
+              child == :restarting -> "restarting"
+              restart in ["transient", "temporary"] -> "finished"
+              true -> "not running"
+            end
+
+          {%{"id" => clip(inspect(id)), "type" => Atom.to_string(type), "pid" => nil, "status" => status,
+             "restart" => restart, "children" => nil, "not_walked" => nil}, %{ctx | nodes: ctx.nodes + 1}}
       end)
 
     case rest do
@@ -497,6 +510,18 @@ defmodule FactoryReport.Observer do
   # expect.
   defp supervisor_call?(%{"supervisor?" => true}), do: true
   defp supervisor_call?(_), do: false
+
+  # "permanent" | "transient" | "temporary", or nil when the supervisor does
+  # not say (a DynamicSupervisor, or no answer in time).
+  defp restart_type(sup, id) do
+    case :supervisor.get_childspec(sup, id) do
+      {:ok, %{restart: r}} when r in [:permanent, :transient, :temporary] -> Atom.to_string(r)
+      {:ok, {_id, _start, r, _shut, _type, _mods}} when r in [:permanent, :transient, :temporary] -> Atom.to_string(r)
+      _ -> nil
+    end
+  catch
+    :exit, _ -> nil
+  end
 
   defp which_children(pid) do
     {:ok, GenServer.call(pid, :which_children, @call_timeout)}
