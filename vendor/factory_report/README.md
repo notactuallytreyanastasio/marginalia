@@ -179,6 +179,38 @@ FactoryReport.event("mail.sent", duration_us: 15_300)
   member's label is the prefix too, never the full topic (the rest of a
   topic is very often a user or a room id). `route` is `null`.
 
+**`liveviews`: sessions alive now, per view**
+
+```json
+{"total": 5, "views": [{"view": "MyAppWeb.PostLive", "alive": 3}, {"view": "MyAppWeb.NavLive", "alive": 2}],
+ "views_cut": 0, "processes": 812, "walked": 812, "walk_limit": 20000, "took_ms": 1.25}
+```
+
+Counted by walking the VM's processes on each report, not from telemetry,
+so a LiveView that mounted before the reporter started is counted too (it
+is not a unit). A LiveView process is one whose `$initial_call` is
+`{View, :mount, 3}` where `View` exports `__live__/0`; that is how
+LiveView 1.0 to 1.2 mark it (checked by running 1.0.19 and 1.2.13). A
+nested LiveView counts under its own module. The walk reads that one
+dictionary key per process and stops after 20,000 processes: past that,
+`walked` is less than `processes` and `total` is a lower bound. `views` is
+the 100 most populous. Before OTP 26.2 a single key cannot be read without
+copying the whole dictionary, so there the section has `"total": null`,
+`"walked": 0` and `"unavailable"` saying why.
+
+**`tables`: repo time per table** (cumulative, the most time first)
+
+```json
+{"repo": "MyApp.Repo", "table": "posts", "count": 99120, "errors": 0, "duration_us": 55443322}
+```
+
+The same queries as the `db.query` stream, split by Ecto's `source`: the
+FROM table (a join counts under its first table). `"table": null` is SQL
+with no source: `Repo.query/3`, and the `begin` and `commit` of every
+transaction. So a repo's tables add up to its `db.query` total. Not
+attributed to a page. The observer turns these into rate, average and
+total time over its window and shows the 15 with the most time.
+
 **`streams`** (`count`, `errors`, `duration_us`, cumulative)
 
 | kind | name | from | an error is |
@@ -248,6 +280,12 @@ translated by Elixir's Logger and are listed like any other error.
 - 300 streams: totals first (the busiest by `count`), then breakdown rows
   (the busiest by `count`), so a cut takes breakdowns before any total;
   `truncated.streams` is how many rows were left out.
+- 100 tables, the most `duration_us` first; `truncated.tables` is how many
+  more. The library keeps at most 200 repo/table pairs; a pair after that
+  is counted under `"table": "(other)"` (the schemas are a fixed set, so
+  this is only a guard).
+- 100 LiveView modules in `liveviews.views` (`views_cut` is the rest); a
+  walk of at most 20,000 processes.
 - 50 events, each message cut at 300 characters.
 - Names and labels are cut at 120 characters and are always valid UTF-8.
 - A kind holds at most `:max_stream_names` names. What arrives after that
@@ -303,7 +341,8 @@ Measured on an M-series laptop, including `:telemetry.execute` itself
 | LiveView render (already tracked) | 0.12 µs |
 | LiveView mount / handle_params (parses the URI, asks the router for the pattern) | about 4 µs |
 | `FactoryReport.event/2` | 0.15 µs, attributed 0.22 µs |
-| `db.query`, `outbound.http` | 0.21 µs; 0.29 µs when attributed (the total and the `by` row) |
+| `outbound.http` | 0.21 µs; 0.29 µs when attributed (the total and the `by` row) |
+| `db.query` | the same, plus about 0.08 µs for its table's row (0.18 µs without it, 0.26 µs with it, measured side by side) |
 | router dispatch `:start` (sets the page mark) | 0.32 µs |
 | the same handlers in a `Task` whose caller is not a page | 0.80 µs (the caller is looked up each time; a found page is remembered) |
 | the log handler, a line below the floor (counted) | 0.21 µs |
@@ -322,7 +361,7 @@ to a `Logger.info` and 0.35 µs to a `Logger.warning` that already cost
 about 1 µs with no other handler. A message is formatted with a bound: at
 most 300 characters are ever produced, however large the logged term.
 
-**In the library's own processes.** A supervisor (it owns four ETS
+**In the library's own processes.** A supervisor (it owns five ETS
 tables), a tracker (one monitor per tracked process; it deletes the row on
 `DOWN`; it also holds the telemetry attachments, the log handler and the
 `scheduler_wall_time` flag, which costs the VM a timestamp per scheduler
@@ -333,9 +372,13 @@ connections.
 0.2 ms with nothing tracked, mostly `:erlang.memory/0`; 2.7 ms median
 (p95 3.3 ms, 157k reductions) with 1,000 tracked processes and 300
 streams, 2.9 ms with the JSON encoding (96 kB). It grows linearly with
-tracked processes: `Process.info/2` is asked for exactly those pids, and
-nothing ever walks the process table. Memory is one ETS row per tracked
-process and one per stream name.
+tracked processes: `Process.info/2` is asked for exactly those pids.
+Those numbers are from before `liveviews`, which does walk the process
+table: one `process_info(pid, {:dictionary, :"$initial_call"})` per
+process, 1.4 to 1.9 µs each (27 to 37 ms for 20,000 processes, measured on
+an M-series laptop, OTP 28), capped at 20,000 processes, on every read; its
+`took_ms` says what it cost. Memory is one ETS row per tracked process, one
+per stream name and one per repo/table pair.
 
 ## Observer
 

@@ -50,7 +50,7 @@ defmodule FactoryReport do
 
   use Supervisor
 
-  alias FactoryReport.{Cluster, LogHandler, Runtime, Streams, Tracker}
+  alias FactoryReport.{Cluster, LiveViews, LogHandler, Runtime, Streams, Tables, Tracker}
 
   @version 1
   @meta :factory_report_meta
@@ -59,6 +59,7 @@ defmodule FactoryReport do
   @max_units 100
   @max_members 20
   @max_streams 300
+  @max_tables 100
 
   @type option ::
           {:app, atom}
@@ -96,6 +97,7 @@ defmodule FactoryReport do
     # its counters and its tracked processes as it left them.
     :ets.new(@meta, [:named_table, :public, :set, read_concurrency: true])
     Streams.create()
+    Tables.create()
     Tracker.create()
     LogHandler.create()
 
@@ -169,6 +171,7 @@ defmodule FactoryReport do
 
     {units, cut_units, cut_members} = Tracker.units(@max_units, @max_members)
     {streams, cut_streams} = Streams.rows(@max_streams)
+    {tables, cut_tables} = Tables.rows(@max_tables)
 
     %{
       "factory_report" => @version,
@@ -177,9 +180,16 @@ defmodule FactoryReport do
       "runtime" => Runtime.section(app),
       "cluster" => Cluster.section(),
       "units" => units,
+      "liveviews" => LiveViews.section(),
       "streams" => streams,
+      "tables" => tables,
       "events" => LogHandler.events(),
-      "truncated" => %{"units" => cut_units, "members" => cut_members, "streams" => cut_streams}
+      "truncated" => %{
+        "units" => cut_units,
+        "members" => cut_members,
+        "streams" => cut_streams,
+        "tables" => cut_tables
+      }
     }
   end
 
