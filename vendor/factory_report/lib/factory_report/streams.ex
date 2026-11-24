@@ -131,10 +131,11 @@ defmodule FactoryReport.Streams do
     :ok
   end
 
-  defp to_us(native) when is_integer(native) and native > 0,
+  @doc false
+  def to_us(native) when is_integer(native) and native > 0,
     do: System.convert_time_unit(native, :native, :microsecond)
 
-  defp to_us(_), do: 0
+  def to_us(_), do: 0
 
   @doc "A name no longer than #{@max_name} bytes, in O(1)."
   def cut(name) when is_binary(name) and byte_size(name) > @max_name,

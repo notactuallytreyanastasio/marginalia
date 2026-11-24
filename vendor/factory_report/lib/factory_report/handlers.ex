@@ -11,7 +11,7 @@ defmodule FactoryReport.Handlers do
   # Events are attached by name, so nothing here needs Phoenix, LiveView,
   # Finch or Ecto to exist: an event that is never emitted costs nothing.
 
-  alias FactoryReport.{Attribution, Streams, Tracker}
+  alias FactoryReport.{Attribution, Streams, Tables, Tracker}
 
   @http [
     [:phoenix, :router_dispatch, :start],
@@ -233,7 +233,12 @@ defmodule FactoryReport.Handlers do
 
   defp dispatch(_event, measurements, metadata, {:repo, name}) do
     error? = match?(%{result: {:error, _}}, metadata)
-    Streams.hit_by("db.query", name, Map.get(measurements, :total_time, 0), error?)
+    total = Map.get(measurements, :total_time, 0)
+    Streams.hit_by("db.query", name, total, error?)
+    # The same query again, by table (Ecto's `source`; nil for Repo.query/3
+    # and begin/commit). Not attributed to a page: the page breakdown is on
+    # db.query, and repo x table x page would multiply the rows.
+    Tables.hit(name, metadata[:source], total, error?)
   end
 
   # ---- names ----
